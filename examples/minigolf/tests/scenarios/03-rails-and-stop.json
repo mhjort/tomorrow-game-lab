@@ -1,0 +1,13 @@
+{
+  "name": "rails-and-stop",
+  "description": "A hard angled shot bounces off the rails, stays on the course and comes to rest; then aiming resumes.",
+  "steps": [
+    { "step": 10 },
+    { "input": { "type": "shoot", "angle": 25, "power": 0.9 } },
+    { "until": "state.phase !== 'rolling'", "max": 1200 },
+    { "assert": "state.phase === 'aim'", "label": "ball stopped (not holed)" },
+    { "assert": "state.strokes === 1", "label": "no out-of-bounds penalty" },
+    { "assert": "Math.abs(state.ball.x) < 0.6 && state.ball.y > 0 && state.ball.y < 0.1", "label": "ball rests on the lane" },
+    { "screenshot": "rested" }
+  ]
+}

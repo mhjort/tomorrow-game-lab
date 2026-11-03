@@ -1,0 +1,24 @@
+{
+  "$comment": "Every judge returns exactly one JSON object of this shape (write it to .lab/runs/<run>/judges/<judge>.json).",
+  "type": "object",
+  "required": ["judge", "score", "pass", "summary", "issues"],
+  "properties": {
+    "judge": { "type": "string" },
+    "score": { "type": "number", "minimum": 0, "maximum": 10 },
+    "pass": { "type": "boolean", "description": "score >= the judge's pass threshold AND no blocker issues" },
+    "summary": { "type": "string", "description": "2-3 sentences" },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "title", "evidence", "fix"],
+        "properties": {
+          "severity": { "enum": ["blocker", "major", "minor"] },
+          "title": { "type": "string" },
+          "evidence": { "type": "string", "description": "file/screenshot/step that shows it" },
+          "fix": { "type": "string", "description": "concrete, actionable change (file + what to change)" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "palette": { "primary": "#3a9d5d", "secondary": "#f2e8cf", "accent": "#e4572e", "dark": "#2b2d42", "sky": "#9ad1f5" },
+  "background": "#9ad1f5",
+  "fog": { "color": "#9ad1f5", "near": 30, "far": 120 },
+  "sun": { "color": "#fff4e0", "intensity": 3.0, "elevation": 50, "azimuth": 35, "shadows": true },
+  "ambient": { "color": "#bcd7ff", "ground": "#3a5a40", "intensity": 0.8 },
+  "materials": { "roughness": 0.7, "metalness": 0.0 },
+  "camera": { "fov": 50 },
+  "toneMapping": "ACES",
+  "exposure": 1.0
+}

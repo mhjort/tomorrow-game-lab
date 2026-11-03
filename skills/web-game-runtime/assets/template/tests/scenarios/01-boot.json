@@ -1,0 +1,12 @@
+{
+  "name": "boot",
+  "description": "Game boots, reports a backend, renders a first frame without errors.",
+  "steps": [
+    { "step": 1 },
+    { "screenshot": "boot" },
+    { "assert": "state.ball.y > 0", "label": "ball spawned above ground" },
+    { "step": 120 },
+    { "assert": "Math.abs(state.ball.y - 0.5) < 0.05", "label": "ball rests on ground" },
+    { "screenshot": "settled" }
+  ]
+}

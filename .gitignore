@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.lab/
+lab/.tmp/
+*.blend1
+__pycache__/
+.DS_Store

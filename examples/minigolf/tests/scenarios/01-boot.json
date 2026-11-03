@@ -1,0 +1,15 @@
+{
+  "name": "boot",
+  "description": "Boots on hole 1 with the ball on the tee, no errors; captures follow + key-art-style overview shots.",
+  "steps": [
+    { "step": 30 },
+    { "assert": "state.hole === 1 && state.phase === 'aim' && state.strokes === 0" },
+    { "assert": "Math.hypot(state.ball.x - state.tee.x, state.ball.z - state.tee.z) < 0.05", "label": "ball on tee" },
+    { "input": { "type": "aim", "angle": 0, "power": 0.5 } },
+    { "step": 1 },
+    { "screenshot": "aim" },
+    { "input": { "type": "camera", "mode": "overview" } },
+    { "step": 1 },
+    { "screenshot": "overview" }
+  ]
+}

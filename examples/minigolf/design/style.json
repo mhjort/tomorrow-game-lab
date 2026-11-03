@@ -1,0 +1,23 @@
+{
+  "palette": {
+    "grass": "#529249",
+    "turf": "#69aa71",
+    "rail": "#f2e6cc",
+    "accent": "#e4572e",
+    "water": "#3aa7d8",
+    "rock": "#946f44",
+    "leaf": "#3f7a46",
+    "wood": "#7a4f2b",
+    "cup": "#1d1f2b",
+    "ball": "#ffffff",
+    "sky": "#f1cfa8"
+  },
+  "background": "#f1cfa8",
+  "fog": { "color": "#f1cfa8", "near": 18, "far": 60 },
+  "sun": { "color": "#ffe2b8", "intensity": 3.2, "elevation": 32, "azimuth": 60, "shadows": true },
+  "ambient": { "color": "#cfe0ff", "ground": "#4a6b3a", "intensity": 1.1 },
+  "materials": { "roughness": 0.85, "metalness": 0.0 },
+  "camera": { "fov": 45 },
+  "toneMapping": "AgX",
+  "exposure": 1.1
+}

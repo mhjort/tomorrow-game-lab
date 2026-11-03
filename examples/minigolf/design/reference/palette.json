@@ -1,0 +1,45 @@
+{
+  "source": "design/reference/keyart.png",
+  "colors": [
+    {
+      "hex": "#529249",
+      "share": 0.451,
+      "luma": 0.499
+    },
+    {
+      "hex": "#c5ae92",
+      "share": 0.264,
+      "luma": 0.694
+    },
+    {
+      "hex": "#69aa71",
+      "share": 0.123,
+      "luma": 0.596
+    },
+    {
+      "hex": "#407132",
+      "share": 0.068,
+      "luma": 0.384
+    },
+    {
+      "hex": "#a59b70",
+      "share": 0.036,
+      "luma": 0.604
+    },
+    {
+      "hex": "#709658",
+      "share": 0.028,
+      "luma": 0.539
+    },
+    {
+      "hex": "#d2c19f",
+      "share": 0.015,
+      "luma": 0.761
+    },
+    {
+      "hex": "#946f44",
+      "share": 0.015,
+      "luma": 0.454
+    }
+  ]
+}
