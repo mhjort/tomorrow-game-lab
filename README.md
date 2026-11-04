@@ -83,3 +83,7 @@ lab/eval/permissions.mjs scoped allowlists for the unattended eval agents (no pe
 3. If the change affects generated games, rerun the golden example; for bigger changes, run `pnpm eval` and compare `lab/eval/history.md`.
 
 The example vendors `lab_bpy.py` and the template's `src/engine/`. The validator fails if those copies drift, so upstream engine fixes into the template first, then copy them into the example.
+
+## License
+
+[Apache License 2.0](LICENSE)

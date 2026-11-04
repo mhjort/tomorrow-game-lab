@@ -26,7 +26,7 @@ const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 const input = opt('--input', 'image');
 const model = opt('--model');
 const budget = opt('--budget', '25');
-// Workspace lives OUTSIDE the repo: claude loads CLAUDE.md from parent dirs, which would leak lab notes into the eval.
+// Workspace lives OUTSIDE the repo: agents load AGENTS.md/CLAUDE.md from parent dirs, which would leak lab notes into the eval.
 const ws = resolve(opt('--dir', join(tmpdir(), `tomorrow-game-lab-eval-${stamp}`)));
 const log = (...a) => console.log('[eval]', ...a);
 
