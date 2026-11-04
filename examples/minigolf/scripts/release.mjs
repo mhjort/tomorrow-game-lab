@@ -2,7 +2,11 @@
 // Release build for a web-game-runtime project: minified Vite build + optimized GLBs + asset manifest +
 // gzip size report with budgets. Run from the game project root: `npm run release` (or node this file).
 //
-//   node release.mjs [--project .] [--no-glb-opt] [--no-preload] [--max-js-kb 1500] [--max-total-mb 20] [--skip-build]
+//   node release.mjs [--project .] [--no-glb-opt] [--no-preload] [--precompress] [--max-js-kb 1500] [--max-total-mb 20] [--skip-build]
+//
+// --precompress writes <file>.br (brotli q11) and <file>.gz (gzip -9) next to every compressible file > 1 KB,
+// for hosts that serve precompressed files (nginx brotli_static/gzip_static, S3/CloudFront, Caddy precompressed).
+// GitHub Pages ignores them (it compresses on the fly, gzip only), so it's off by default.
 //
 // Writes dist/asset-manifest.json (the runtime loader uses it for byte-accurate progress) and
 // dist/release-report.json (sizes, budgets; read by the technical judge). Exit 1 if a budget is exceeded.
@@ -11,7 +15,7 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { gzipSync } from 'node:zlib';
+import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib';
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => (argv.indexOf(n) >= 0 ? argv[argv.indexOf(n) + 1] : d);
@@ -31,7 +35,14 @@ if (!existsSync(join(dist, 'index.html'))) {
   console.error('dist/index.html missing — did vite build run?');
   process.exit(2);
 }
-const walk = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]));
+const walk = (d) =>
+  readdirSync(d, { withFileTypes: true })
+    .flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]))
+    .filter((f) => !/\.(br|gz)$/.test(f)); // ignore precompressed siblings from a previous run
+const precompress = argv.includes('--precompress');
+const COMPRESSIBLE = /\.(js|mjs|wasm|glb|gltf|bin|html|json|css|svg|txt|xml)$/;
+const brotli = (buf) =>
+  brotliCompressSync(buf, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11, [zlibConstants.BROTLI_PARAM_SIZE_HINT]: buf.length } });
 
 // 2. GLB optimization: dedup + weld + meshopt (quantize + reorder + compress). Runtime decodes via MeshoptDecoder.
 const glbs = walk(dist).filter((f) => f.endsWith('.glb'));
@@ -86,7 +97,18 @@ const manifest = Object.fromEntries(files.filter((f) => !f.endsWith('.html')).ma
 writeFileSync(join(dist, 'asset-manifest.json'), JSON.stringify(manifest));
 const rows = files.map((f) => {
   const buf = readFileSync(f);
-  return { file: relative(dist, f), bytes: buf.length, gzip: /\.(png|jpe?g|webp|avif|mp3|ogg|ktx2)$/.test(f) ? buf.length : gzipSync(buf, { level: 9 }).length };
+  const compressible = COMPRESSIBLE.test(f);
+  const gz = compressible ? gzipSync(buf, { level: 9 }) : null;
+  const row = { file: relative(dist, f), bytes: buf.length, gzip: gz ? gz.length : buf.length };
+  if (precompress) {
+    const br = compressible ? brotli(buf) : null;
+    row.brotli = br ? br.length : buf.length;
+    if (compressible && buf.length > 1024) {
+      if (br.length < buf.length) writeFileSync(`${f}.br`, br);
+      if (gz.length < buf.length) writeFileSync(`${f}.gz`, gz);
+    }
+  }
+  return row;
 });
 const sum = (xs, k) => xs.reduce((s, x) => s + x[k], 0);
 const js = rows.filter((r) => r.file.endsWith('.js'));
@@ -95,12 +117,15 @@ console.log(`\n${'file'.padEnd(46)}      raw KB   gzip KB`);
 for (const r of rows.sort((a, b) => b.gzip - a.gzip)) console.log(`${r.file.padEnd(46)} ${kb(r.bytes)}  ${kb(r.gzip)}`);
 for (const g of glbReport) console.log(`  optimized ${g.file}: ${kb(g.before).trim()} KB -> ${kb(g.after).trim()} KB`);
 const totals = { jsGzipKb: sum(js, 'gzip') / 1024, totalGzipMb: sum(rows, 'gzip') / 1024 / 1024, files: rows.length };
+if (precompress) Object.assign(totals, { jsBrotliKb: sum(js, 'brotli') / 1024, totalBrotliMb: sum(rows, 'brotli') / 1024 / 1024 });
 const problems = [];
 if (totals.jsGzipKb > maxJsKb) problems.push(`JS ${totals.jsGzipKb.toFixed(0)} KB gzip > budget ${maxJsKb} KB`);
 if (totals.totalGzipMb > maxTotalMb) problems.push(`total ${totals.totalGzipMb.toFixed(1)} MB gzip > budget ${maxTotalMb} MB`);
 const html = readFileSync(join(dist, 'index.html'), 'utf8');
 if (/(src|href)="\/(?!\/)/.test(html)) problems.push('index.html uses absolute "/..." URLs: set base: "./" in vite.config.js (breaks on GitHub Pages sub-paths)');
 console.log(`\nJS ${totals.jsGzipKb.toFixed(0)} KB gzip (budget ${maxJsKb}) · total ${totals.totalGzipMb.toFixed(2)} MB gzip (budget ${maxTotalMb})`);
+if (precompress)
+  console.log(`precompressed .br/.gz written · brotli: JS ${totals.jsBrotliKb.toFixed(0)} KB, total ${totals.totalBrotliMb.toFixed(2)} MB (${((1 - totals.totalBrotliMb / totals.totalGzipMb) * 100).toFixed(0)}% smaller than gzip)`);
 for (const p of problems) console.log(`BUDGET: ${p}`);
 writeFileSync(join(dist, 'release-report.json'), JSON.stringify({ createdAt: new Date().toISOString(), totals, budgets: { maxJsKb, maxTotalMb }, problems, glbs: glbReport, files: rows }, null, 2));
 console.log(problems.length ? 'release: FAIL' : 'release: OK -> dist/');

@@ -70,6 +70,7 @@ lab/eval/permissions.mjs scoped allowlists for the unattended eval agents (no pe
 | `npm run test:golden` | build minigolf and run its playtest (writes `examples/minigolf/.lab/runs/latest`) |
 | `npm run keyart` | re-render the key-art fixtures in Blender |
 | `npm run release:minigolf` | optimized release build of minigolf (`examples/minigolf/dist`) |
+| `npm --workspace examples/minigolf run release -- --precompress` | same, plus `.br`/`.gz` siblings for brotli-capable hosts (not GitHub Pages) |
 | `npm run site` | release build + assemble the Pages site in `_site/` (landing page + `/minigolf/`) |
 | `npm run eval -- --input image\|video\|both [--model opus] [--budget 25]` | expensive agent E2E eval; results → `lab/eval/results/`, `lab/eval/history.md` |
 | `cd examples/minigolf && npm run assets && npm run dev` | rebuild minigolf GLBs, play it |

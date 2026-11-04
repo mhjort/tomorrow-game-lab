@@ -10,6 +10,7 @@ The default host is **GitHub Pages**: free, works with any repo, and the URL is 
 Files in this skill:
 - `scripts/release.mjs`: the release build. The web-game-runtime template ships an identical copy as `scripts/release.mjs` behind `npm run release`. Projects scaffolded before that existed can copy it from here.
 - `assets/pages.yml`: the GitHub Actions deploy workflow.
+- `scripts/serve-dist.mjs`: a local static server that serves precompressed `.br`/`.gz` files, like nginx `brotli_static`.
 
 ## 1. Release build
 ```bash
@@ -27,6 +28,15 @@ If the build is over budget, look at the biggest rows first:
 - unused three addons → remove the imports
 
 Never inline large assets as base64.
+
+### Brotli: precompressed files for hosts that serve them
+`npm run release -- --precompress` writes `<file>.br` (brotli q11) and `<file>.gz` (gzip -9) next to every compressible file over 1 KB. On minigolf brotli is 26% smaller than gzip, and the physics `.wasm` drops from 1148 KB to 832 KB. It adds about 7 s to the build. Use it when the host serves precompressed files:
+- **nginx:** `brotli_static on; gzip_static on;` (ngx_brotli module). Also make sure `application/wasm` is in `mime.types`.
+- **Caddy:** `file_server { precompressed br gzip }`
+- **S3 + CloudFront:** upload the `.br` file under the original key with `Content-Encoding: br`, or let CloudFront compress.
+- Check locally with `node <skill>/scripts/serve-dist.mjs dist`, then run the playtest with `--url http://localhost:4180/`.
+
+**GitHub Pages ignores precompressed files.** It compresses on the fly with gzip only, and you can't set `Content-Encoding`. So keep `--precompress` off for Pages; the extra files would only bloat the upload. A browser-side brotli decoder isn't worth it either: Chrome's `DecompressionStream` has no brotli, a WASM decoder costs much of the saving, and it breaks streaming WASM compilation. For brotli without running a server, use a CDN that compresses automatically: Cloudflare Pages, or GitHub Pages behind Cloudflare on a custom domain.
 
 ## 2. Verify the release build locally
 ```bash
@@ -54,7 +64,7 @@ node <game-judge skill>/scripts/playtest.mjs --url https://<owner>.github.io/<re
 This must pass on both backends with no `http 404` errors. A 404 almost always means an absolute `/...` URL; check `base: './'` and use `import.meta.env.BASE_URL` for runtime fetches. The `window.__game` hooks stay in production builds. They're cheap, and they make this live check possible.
 
 ## Gotchas
-- **Gzip vs brotli:** Pages serves gzip, not brotli, so the budgets are gzip sizes. Pre-compressing doesn't help on Pages.
+- **Gzip vs brotli:** Pages serves gzip, not brotli, so the budgets are gzip sizes. With `--precompress`, `release-report.json` also lists brotli totals.
 - **Caching:** Pages caches for about 10 minutes. Vite's hashed file names make new deploys safe. Only `index.html` and `asset-manifest.json` keep stable names.
 - **Rapier build:** use `@dimforge/rapier3d` (real `.wasm`, about 1.1 MB gzip, streaming compile), not `-compat` (base64, about 1.6 MB gzip plus decode time).
 - **Shaders:** the release build doesn't change shader compilation. The loading screen's prewarm step still has to cover every level.

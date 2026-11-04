@@ -63,3 +63,31 @@ test('site: landing page + /minigolf/ assembled for GitHub Pages', () => {
   assert.ok(existsSync(join(ROOT, '_site/minigolf/index.html')));
   assert.ok(existsSync(join(ROOT, '_site/minigolf/asset-manifest.json')));
 });
+
+test('release --precompress: .br/.gz siblings decode to the originals and the game plays when served with Content-Encoding: br', { skip: process.env.SKIP_BROWSER && 'SKIP_BROWSER set', timeout: 300000 }, async () => {
+  const { brotliDecompressSync, gunzipSync } = await import('node:zlib');
+  const { spawn } = await import('node:child_process');
+  const r = run(process.execPath, ['scripts/release.mjs', '--precompress'], { cwd: GAME });
+  assert.equal(r.status, 0, r.stdout.slice(-1500) + r.stderr.slice(-1500));
+  const report = JSON.parse(readFileSync(join(DIST, 'release-report.json'), 'utf8'));
+  assert.ok(report.totals.totalBrotliMb < report.totals.totalGzipMb * 0.85, 'brotli at least 15% smaller than gzip');
+  const wasm = readdirSync(join(DIST, 'assets')).find((f) => f.endsWith('.wasm'));
+  for (const f of [`assets/${wasm}`, 'models/hole1.glb']) {
+    const orig = readFileSync(join(DIST, f));
+    assert.ok(brotliDecompressSync(readFileSync(join(DIST, `${f}.br`))).equals(orig), `${f}.br round-trips`);
+    assert.ok(gunzipSync(readFileSync(join(DIST, `${f}.gz`))).equals(orig), `${f}.gz round-trips`);
+  }
+  // serve like nginx brotli_static and play it
+  const port = 4300 + Math.floor(Math.random() * 400);
+  const server = spawn(process.execPath, [join(SKILLS, 'publish-web-game/scripts/serve-dist.mjs'), DIST, '--port', String(port)]);
+  await new Promise((res) => server.stdout.once('data', res));
+  try {
+    const head = await fetch(`http://localhost:${port}/assets/${wasm}`, { headers: { 'accept-encoding': 'br' } });
+    assert.equal(head.headers.get('content-encoding'), 'br');
+    const out = tmp('brotli-playtest');
+    const p = run(process.execPath, [join(SKILLS, 'game-judge/scripts/playtest.mjs'), '--project', GAME, '--url', `http://localhost:${port}/`, '--perf', '0', '--out', out]);
+    assert.equal(p.status, 0, p.stdout + p.stderr);
+  } finally {
+    server.kill();
+  }
+});
