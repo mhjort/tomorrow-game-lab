@@ -19,6 +19,17 @@ export async function createRenderer({ container = document.body, antialias = tr
   return { renderer, backend };
 }
 
+/**
+ * Advance three's node-frame counter. Shadow maps (and other per-frame node updates) refresh at most once per
+ * animation frame; the counter normally ticks on the renderer's internal requestAnimationFrame. Test-mode
+ * step() renders synchronously, possibly several times per animation frame, so without this a render right
+ * after a level swap can reuse the previous level's shadow map. Uses a private field (three r18x).
+ */
+export function advanceFrame(renderer) {
+  const nodeFrame = renderer._nodes?.nodeFrame;
+  if (nodeFrame) nodeFrame.frameId++;
+}
+
 export function fitToWindow(renderer, camera) {
   const resize = () => {
     camera.aspect = innerWidth / innerHeight;

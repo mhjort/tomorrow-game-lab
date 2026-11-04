@@ -43,6 +43,7 @@ Exit codes: 0 = pass, 1 = a scenario failed or there was a console error, 2 = se
 ```
 - `state` in expressions is `__game.getState()`.
 - Write one scenario per brief rule. Include a full-game bot and a boot scenario that takes an **overview** screenshot framed like the key art.
+- Take a screenshot right after each *natural* level transition (won/finished → next level), not only after `loadLevel` hooks. Backend-specific bugs hide there.
 - Fix failures in the game, not by loosening asserts, unless the brief changed.
 
 ## 2. Judges (independent agents)

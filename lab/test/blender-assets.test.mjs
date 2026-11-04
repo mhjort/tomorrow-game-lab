@@ -23,6 +23,7 @@ crate = L.bevel(L.box("Crate", (0.5, 0.5, 0.5), (0, 0, 0.25), L.material("Prop",
 L.tag_collider(crate, "hull", restitution=0.4)
 goal = L.box("Goal", (0.3, 0.3, 0.3), (0.7, 0.7, 0.15))
 L.tag_collider(goal, "cuboid", sensor=True, collider_only=True)
+L.cut_hole(floor, -0.5, -0.5, 0.0, 0.1, 0.12, name="Pit")
 L.finish(__file__, style, {"pitch_deg": 35})
 `,
   );
@@ -32,7 +33,7 @@ L.finish(__file__, style, {"pitch_deg": 35})
   const info = inspectGlb(join(proj, 'public/models/crate.glb'));
   assert.deepEqual(info.problems, []);
   assert.ok(info.triangles > 12 && info.triangles < 500, `tris ${info.triangles}`);
-  assert.deepEqual(info.colliders.sort(), ['Crate:hull', 'Floor:trimesh', 'Goal:cuboid(sensor)']);
+  assert.deepEqual(info.colliders.sort(), ['Crate:hull', 'Floor:trimesh', 'Goal:cuboid(sensor)', 'PitFloor:trimesh', 'PitSensor:cuboid(sensor)', 'PitWall:trimesh']);
   const crate = info.nodes.find((n) => n.name === 'Crate');
   assert.equal(crate.extras.restitution, 0.4);
   // Blender Z-up -> glTF Y-up: crate origin at Blender z=0.25 becomes translation y=0.25

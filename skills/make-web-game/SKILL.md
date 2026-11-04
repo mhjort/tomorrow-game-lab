@@ -46,6 +46,7 @@ tests/scenarios/   playtest scenarios (*.json) + bots/*.js
 
 ## Definition of done
 - `npm run build` succeeds, and the playtest passes on **webgpu and webgl2** with zero console errors.
+- The game boots through a loading screen with a progress bar that loads assets and prewarms all levels/materials before play.
 - Every judge passes (see `game-judge`). Remaining minor issues are listed in your final message.
 - A full-game bot reaches the end state. The README or final message explains the controls.
 

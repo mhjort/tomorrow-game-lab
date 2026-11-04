@@ -109,19 +109,8 @@ class Course:
     # ------------------------------------------------------------ cup / tee
     def cup(self, x, y):
         z = self.height(x, y)
-        cutter = L.cylinder("CupCutter", CUP_R, 1.0, (x, y, z), 32)
         host = next(o for o, r in zip(self.turf, self.rects) if r[0] <= x <= r[2] and r[1] <= y <= r[3])
-        L.boolean_cut(host, cutter)
-        bpy.ops.mesh.primitive_cylinder_add(radius=CUP_R, depth=CUP_DEPTH, vertices=32, end_fill_type="NOTHING",
-                                            location=(x, y, z - CUP_DEPTH / 2))
-        wall = bpy.context.active_object
-        wall.name = "CupWall"
-        L.assign(wall, self.m_cup)
-        L.tag_collider(wall, "trimesh", friction=0.6, restitution=0.1)
-        bottom = L.cylinder("CupBottom", CUP_R + 0.01, 0.02, (x, y, z - CUP_DEPTH - 0.01), 32, self.m_cup)
-        L.tag_collider(bottom, "trimesh", friction=0.9, restitution=0.0)
-        sensor = L.box("CupSensor", (CUP_R * 1.4, CUP_R * 1.4, 0.06), (x, y, z - CUP_DEPTH + 0.03))
-        L.tag_collider(sensor, "cuboid", sensor=True, collider_only=True)
+        L.cut_hole(host, x, y, z, CUP_R, CUP_DEPTH, self.m_cup, name="Cup")
         L.cylinder("FlagPole", 0.012, 0.9, (x, y, z + 0.45 - 0.05), 8, self.m_rail)
         L.box("FlagCloth", (0.32, 0.012, 0.2), (x + 0.17, y, z + 0.72), self.m_accent)
         e = bpy.data.objects.new("CupCenter", None)

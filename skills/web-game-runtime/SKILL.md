@@ -21,21 +21,24 @@ Before you write any game code, check the starter scene boots on both backends w
 | module | provides |
 |---|---|
 | `renderer.js` | `createRenderer()` → `{ renderer, backend }`; `?renderer=webgl2` forces fallback; `TEST_MODE` (`?test`), `params` |
-| `loop.js` | `createLoop({ update, render, hz })` fixed step; auto-runs unless `?test`; `step(n)` for tests; frame stats |
+| `loop.js` | `createLoop({ update, render, renderer, hz })` fixed step (always pass `renderer`); auto-runs unless `?test`; `step(n)` for tests; frame stats |
 | `physics.js` | `createPhysics({ gravity, hz, substeps })` → `{ RAPIER, world, step, sync, bind, onSensor, collidersFromGltf }` |
 | `assets.js` | `loadModel(name)` / `loadModels([...])` from `public/models/<name>.glb` (cached, cloned, shadows on) |
-| `style.js` | `style` (design/style.json), `applyStyle(scene, renderer)` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)` |
+| `style.js` | `style` (design/style.json), `applyStyle(scene, renderer)` → `{ sun, hemi, refreshShadows }` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)` |
 | `input.js` | `createInput(canvas)` → held `keys`, pointer `drag`, `on('dragend', fn)` |
+| `loading.js` | `createLoadingScreen({ title })` → `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)` |
 | `testHooks.js` | `installTestHooks({ backend, loop, getState, input })`, `createRng(seed)` |
 
 Boot order in `main.js`:
-1. renderer, then scene and camera
-2. `applyStyle`
-3. physics
-4. load assets, then build the level (`collidersFromGltf`)
-5. `installTestHooks`
-6. `loop.start()`
-7. `loop.step(0)`, then `hooks.ready = true`
+1. `createLoadingScreen()`; it is shown first
+2. renderer, then scene and camera
+3. `applyStyle` (lights must exist before prewarm)
+4. physics, then load assets: each one is a `loading.step(...)` with progress
+5. **prewarm all levels/materials** (`loading.step('Compiling shaders', …, p => prewarm(..., allLevelRoots, p))`)
+6. build the first level (`collidersFromGltf`), then `installTestHooks`
+7. `createLoop({ update, render, renderer })`, `loop.start()`, `loop.step(0)`, `loading.done()`, then `hooks.ready = true`
+
+**Every game must have the loading screen and prewarm.** Lazy shader/pipeline compilation causes hitches the first time a level, effect or material appears.
 
 ## The `window.__game` contract (the playtests rely on it)
 - `ready` is set after the first frame renders. `backend` is `'webgpu'` or `'webgl2'`.
@@ -48,7 +51,7 @@ Boot order in `main.js`:
 - Gameplay state changes happen only in `update(dt)`. `render()` syncs meshes and draws.
 - Use `createRng()` for randomness. Never use `Date.now()` or `performance.now()` in gameplay.
 - Load levels from GLB plus named marker empties (Spawn, Goal…). Read them with `root.getObjectByName('Spawn').getWorldPosition(v)`.
-- To change level, call `physics.removeBody(levelBody)`; it removes the colliders and sensor handlers too. Remove the old scene root as well.
+- To change level, call `physics.removeBody(levelBody)`; it removes the colliders and sensor handlers too. Remove the old scene root, add the new one, then call `refreshShadows()` (from `applyStyle`). Prewarm must include every level, so the swap doesn't hitch.
 - Use a DOM overlay (`#hud`) for the HUD; it is cheap and readable in screenshots. Show the controls on screen.
 - Keep all code in `import * as THREE from 'three/webgpu'`. Use addons from `three/addons/...`. Never mix in `three` (the WebGL-only build).
 

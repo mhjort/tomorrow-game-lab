@@ -49,7 +49,7 @@ test('judge rubrics: each names inputs, weights summing to 1, and a pass thresho
 test('playtest: golden minigolf passes on webgpu + webgl2 with backend parity', { skip: process.env.SKIP_BROWSER && 'SKIP_BROWSER set', timeout: 300000 }, () => {
   const proj = join(ROOT, 'examples/minigolf');
   const out = tmp('playtest');
-  const r = run(process.execPath, [join(SKILLS, 'game-judge/scripts/playtest.mjs'), '--project', proj, '--dev', '--perf', '1', '--parity-min', '0.95', '--out', out]);
+  const r = run(process.execPath, [join(SKILLS, 'game-judge/scripts/playtest.mjs'), '--project', proj, '--dev', '--perf', '1', '--parity-min', '0.98', '--out', out]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   const rep = JSON.parse(readFileSync(join(out, 'report.json'), 'utf8'));
   assert.equal(rep.backends.webgl2.reported, 'webgl2');
@@ -58,7 +58,8 @@ test('playtest: golden minigolf passes on webgpu + webgl2 with backend parity', 
     assert.ok(b.scenarios.length >= 4);
     for (const s of b.scenarios) assert.deepEqual(s.errors, [], `${s.name} errors`);
   }
-  assert.ok(rep.parity.length >= 4 && rep.parity.every((p) => p.ssim >= 0.95));
+  // ≥ 0.98 relies on prewarm() covering every level (skills/web-game-runtime/references/webgpu-notes.md)
+  assert.ok(rep.parity.length >= 4 && rep.parity.every((p) => p.ssim >= 0.98));
   assert.ok(existsSync(join(out, 'webgpu/boot-overview.png')));
 });
 
@@ -72,4 +73,16 @@ test('playtest: detects a failing assertion and console errors', { skip: process
   assert.equal(s.pass, false);
   assert.ok(s.steps[1].failed);
   assert.ok(s.errors.some((e) => e.includes('boom')));
+});
+
+test('template: scaffold boots through loading screen + prewarm on both backends', { skip: process.env.SKIP_BROWSER && 'SKIP_BROWSER set', timeout: 180000 }, () => {
+  const proj = tmp('template'); // inside the repo, so node_modules resolve from the root workspace
+  const s = run(process.execPath, [join(SKILLS, 'web-game-runtime/scripts/scaffold.mjs'), proj]);
+  assert.equal(s.status, 0, s.stderr);
+  const out = join(proj, '.lab/run');
+  const r = run(process.execPath, [join(SKILLS, 'game-judge/scripts/playtest.mjs'), '--project', proj, '--dev', '--perf', '0', '--out', out]);
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  const rep = JSON.parse(readFileSync(join(out, 'report.json'), 'utf8'));
+  assert.equal(rep.backends.webgl2.reported, 'webgl2');
+  assert.ok(rep.parity.every((p) => p.ssim >= 0.98));
 });

@@ -10,7 +10,7 @@ You are a graphics/web engineer auditing robustness and performance. You did NOT
 ## Score each 0-10, then overall = weighted mean
 | criterion | weight | 10 means |
 |---|---|---|
-| runtime health | 0.30 | zero console errors/page errors/failed requests; warnings explained |
+| runtime health | 0.30 | zero console errors/page errors/failed requests; warnings explained; boots through a loading screen that prewarms ALL levels/materials (check `src/`) |
 | backend coverage | 0.25 | WebGPU used when available, WebGL2 fallback works; parity SSIM ≥ 0.95 on all shots |
 | determinism & testability | 0.20 | fixed timestep, seeded RNG, `__game` hooks complete, no Math.random/Date.now in gameplay |
 | performance | 0.15 | realtime perf sample ~60 fps, avg frame ≪ 16 ms, boot < 3 s; reasonable draw calls/tris |

@@ -34,7 +34,7 @@ L.finish(__file__, style)                    # exports GLB + renders preview
 ```
 Helpers in `lab_bpy`:
 - Primitives: `box`, `cylinder`, `sphere`
-- Mesh operations: `bevel`, `boolean_cut`, `join`, `apply_all_modifiers`, `apply_transform`
+- Mesh operations: `bevel`, `boolean_cut`, `cut_hole` (cup/pit/goal: cut + wall + floor + sensor), `join`, `apply_all_modifiers`, `apply_transform`
 - Styling and tagging: `material`, `color`, `tag_collider`
 - Output: `export_glb`, `render_preview`, `setup_camera`, `setup_lighting`
 - Diagnostics: `triangle_count`, and `args()` for the script arguments after `--`
@@ -50,6 +50,7 @@ For custom shapes, build them with `bmesh` or `mesh.from_pydata`, as `_course.py
   - `collider_only = 1` marks an invisible collision proxy.
   - Names ending in `_col` or `_hull` also work.
   - Dynamic bodies (player, ball) are created in code. Their GLB is visual only.
+- **Holes and hazards are real geometry.** Make cups, pits and goals with `cut_hole`; never fake them with a dark decal, because physics needs something to drop into. Water, lava and out-of-bounds zones are **sensors** (`sensor=True`), not solid colliders, so the game can detect them.
 - **Markers:** add named empties such as `Spawn`, `Tee`, `Goal` or `Checkpoint1` instead of hard-coding positions in game code.
 - **Determinism:** seed all randomness with `random.Random(seed)`. Running the same script twice must produce the same file.
 - **Style:** never hard-code colours. Use `L.color("<palette role>", style)`, so changing `style.json` restyles everything.

@@ -1,5 +1,6 @@
 // Starter scene: replace the GAME section with your game. Keep the boot order:
-// renderer -> style -> physics -> assets -> game objects -> hooks -> loop.start() -> ready=true
+// loading screen -> renderer -> style -> physics -> assets -> game objects -> prewarm -> hooks -> loop -> loading.done() -> ready
+// Every game boots through the loading screen and prewarms all levels/materials before it is shown.
 import * as THREE from 'three/webgpu';
 import { createRenderer, fitToWindow } from './engine/renderer.js';
 import { applyStyle, paletteColor, style } from './engine/style.js';
@@ -7,6 +8,9 @@ import { createPhysics } from './engine/physics.js';
 import { createLoop } from './engine/loop.js';
 import { createInput } from './engine/input.js';
 import { installTestHooks } from './engine/testHooks.js';
+import { createLoadingScreen, prewarm } from './engine/loading.js';
+
+const loading = createLoadingScreen({ title: 'Web Game' });
 
 const { renderer, backend } = await createRenderer();
 const scene = new THREE.Scene();
@@ -15,7 +19,7 @@ camera.position.set(6, 5, 8);
 camera.lookAt(0, 0, 0);
 fitToWindow(renderer, camera);
 applyStyle(scene, renderer);
-const physics = await createPhysics();
+const physics = await loading.step('Starting physics', 0.2, () => createPhysics());
 const { RAPIER, world } = physics;
 const input = createInput(renderer.domElement);
 
@@ -49,7 +53,11 @@ function getState() {
 }
 // ---------------------------------------------------------------- /GAME
 
+// Compile every material/pipeline (incl. shadows) before play. Pass ALL level roots, not just the first one.
+await loading.step('Compiling shaders', 0.6, (p) => prewarm(renderer, scene, camera, [scene], p));
+
 const loop = createLoop({
+  renderer,
   update,
   render: () => {
     physics.sync();
@@ -59,4 +67,5 @@ const loop = createLoop({
 const hooks = installTestHooks({ backend, loop, getState, input: act });
 loop.start();
 loop.step(0);
+loading.done();
 hooks.ready = true;

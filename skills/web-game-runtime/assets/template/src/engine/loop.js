@@ -1,8 +1,9 @@
 // Fixed-timestep game loop. Simulation runs at `hz`; rendering happens once per animation frame.
 // In test mode (?test) the loop does not auto-run: the harness drives it with step(n).
-import { TEST_MODE, params } from './renderer.js';
+import { TEST_MODE, params, advanceFrame } from './renderer.js';
 
-export function createLoop({ update, render, hz = 60, maxSubSteps = 5 }) {
+// Pass `renderer` so test-mode step() counts as a real animation frame (fresh shadows, see advanceFrame).
+export function createLoop({ update, render, renderer, hz = 60, maxSubSteps = 5 }) {
   const dt = 1 / hz;
   let acc = 0;
   let last = 0;
@@ -46,6 +47,7 @@ export function createLoop({ update, render, hz = 60, maxSubSteps = 5 }) {
     /** Deterministically advance n fixed steps, then render once. */
     step(n = 1) {
       for (let i = 0; i < n; i++) update(dt, tick++);
+      if (renderer) advanceFrame(renderer);
       render(1);
       return tick;
     },

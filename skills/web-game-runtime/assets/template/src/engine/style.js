@@ -1,4 +1,5 @@
 // Apply design/style.json (written by key-art-direction) to scene, lights and renderer.
+// applyStyle() returns { sun, hemi, refreshShadows }.
 import * as THREE from 'three/webgpu';
 import style from '../../design/style.json';
 
@@ -33,7 +34,11 @@ export function applyStyle(scene, renderer, { shadowArea = 20 } = {}) {
     sun.shadow.normalBias = 0.02;
   }
   scene.add(sun, sun.target);
-  return { sun, hemi };
+  // Call after adding/removing level geometry (needed when shadow.autoUpdate is off; harmless otherwise).
+  const refreshShadows = () => {
+    sun.shadow.needsUpdate = true;
+  };
+  return { sun, hemi, refreshShadows };
 }
 
 /** Palette colour by key ('primary', 'accent', ...) or hex. */

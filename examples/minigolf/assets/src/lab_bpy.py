@@ -167,6 +167,32 @@ def boolean_cut(obj, cutter, apply=True):
     return obj
 
 
+def cut_hole(surface, x, y, z, radius, depth, mat=None, name="Hole", sensor=True, vertices=32,
+             friction=0.6, restitution=0.1):
+    """Real hole in a walkable/rollable surface (golf cup, pit, goal, drain): boolean-cuts `surface`,
+    adds an open wall + floor tagged as trimesh colliders, and (optionally) a hidden trigger sensor at the
+    bottom named <name>Sensor. z = surface top height at (x, y). Never fake holes with a dark decal:
+    physics needs geometry to drop into, and judges notice.
+    Returns dict(wall=, floor=, sensor=)."""
+    cutter = cylinder(f"{name}Cutter", radius, depth * 4 + 1.0, (x, y, z), vertices)
+    boolean_cut(surface, cutter)
+    bpy.ops.mesh.primitive_cylinder_add(radius=radius, depth=depth, vertices=vertices, end_fill_type="NOTHING",
+                                        location=(x, y, z - depth / 2))
+    wall = bpy.context.active_object
+    wall.name = f"{name}Wall"
+    floor = cylinder(f"{name}Floor", radius + 0.01, 0.02, (x, y, z - depth - 0.01), vertices)
+    for o in (wall, floor):
+        if mat:
+            assign(o, mat)
+        tag_collider(o, "trimesh", friction=friction, restitution=restitution)
+    out = {"wall": wall, "floor": floor, "sensor": None}
+    if sensor:
+        s = box(f"{name}Sensor", (radius * 1.4, radius * 1.4, min(0.06, depth / 2)), (x, y, z - depth + min(0.03, depth / 4)))
+        tag_collider(s, "cuboid", sensor=True, collider_only=True)
+        out["sensor"] = s
+    return out
+
+
 def apply_all_modifiers(obj):
     select_only(obj)
     for m in list(obj.modifiers):
@@ -238,9 +264,20 @@ def setup_lighting(style):
     world = scene.world or bpy.data.worlds.new("World")
     scene.world = world
     world.use_nodes = True
-    bg = world.node_tree.nodes["Background"]
+    nt = world.node_tree
+    bg = nt.nodes["Background"]  # lighting: ambient colour/intensity
     bg.inputs["Color"].default_value = color(style["ambient"]["color"])
     bg.inputs["Strength"].default_value = style["ambient"]["intensity"]
+    # camera rays see style["background"] (like the game's clear colour) without changing the lighting
+    seen = nt.nodes.new("ShaderNodeBackground")
+    seen.inputs["Color"].default_value = color(style.get("background", style["ambient"]["color"]))
+    seen.inputs["Strength"].default_value = 1.0
+    path = nt.nodes.new("ShaderNodeLightPath")
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(path.outputs["Is Camera Ray"], mix.inputs["Fac"])
+    nt.links.new(bg.outputs["Background"], mix.inputs[1])
+    nt.links.new(seen.outputs["Background"], mix.inputs[2])
+    nt.links.new(mix.outputs["Shader"], nt.nodes["World Output"].inputs["Surface"])
     sun_cfg = style["sun"]
     sun = bpy.data.lights.new("Sun", "SUN")
     sun.energy = sun_cfg["intensity"]

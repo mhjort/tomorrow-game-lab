@@ -1,0 +1,152 @@
+{
+  "stamp": "2026-11-04T08-04-27",
+  "input": "image",
+  "model": "default",
+  "workspace": "/var/folders/11/zyrydf5d3pq4cg880nxb49m00000gn/T/tomorrow-game-lab-eval-2026-11-04T08-04-27",
+  "checks": {
+    "package.json": {
+      "ok": true,
+      "detail": ""
+    },
+    "art bible + style.json": {
+      "ok": true,
+      "detail": ""
+    },
+    "design brief": {
+      "ok": true,
+      "detail": ""
+    },
+    "blender assets": {
+      "ok": true,
+      "detail": "3 scripts, 3 GLBs"
+    },
+    "scenarios": {
+      "ok": true,
+      "detail": "9 scenarios"
+    },
+    "npm run build": {
+      "ok": true,
+      "detail": ""
+    },
+    "playtest (both backends)": {
+      "ok": true,
+      "detail": "[playtest] webgpu PASS boot\n[playtest] webgpu PASS putt-and-rest\n[playtest] webgpu PASS rail-bounce\n[playtest] webgpu PASS cup\n[playtest] webgpu PASS too-fast\n[playtest] webgpu PASS water-penalty\n[playtest] webgpu PASS max-strokes\n[playtest] webgpu PASS full-round\n[playtest] webgpu PASS controls\n[playtest] webgl2 PASS boot\n[playtest] webgl2 PASS putt-and-rest\n[playtest] webgl2 PASS rail-bounce\n[playtest] webgl2 PASS cup\n[playtest] webgl2 PASS too-fast\n[playtest] webgl2 PASS water-penalty\n[playte"
+    },
+    "agent's own verdict": {
+      "ok": true,
+      "detail": "mean 8.65"
+    }
+  },
+  "judges": {
+    "pass": true,
+    "meanScore": 8.53,
+    "scores": {
+      "asset-quality": 8.7,
+      "gameplay": 8.7,
+      "technical": 9.3,
+      "visual-fidelity": 7.4
+    },
+    "invalid": []
+  },
+  "agent": {
+    "exitCode": 0,
+    "minutes": 15.9,
+    "costUsd": 5.4891346,
+    "turns": 4,
+    "summary": "The game is built and passed judging in round 1, so I stopped iterating. Mean score is 8.65/10, all four judges passed, and none raised a blocker.\n\n| Judge | Score | Pass mark |\n|---|---|---|\n| Visual fidelity (vs key art) | 7.6 | 7.0 |\n| Gameplay | 8.85 | 7.0 |\n| Technical | 9.35 | 7.5 |\n| Asset quality | 8.8 | 7.0 |\n\n**Playtest:** all 9 scenarios pass on both WebGPU and WebGL2. That covers boot, putting until the ball stops, banking off a rail, holing out, a ball too fast to drop, the pond penalty, the 8-stroke limit, a full round played by a bot, and keyboard and mouse controls. There were no console errors, the two backends render nearly identically, it runs at about 60 fps, and it boots in about 0.3 s. The bot finished the round in 7 strokes against par 8.\n\n**What it is:** three holes on low-poly floating islands, built from Blender scripts and styled after `reference/minigolf.png`: tan background, light-green fairway, cream rails with orange markers, cone trees, rocks and a teal pond.\n- Hole 1, Dogleg (par 2): the L-shape from the key art.\n- Hole 2, Switchback (par 3): two corners.\n- Hole 3, Lagoon (par 3): a pond in the middle of the fairway that costs a stroke.\n\nThe cups are real holes the ball drops into. There's a loading screen, a hole/strokes/total panel, a power meter, result messages and a final scorecard.\n\n**To play:** run `npm run dev`. Drag anywhere and pull back like a slingshot, then release to putt. ←/→ aim, ↑/↓ set power, Space putts, C toggles the overview camera, R restarts.\n\n**Choices I made without asking:**\n- The ball and holes are larger than real minigolf (ball radius 0.1 m, fairway 2 m wide) so they're easier to see.\n- A hole ends after 8 strokes.\n- Leaving the course costs one stroke.\n- Colour correction is turned off: the default setting made the greens too dark.\n- No sound.\n\n**Remaining issues (not fixed):**\n- **Major (visual):** the camera is too far back, so the island and ball look small compared with the key art.\n- **Major (visual",
+    "skillsUsed": [
+      "make-web-game"
+    ],
+    "subagents": 5,
+    "permissionDenials": [
+      {
+        "tool": "Bash",
+        "input": "{\"command\":\"node .claude/skills/game-judge/scripts/aggregate.mjs .lab/runs/latest; echo EXIT $?; head -20 .lab/runs/latest/verdict.md\",\"description\":\"Aggregate judge verdicts\"}"
+      }
+    ]
+  },
+  "playtest": {
+    "webgpu": {
+      "reported": "webgpu",
+      "pass": true,
+      "fps": 61
+    },
+    "webgl2": {
+      "reported": "webgl2",
+      "pass": true,
+      "fps": 60.666666666666664
+    }
+  },
+  "parity": [
+    {
+      "shot": "boot-hole2-play.png",
+      "ssim": 0.998487
+    },
+    {
+      "shot": "boot-hole3-overview.png",
+      "ssim": 0.998606
+    },
+    {
+      "shot": "boot-hole3-play.png",
+      "ssim": 0.998505
+    },
+    {
+      "shot": "boot-overview.png",
+      "ssim": 0.998555
+    },
+    {
+      "shot": "boot-play.png",
+      "ssim": 0.998376
+    },
+    {
+      "shot": "controls-aiming.png",
+      "ssim": 0.998394
+    },
+    {
+      "shot": "cup-hole2-after-transition.png",
+      "ssim": 0.998447
+    },
+    {
+      "shot": "cup-holed.png",
+      "ssim": 0.998654
+    },
+    {
+      "shot": "full-round-scorecard.png",
+      "ssim": 0.998951
+    },
+    {
+      "shot": "max-strokes-max-strokes.png",
+      "ssim": 0.998564
+    },
+    {
+      "shot": "putt-and-rest-rest.png",
+      "ssim": 0.998211
+    },
+    {
+      "shot": "putt-and-rest-rolling.png",
+      "ssim": 0.99837
+    },
+    {
+      "shot": "rail-bounce-after-bounce.png",
+      "ssim": 0.998216
+    },
+    {
+      "shot": "water-penalty-splash.png",
+      "ssim": 0.998403
+    }
+  ],
+  "selfVerdict": {
+    "pass": true,
+    "meanScore": 8.65,
+    "judges": {
+      "asset-quality": 8.8,
+      "gameplay": 8.85,
+      "technical": 9.35,
+      "visual-fidelity": 7.6
+    }
+  },
+  "score": {
+    "checks": "8/8",
+    "judgeMean": 8.53
+  }
+}

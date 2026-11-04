@@ -2,14 +2,41 @@
   "name": "straight-putt",
   "description": "Hole 1: one well-weighted putt at the cup drops in (hole in one) and loads hole 2.",
   "steps": [
-    { "step": 10 },
-    { "input": { "type": "shoot", "angle": 0, "power": 0.7 } },
-    { "assert": "state.strokes === 1 && state.phase === 'rolling'" },
-    { "step": 20 },
-    { "screenshot": "rolling" },
-    { "until": "state.phase === 'holed'", "max": 900 },
-    { "assert": "state.scorecard[0].strokes === 1" },
-    { "until": "state.hole === 2", "max": 120 },
-    { "assert": "state.strokes === 0 && state.phase === 'aim'" }
+    {
+      "step": 10
+    },
+    {
+      "input": {
+        "type": "shoot",
+        "angle": 0,
+        "power": 0.7
+      }
+    },
+    {
+      "assert": "state.strokes === 1 && state.phase === 'rolling'"
+    },
+    {
+      "step": 20
+    },
+    {
+      "screenshot": "rolling"
+    },
+    {
+      "until": "state.phase === 'holed'",
+      "max": 900
+    },
+    {
+      "assert": "state.scorecard[0].strokes === 1"
+    },
+    {
+      "until": "state.hole === 2",
+      "max": 120
+    },
+    {
+      "screenshot": "next-hole"
+    },
+    {
+      "assert": "state.strokes === 0 && state.phase === 'aim'"
+    }
   ]
 }

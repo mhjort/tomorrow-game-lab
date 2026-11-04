@@ -18,6 +18,17 @@ export async function loadModel(name) {
   return scene;
 }
 
-export async function loadModels(names) {
-  return Object.fromEntries(await Promise.all(names.map(async (n) => [n, await loadModel(n)])));
+/** Load several models in parallel; onProgress(fraction) fires as each one finishes (for the loading screen). */
+export async function loadModels(names, onProgress = () => {}) {
+  let done = 0;
+  return Object.fromEntries(
+    await Promise.all(
+      names.map(async (n) => {
+        const m = await loadModel(n);
+        onProgress(++done / names.length);
+        return [n, m];
+      }),
+    ),
+  );
 }
+
