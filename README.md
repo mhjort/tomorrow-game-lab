@@ -2,10 +2,11 @@
 
 **▶ Play the example: [Island Putt (3D minigolf)](https://mhjort.github.io/tomorrow-game-lab/minigolf/)** · [all examples](https://mhjort.github.io/tomorrow-game-lab/)
 
-Lightweight agent skills for building **web games** from a prompt or from key art. There are six skills, one stack, and no engine zoo.
+Lightweight agent skills for building **web games** from a prompt or from key art. There are seven skills, one stack, and no engine zoo.
 
 - **Runtime:** three.js `WebGPURenderer`, which falls back to WebGL2 automatically, plus Vite. Rapier 3D/2D handles physics when a game needs it.
 - **Assets:** Python scripts run in headless **Blender** and export GLB files with physics collider tags and preview renders.
+- **2D art & sound:** splash art, icons and sound effects come from an AI service (Runware for now) via a declarative `design/media.json`. Candidates are reviewed and picked, and the outputs are locked and committed.
 - **Art direction:** works from a reference **image or video**. The output is an art bible plus a `style.json` that drives both Blender and three.js.
 - **Verification:** deterministic **headless Chrome** playtests on both backends, then **independent judge agents** score the result and produce a prioritized fix list.
 
@@ -16,7 +17,7 @@ pnpm dlx skills add mhjort/tomorrow-game-lab                       # all skills,
 pnpm dlx skills add mhjort/tomorrow-game-lab -a claude-code -y     # Claude Code, project-level
 pnpm dlx skills add mhjort/tomorrow-game-lab --skill game-judge    # just one skill
 ```
-Requirements: Node ≥ 24 (26 LTS preferred), Google Chrome, Blender 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. The lab tracks the latest stable releases of every tool and library.
+Requirements: Node ≥ 24 (26 LTS preferred), Google Chrome, Blender 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. Optional: `RUNWARE_API_KEY` for generated images and sound effects. The lab tracks the latest stable releases of every tool and library.
 
 Then ask your agent something like *"Make a 3D minigolf game that looks like reference/keyart.png"*.
 
@@ -24,10 +25,11 @@ Then ask your agent something like *"Make a 3D minigolf game that looks like ref
 
 | skill | what it does |
 |---|---|
-| [`make-web-game`](skills/make-web-game/SKILL.md) | entry point: art direction → brief → scaffold → assets → implement → playtest → judge → iterate |
+| [`make-web-game`](skills/make-web-game/SKILL.md) | entry point: art direction → brief → scaffold → assets + media → implement → playtest → judge → iterate → human review |
 | [`key-art-direction`](skills/key-art-direction/SKILL.md) | image/video → key frames, palette, `design/art-bible.md`, `design/style.json` |
 | [`web-game-runtime`](skills/web-game-runtime/SKILL.md) | Vite + three.js WebGPU/WebGL2 template, fixed-step loop, Rapier wrapper, `window.__game` test hooks |
 | [`blender-assets`](skills/blender-assets/SKILL.md) | `lab_bpy` helper, Blender → GLB with collider tags, preview renders, GLB inspector |
+| [`generate-media`](skills/generate-media/SKILL.md) | `design/media.json` → Runware (Nano Banana 2.1 / GPT-Image-2.5 images, Mirelo SFX) → candidate review → trimmed, normalised `public/sfx/*.mp3` + `public/images/*` with a cost/seed lock file |
 | [`publish-web-game`](skills/publish-web-game/SKILL.md) | `pnpm release` (minify, code-split, meshopt GLBs, gzip budgets) → GitHub Pages workflow → live-URL playtest |
 | [`game-judge`](skills/game-judge/SKILL.md) | Playwright playtest (scenarios, bots, screenshots, perf, SSIM backend parity) + 4 judge rubrics + aggregator |
 

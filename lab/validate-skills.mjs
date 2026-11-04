@@ -94,6 +94,8 @@ const same = [
   ['skills/publish-web-game/scripts/release.mjs', 'skills/web-game-runtime/assets/template/scripts/release.mjs'],
   ['skills/publish-web-game/scripts/release.mjs', 'examples/minigolf/scripts/release.mjs'],
   ['skills/web-game-runtime/assets/template/vite.config.js', 'examples/minigolf/vite.config.js'],
+  ['skills/generate-media/scripts/generate-media.mjs', 'skills/web-game-runtime/assets/template/scripts/generate-media.mjs'],
+  ['skills/generate-media/scripts/generate-media.mjs', 'examples/minigolf/scripts/generate-media.mjs'],
 ];
 for (const [src, copy] of same) {
   if (!existsSync(join(root, copy))) errors.push(`${copy} missing (copy of ${src})`);

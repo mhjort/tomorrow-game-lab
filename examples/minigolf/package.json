@@ -7,6 +7,7 @@
     "build": "vite build",
     "preview": "vite preview --port 4173 --strictPort",
     "assets": "node scripts/build-assets.mjs",
+    "media": "node scripts/generate-media.mjs",
     "release": "node scripts/release.mjs"
   },
   "dependencies": {

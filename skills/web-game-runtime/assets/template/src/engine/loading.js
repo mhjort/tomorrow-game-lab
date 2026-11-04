@@ -10,24 +10,27 @@
 //   loading.done();
 //
 // step(label, weight, fn): fn receives a progress callback (0..1) for that step; weights are relative.
+// image: optional background under public/ (e.g. 'images/splash.webp' from generate-media); keep it small (≤150 KB),
+// it is the first thing on screen. The title/bar sit on a translucent panel so they stay readable over art.
 import { style } from './style.js';
 import { TEST_MODE } from './renderer.js';
 
-export function createLoadingScreen({ title = document.title } = {}) {
+export function createLoadingScreen({ title = document.title, image } = {}) {
   const accent = style.palette?.accent ?? '#e4572e';
   const bg = style.background ?? '#222222';
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16) / 255);
   const ink = 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.55 ? '#1d1f2b' : '#ffffff'; // readable on any background
   const el = document.createElement('div');
   el.id = 'loading';
-  el.style.cssText = `position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-    background:${bg};color:${ink};font-family:system-ui,sans-serif;transition:opacity .35s`;
-  el.innerHTML = `
+  el.style.cssText = `position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:${image ? 'flex-end;padding-bottom:9vh;box-sizing:border-box' : 'center'};gap:14px;
+    background:${bg} ${image ? `url("${import.meta.env.BASE_URL}${image}") center/cover no-repeat` : ''};color:${ink};font-family:system-ui,sans-serif;transition:opacity .35s`;
+  const panel = image ? `background:${bg}cc;padding:18px 28px;border-radius:14px;` : '';
+  el.innerHTML = `<div style="${panel}display:flex;flex-direction:column;align-items:center;gap:14px">
     <div style="font-size:32px;font-weight:800">${title}</div>
     <div style="width:min(60vw,360px);height:10px;border-radius:5px;background:${ink}22;overflow:hidden">
       <div id="loading-bar" style="height:100%;width:0;background:${accent};transition:width .15s"></div>
     </div>
-    <div id="loading-label" style="font-size:13px;opacity:.85">Starting…</div>`;
+    <div id="loading-label" style="font-size:13px;opacity:.85">Starting…</div></div>`;
   document.body.appendChild(el);
   const bar = el.querySelector('#loading-bar');
   const label = el.querySelector('#loading-label');

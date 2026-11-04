@@ -14,7 +14,7 @@ export function createHud(root) {
     <div id="h-flash" style="position:absolute;top:28%;width:100%;text-align:center;font-size:44px;font-weight:800;opacity:0;transition:opacity .4s"></div>
     <div id="h-card" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#0007"></div>
     <div style="position:absolute;bottom:44px;width:100%;text-align:center;font-size:13px;opacity:.85">
-      drag back to putt · ←/→ aim, hold Space for power · C camera · R restart hole
+      drag back to putt · ←/→ aim, hold Space for power · C camera · R restart hole · M sound
     </div>`;
   const $ = (id) => root.querySelector(`#${id}`);
   let flashTimer;

@@ -14,6 +14,7 @@ The scaffold copies `index.html`, `vite.config.js`, `src/engine/*`, `design/styl
 - `pnpm dev`: development server
 - `pnpm build`, then `pnpm preview`: production build and preview
 - `pnpm assets`: Blender → GLB
+- `pnpm media`: AI images + sound effects from `design/media.json` (the `generate-media` skill)
 - `pnpm release`: optimized HTML5 build in `dist/` (minify, meshopt GLBs, budgets). Deploying is the `publish-web-game` skill.
 
 `vite.config.js` is publish-ready: relative `base: './'`, three.js in its own chunk, and `vite-plugin-wasm` for Rapier's real `.wasm` (`@dimforge/rapier3d`, loaded lazily). Keep these settings.
@@ -29,12 +30,13 @@ Before you write any game code, check the starter scene boots on both backends w
 | `assets.js` | `loadModels(names, onProgress)`: all GLBs fetched **in parallel** with byte progress (uses `asset-manifest.json` in release builds), meshopt-aware; `loadModel(name)` returns a clone |
 | `style.js` | `style` (design/style.json), `applyStyle(scene, renderer)` → `{ sun, hemi, refreshShadows }` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)` |
 | `input.js` | `createInput(canvas)` → held `keys`, pointer `drag`, `on('dragend', fn)` |
-| `loading.js` | `createLoadingScreen({ title })` → `parallel(label, [{ weight, run(progress) }])`, `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)` |
+| `audio.js` | `createAudio()` → `load(names, onProgress)` (`public/sfx/<name>.mp3`, parallel, decoded up front), `play(name, { volume, rate })`, `setMuted`, `counts` (plays per sound, also in `?test` where nothing is audible) |
+| `loading.js` | `createLoadingScreen({ title, image })` → `parallel(label, [{ weight, run(progress) }])`, `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)` |
 | `testHooks.js` | `installTestHooks({ backend, loop, getState, input })`, `createRng(seed)` |
 
 Boot order in `main.js`:
 1. `createLoadingScreen()`; it is shown first
-2. **One parallel download phase:** `loading.parallel('Loading…', [createRenderer, createPhysics, loadModels(ALL_MODELS, p), …])`. Every download (models, Rapier `.wasm`, audio, textures) starts at once. Never `await` one download before starting the next.
+2. **One parallel download phase:** `loading.parallel('Loading…', [createRenderer, createPhysics, loadModels(ALL_MODELS, p), audio.load(SFX, p), …])`. Every download (models, Rapier `.wasm`, audio, textures) starts at once. Never `await` one download before starting the next.
 3. scene and camera, then `applyStyle` (lights must exist before prewarm)
 4. build game objects from the loaded models
 5. **prewarm all levels/materials** (`loading.step('Compiling shaders', …, p => prewarm(..., allLevelRoots, p))`)
@@ -55,7 +57,9 @@ Boot order in `main.js`:
 - Use `createRng()` for randomness. Never use `Date.now()` or `performance.now()` in gameplay.
 - Load levels from GLB plus named marker empties (Spawn, Goal…). Read them with `root.getObjectByName('Spawn').getWorldPosition(v)`.
 - To change level, call `physics.removeBody(levelBody)`; it removes the colliders and sensor handlers too. Remove the old scene root, add the new one, then call `refreshShadows()` (from `applyStyle`). Prewarm must include every level, so the swap doesn't hitch.
+- Support a `?level=N` deep link (read with `params` from `renderer.js`), so people reviewing the game can jump straight to a level.
 - Use a DOM overlay (`#hud`) for the HUD; it is cheap and readable in screenshots. Show the controls on screen.
+- Play sounds from gameplay events in `update()` (deterministic), never from `render()`. Put `sfx: { ...audio.counts }` in `getState()` so scenarios can assert on cues. Give players a mute key.
 - Keep all code in `import * as THREE from 'three/webgpu'`. Use addons from `three/addons/...`. Never mix in `three` (the WebGL-only build).
 
 ## References (read when relevant)

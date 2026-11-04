@@ -1,0 +1,63 @@
+{
+  "provider": "runware",
+  "images": {
+    "splash": {
+      "prompt": "Stylised low-poly 3D render of a small floating grass island in a warm peach sky. On top: a bright minigolf course with cream rails, a red-orange flag in the cup, a small blue pond, a few cone-shaped trees and hexagonal rocks. Late-afternoon low sun, long soft shadows, matte flat-shaded toy look, calm. Wide composition with the island centred and empty sky around it. No text, no logo, no people. Match the palette and style of the reference image.",
+      "model": "google:nano-banana@2.1",
+      "reference": [
+        "design/reference/keyart.png"
+      ],
+      "width": 1376,
+      "height": 768,
+      "out": "webp",
+      "candidates": 2
+    },
+    "icon": {
+      "prompt": "Game icon: a white golf ball beside a small red-orange triangular flag on a short cream pole, standing on a small round green turf disc. Bold flat low-poly shapes, chunky and readable at 32 pixels, centred, filling most of the frame, transparent background, no text, no shadow outside the shapes.",
+      "model": "openai:gpt-image@2.5-flare",
+      "transparent": true,
+      "width": 1024,
+      "height": 1024,
+      "resize": 64,
+      "out": "png",
+      "candidates": 2
+    }
+  },
+  "sfx": {
+    "putt": {
+      "prompt": "One single short sharp 'tock' of a putter face hitting a golf ball. The hit is the very first sound, nothing before it: no swing, no whoosh, no footsteps, no ambience, no music.",
+      "duration": 1,
+      "seed": 31,
+      "maxDuration": 0.3,
+      "candidates": 3
+    },
+    "rail": {
+      "prompt": "A golf ball bouncing off a wooden rail: one short hollow wooden knock, dry, no music, no ambience",
+      "duration": 1,
+      "seed": 12,
+      "gain": -4,
+      "maxDuration": 0.35
+    },
+    "cup": {
+      "prompt": "A golf ball dropping into a plastic golf cup: a quick rattle and a soft thud, dry, no music, no ambience",
+      "duration": 1.5,
+      "seed": 13
+    },
+    "water": {
+      "prompt": "A single small ball dropping into still water: one short 'plop' splash that starts immediately and is over within half a second. No stream, no rain, no ambience, no music.",
+      "duration": 1,
+      "seed": 24,
+      "gain": -2,
+      "candidates": 3
+    },
+    "holed": {
+      "prompt": "A small bright bell struck once: one clear high 'ding' that starts immediately and rings out for about one second. No other sounds, no music, no voice.",
+      "duration": 2,
+      "seed": 25,
+      "gain": -4,
+      "maxDuration": 1.4,
+      "candidates": 3,
+      "trimDb": 14
+    }
+  }
+}

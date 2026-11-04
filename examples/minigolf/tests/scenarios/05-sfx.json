@@ -1,0 +1,19 @@
+{
+  "name": "sfx",
+  "description": "Sound cues fire on the right events: putt on every stroke, rail on a bounce, cup + holed chime once when the ball drops.",
+  "steps": [
+    { "step": 10 },
+    { "assert": "Object.keys(state.sfx).length === 0", "label": "silent while aiming" },
+    { "input": { "type": "shoot", "angle": 25, "power": 0.9 } },
+    { "assert": "state.sfx.putt === 1", "label": "putt sound on the stroke" },
+    { "until": "state.phase !== 'rolling'", "max": 1200 },
+    { "assert": "state.sfx.rail >= 1", "label": "rail knock on the bounce" },
+    { "assert": "!state.sfx.cup && !state.sfx.water", "label": "no cup/water sound for a missed putt" },
+    { "input": { "type": "loadHole", "hole": 1 } },
+    { "input": { "type": "shoot", "angle": 0, "power": 0.7 } },
+    { "until": "state.phase === 'holed'", "max": 900 },
+    { "assert": "state.sfx.cup === 1 && state.sfx.putt === 2", "label": "cup rattle when holed" },
+    { "until": "state.hole === 2", "max": 120 },
+    { "assert": "state.sfx.holed === 1 && state.sfx.cup === 1", "label": "one chime per hole" }
+  ]
+}

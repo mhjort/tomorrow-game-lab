@@ -1,4 +1,4 @@
-// Parallel GLB loading with byte-accurate progress. Models live in public/models/<name>.glb (blender-assets).
+// Parallel GLB loading with byte-accurate progress (fetchBytes/assetSize are shared with audio.js). Models live in public/models/<name>.glb (blender-assets).
 // All models are fetched concurrently (fetch + stream byte counting), then parsed. In release builds
 // asset-manifest.json (written by publish-web-game's release script) gives total sizes up front.
 // Meshopt-compressed GLBs (release optimization) are decoded transparently.
@@ -18,7 +18,13 @@ function getManifest() {
   return manifest;
 }
 
-async function fetchBytes(url, onBytes) {
+/** Byte size of a dist-relative asset path (e.g. 'models/ball.glb', 'sfx/putt.mp3') from the manifest, 0 if unknown. */
+export async function assetSize(path) {
+  return (await getManifest())[path] ?? 0;
+}
+
+/** fetch() a URL as an ArrayBuffer, reporting bytes received so far to onBytes. */
+export async function fetchBytes(url, onBytes = () => {}) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
   if (!res.body) return res.arrayBuffer();

@@ -72,22 +72,27 @@ if (glbs.length && !argv.includes('--no-glb-opt')) {
 }
 
 // 3. preload hints: the browser starts EVERY download while parsing index.html, instead of waiting for the
-//    entry module (which waits for three.js) to run the loader. Lazy chunks -> modulepreload; .wasm and
-//    models -> preload as fetch (crossorigin so the loader's fetch() reuses the response).
+//    entry module (which waits for three.js) to run the loader. Lazy chunks -> modulepreload; .wasm, models and
+//    sfx -> preload as fetch (crossorigin so the loader's fetch() reuses the response); images -> as image.
 if (!argv.includes('--no-preload')) {
   const htmlPath = join(dist, 'index.html');
   let page = readFileSync(htmlPath, 'utf8');
   const rel = (f) => `./${relative(dist, f)}`;
+  // images/ (generate-media) are CSS/<img> loads -> as=image without crossorigin; sfx/ are fetched like models.
   const hints = walk(dist)
-    .filter((f) => /\.(js|wasm|glb)$/.test(f) && !page.includes(relative(dist, f)))
+    .filter((f) => (/\.(js|wasm|glb|mp3|ogg)$/.test(f) || /^images\/.*\.(webp|png|jpg)$/.test(relative(dist, f))) && !page.includes(relative(dist, f)))
     .map((f) =>
-      f.endsWith('.js') ? `<link rel="modulepreload" crossorigin href="${rel(f)}">` : `<link rel="preload" as="fetch" crossorigin href="${rel(f)}">`,
+      f.endsWith('.js')
+        ? `<link rel="modulepreload" crossorigin href="${rel(f)}">`
+        : relative(dist, f).startsWith('images/')
+          ? `<link rel="preload" as="image" href="${rel(f)}">`
+          : `<link rel="preload" as="fetch" crossorigin href="${rel(f)}">`,
     );
   hints.push('<link rel="preload" as="fetch" crossorigin href="./asset-manifest.json">'); // written below
   if (hints.length) {
     page = page.replace('</head>', `    ${hints.join('\n    ')}\n  </head>`);
     writeFileSync(htmlPath, page);
-    console.log(`preload hints: ${hints.length} (lazy chunks, wasm, models)`);
+    console.log(`preload hints: ${hints.length} (lazy chunks, wasm, models, sfx, images)`);
   }
 }
 

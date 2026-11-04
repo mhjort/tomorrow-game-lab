@@ -21,6 +21,10 @@ test('release: minigolf builds minified + code-split, GLBs meshopt-optimized, wi
   assert.doesNotMatch(readFileSync(join(DIST, 'index.html'), 'utf8'), /(src|href)="\/(?!\/)/);
   const manifest = JSON.parse(readFileSync(join(DIST, 'asset-manifest.json'), 'utf8'));
   assert.ok(manifest['models/hole1.glb'] > 0);
+  assert.ok(manifest['sfx/putt.mp3'] > 0 && manifest['images/splash.webp'] > 0, 'generated media in the manifest');
+  const html = readFileSync(join(DIST, 'index.html'), 'utf8');
+  assert.match(html, /<link rel="preload" as="fetch" crossorigin href="\.\/sfx\/putt\.mp3">/);
+  assert.match(html, /<link rel="preload" as="image" href="\.\/images\/splash\.webp">/);
   for (const name of ['hole1', 'hole2', 'hole3', 'ball']) {
     const info = inspectGlb(join(DIST, 'models', `${name}.glb`));
     assert.ok(info.extensions.includes('EXT_meshopt_compression'), `${name} meshopt-compressed`);
@@ -48,6 +52,9 @@ test('release: optimized build plays on both backends and loads assets in parall
     // preload hints: models + wasm start with the HTML, not after three.js has loaded and the entry module ran
     const three = b.network.requests.find((n) => /^three-.*\.js$/.test(n.file));
     assert.ok(glbs.every((g) => g.start < three.end) && wasm.start < three.end, 'assets start before three.js finishes');
+    const sfx = b.network.requests.filter((n) => n.file.endsWith('.mp3'));
+    assert.equal(sfx.length, 5, 'every sound effect requested');
+    assert.ok(sfx.every((x) => x.start < three.end), 'sound effects preload with the HTML');
     const dups = b.network.requests.filter((x, i, a) => a.findIndex((y) => y.file === x.file) !== i);
     assert.deepEqual(dups, [], 'preloaded responses are reused (no double downloads)');
   }

@@ -25,6 +25,13 @@ One sentence: who you are, what you do, why it's fun.
 ## Cut list (explicitly NOT in v1)
 - …
 
+## Audio & 2D media (generate-media; optional)
+| event | sound (`public/sfx/<name>.mp3`) |
+|---|---|
+| e.g. jump | `jump`: short soft whoosh |
+
+Images: splash (loading-screen background, framed like the key art), icon (favicon). Anything else 2D: …
+
 ## Feel targets (numbers judges can check)
 - e.g. max speed, typical distances, session length, expected bot score
 

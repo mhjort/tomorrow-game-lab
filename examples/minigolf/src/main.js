@@ -1,16 +1,19 @@
 // Island Putt — 3D minigolf. Golden test game for tomorrow-game-lab (see design/brief.md).
 import * as THREE from 'three/webgpu';
-import { createRenderer, fitToWindow } from './engine/renderer.js';
+import { createRenderer, fitToWindow, params } from './engine/renderer.js';
 import { applyStyle, paletteColor, style } from './engine/style.js';
 import { createPhysics } from './engine/physics.js';
 import { createLoop } from './engine/loop.js';
 import { createInput } from './engine/input.js';
 import { installTestHooks } from './engine/testHooks.js';
 import { loadModels } from './engine/assets.js';
+import { createAudio } from './engine/audio.js';
 import { createHud } from './hud.js';
 import { createLoadingScreen, prewarm } from './engine/loading.js';
 
-const loading = createLoadingScreen({ title: 'Island Putt' });
+const loading = createLoadingScreen({ title: 'Island Putt', image: 'images/splash.webp' });
+const audio = createAudio();
+const SFX = ['putt', 'rail', 'cup', 'water', 'holed']; // public/sfx/*.mp3, generated from design/media.json
 
 const HOLES = [
   { model: 'hole1', name: 'First Putt', par: 2 },
@@ -24,12 +27,14 @@ const ROLL_DECEL = 0.9; // m/s² constant rolling resistance -> putt length ≈ 
 const STOP_SPEED = 0.06;
 const STOP_TICKS = 15;
 const HOLED_DELAY = 60;
+const RAIL_DV = 0.35; // m/s horizontal velocity change in one tick that counts as a rail hit (rolling drag is ~0.015)
 
-// Download phase: renderer init, Rapier WASM chunk and every GLB in parallel, one progress bar.
+// Download phase: renderer init, Rapier WASM chunk, every GLB and every sound in parallel, one progress bar.
 const [{ renderer, backend }, physics, models] = await loading.parallel('Loading course…', [
   { weight: 0.1, run: () => createRenderer() },
   { weight: 0.3, run: () => createPhysics({ substeps: 4 }) },
   { weight: 0.3, run: (p) => loadModels([...HOLES.map((h) => h.model), 'ball'], p) },
+  { weight: 0.05, run: (p) => audio.load(SFX, p) },
 ]);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(style.camera?.fov ?? 45, innerWidth / innerHeight, 0.05, 200);
@@ -80,6 +85,7 @@ const g = {
   flag: null,
   camMode: 'follow',
   tick: 0,
+  lastRailTick: -99,
 };
 
 function loadHole(i) {
@@ -133,6 +139,7 @@ function shoot(angle, power) {
   g.strokes++;
   g.phase = 'rolling';
   g.slowTicks = 0;
+  audio.play('putt', { volume: 0.35 + 0.65 * power });
   hud.update(hudState());
   return true;
 }
@@ -140,6 +147,7 @@ function shoot(angle, power) {
 function holeOut() {
   g.phase = 'holed';
   g.holedTicks = 0;
+  audio.play('cup');
   const h = HOLES[g.hole];
   g.scorecard[g.hole] = { hole: g.hole + 1, par: h.par, strokes: g.strokes };
   hud.flash(g.strokes === 1 ? 'Hole in one!' : scoreName(g.strokes - h.par));
@@ -203,6 +211,10 @@ function dragAim(dx, dy) {
 addEventListener('keydown', (e) => {
   if (e.code === 'KeyR') act({ type: g.phase === 'complete' ? 'reset' : 'loadHole', hole: g.hole + 1 });
   if (e.code === 'KeyC') act({ type: 'camera', mode: g.camMode === 'follow' ? 'overview' : 'follow' });
+  if (e.code === 'KeyM') {
+    audio.setMuted(!audio.muted);
+    hud.flash(audio.muted ? 'Sound off' : 'Sound on');
+  }
 });
 addEventListener('keyup', (e) => {
   if (e.code === 'Space' && g.charging) {
@@ -229,6 +241,7 @@ function update(dt) {
   }
 
   if (g.phase === 'rolling') applyRollingResistance(dt);
+  const v0 = ballBody.linvel();
   physics.step();
   const p = ballBody.translation();
   const v = ballBody.linvel();
@@ -236,9 +249,16 @@ function update(dt) {
 
   if (g.phase === 'rolling') {
     const cupDist = Math.hypot(p.x - g.cup.x, p.z - g.cup.z);
+    // rail hit = sudden horizontal velocity change (no contact-event plumbing needed); rate-limited, louder when faster
+    const dv = Math.hypot(v.x - v0.x, v.z - v0.z);
+    if (dv > RAIL_DV && cupDist > CUP_R + 0.05 && g.tick - g.lastRailTick > 6) {
+      g.lastRailTick = g.tick;
+      audio.play('rail', { volume: Math.min(1, 0.25 + dv / 2), rate: 0.95 + Math.min(0.15, dv / 20) });
+    }
     if (p.y < g.tee.y - 0.02 && cupDist > CUP_R + 0.02 && p.y < g.cup.y - 0.02) {
       // off the course: penalty stroke, back to the last shot position
       g.strokes++;
+      audio.play('water');
       hud.flash('Out of bounds +1');
       placeBall(g.lastShot);
       g.phase = 'aim';
@@ -256,7 +276,8 @@ function update(dt) {
     }
     hud.update(hudState());
   } else if (g.phase === 'holed') {
-    if (++g.holedTicks >= HOLED_DELAY) {
+    if (++g.holedTicks === 15) audio.play('holed'); // chime a beat after the cup rattle
+    if (g.holedTicks >= HOLED_DELAY) {
       if (g.hole + 1 < HOLES.length) loadHole(g.hole + 1);
       else {
         g.phase = 'complete';
@@ -350,11 +371,12 @@ function getState() {
     aim: { ...g.aim },
     camera: g.camMode,
     scorecard: g.scorecard,
+    sfx: { ...audio.counts }, // plays per sound (audible only outside ?test)
   };
 }
 
 await loading.step('Compiling shaders', 0.3, (p) => prewarm(renderer, scene, camera, HOLES.map((h) => models[h.model]), p));
-loadHole(0);
+loadHole(THREE.MathUtils.clamp((Number(params.get('hole')) || 1) - 1, 0, HOLES.length - 1)); // ?hole=N deep link for human review
 const loop = createLoop({ update, render, renderer });
 const hooks = installTestHooks({ backend, loop, getState, input: act });
 loop.start();
