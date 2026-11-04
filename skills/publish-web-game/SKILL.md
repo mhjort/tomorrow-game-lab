@@ -8,13 +8,13 @@ description: Publish a three.js web game as an optimized HTML5 build. Minified, 
 The default host is **GitHub Pages**: free, works with any repo, and the URL is `https://<owner>.github.io/<repo>/`. Any static host works with the same `dist/`.
 
 Files in this skill:
-- `scripts/release.mjs`: the release build. The web-game-runtime template ships an identical copy as `scripts/release.mjs` behind `npm run release`. Projects scaffolded before that existed can copy it from here.
+- `scripts/release.mjs`: the release build. The web-game-runtime template ships an identical copy as `scripts/release.mjs` behind `pnpm release`. Projects scaffolded before that existed can copy it from here.
 - `assets/pages.yml`: the GitHub Actions deploy workflow.
 - `scripts/serve-dist.mjs`: a local static server that serves precompressed `.br`/`.gz` files, like nginx `brotli_static`.
 
 ## 1. Release build
 ```bash
-npm run release            # = node scripts/release.mjs  [--max-js-kb 1500] [--max-total-mb 20] [--no-glb-opt]
+pnpm release            # = node scripts/release.mjs  [--max-js-kb 1500] [--max-total-mb 20] [--no-glb-opt]
 ```
 1. Runs `vite build`. The template's `vite.config.js` sets `base: './'` (relative URLs), splits three.js into its own chunk, and lazy-loads Rapier as its own JS chunk plus a real `.wasm` file.
 2. Optimizes every `dist/**/*.glb` in place: dedup, weld, and meshopt (quantize + reorder + compress), typically 2–3× smaller. The runtime loader decodes these with `MeshoptDecoder`. Marker empties and collider extras are preserved; the script fails if the node set changes.
@@ -30,7 +30,7 @@ If the build is over budget, look at the biggest rows first:
 Never inline large assets as base64.
 
 ### Brotli: precompressed files for hosts that serve them
-`npm run release -- --precompress` writes `<file>.br` (brotli q11) and `<file>.gz` (gzip -9) next to every compressible file over 1 KB. On minigolf brotli is 26% smaller than gzip, and the physics `.wasm` drops from 1148 KB to 832 KB. It adds about 7 s to the build. Use it when the host serves precompressed files:
+`pnpm release --precompress` writes `<file>.br` (brotli q11) and `<file>.gz` (gzip -9) next to every compressible file over 1 KB. On minigolf brotli is 26% smaller than gzip, and the physics `.wasm` drops from 1148 KB to 832 KB. It adds about 7 s to the build. Use it when the host serves precompressed files:
 - **nginx:** `brotli_static on; gzip_static on;` (ngx_brotli module). Also make sure `application/wasm` is in `mime.types`.
 - **Caddy:** `file_server { precompressed br gzip }`
 - **S3 + CloudFront:** upload the `.br` file under the original key with `Content-Encoding: br`, or let CloudFront compress.
@@ -53,6 +53,7 @@ git add -A && git commit -m "Publish to GitHub Pages" && git push
 gh run watch "$(gh run list --workflow pages.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
 - Commit `public/models/*.glb`. CI has no Blender, and the release build only optimizes the committed GLBs.
+- Commit `pnpm-lock.yaml` (CI runs `pnpm install --frozen-lockfile`). The workflow reads the pnpm version from `"packageManager"` in `package.json`, which the template sets.
 - For a game in a sub-folder (monorepo), set `GAME_DIR` in the workflow.
 - Several games in one repo: build each one and assemble a site folder (`/<game>/` per game plus an index page) before `upload-pages-artifact`. The tomorrow-game-lab repo's own workflow is an example.
 - Pages enforces HTTPS, so WebGPU's secure-context requirement is met.

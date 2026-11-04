@@ -36,7 +36,7 @@ try {
   const mod = await import(req.resolve('playwright-core'));
   chromium = mod.chromium ?? mod.default.chromium;
 } catch {
-  console.error(`playwright-core not found from ${project}. Run: npm i -D playwright-core`);
+  console.error(`playwright-core not found from ${project}. Run: pnpm add -D playwright-core`);
   process.exit(2);
 }
 
@@ -46,8 +46,8 @@ async function startServer() {
   if (url) return { url, stop() {} };
   const mode = existsSync(join(project, 'dist', 'index.html')) && !flag('--dev') ? 'preview' : 'dev';
   const port = 4300 + Math.floor(Math.random() * 500);
-  const args = mode === 'preview' ? ['vite', 'preview', '--port', port, '--strictPort'] : ['vite', '--port', port, '--strictPort'];
-  const proc = spawn('npx', args.map(String), { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] });
+  const args = mode === 'preview' ? ['exec', 'vite', 'preview', '--port', port, '--strictPort'] : ['exec', 'vite', '--port', port, '--strictPort'];
+  const proc = spawn('pnpm', args.map(String), { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] });
   let log = '';
   const serverUrl = await new Promise((res, rej) => {
     const t = setTimeout(() => rej(new Error(`vite ${mode} did not start:\n${log}`)), 30000);

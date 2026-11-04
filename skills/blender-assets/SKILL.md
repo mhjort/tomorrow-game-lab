@@ -14,10 +14,10 @@ Files in this skill's `scripts/`:
 - `run_blender.sh <script.py> [args]`: runs a single script headless (`blender -b --factory-startup --python-exit-code 1`).
 - `inspect_glb.mjs <glb...>`: triangle count, size, materials and colliders, checked against budgets. No dependencies.
 
-The web-game-runtime template already includes `npm run assets` (its build-assets script):
+The web-game-runtime template already includes `pnpm assets` (its build-assets script):
 - It builds every `assets/src/*.py` except files starting with `_` or `lab_`, which are treated as helpers.
-- Pass asset names to build only those: `npm run assets -- hole1 ball`.
-- Add `-- --no-preview` to skip the preview renders.
+- Pass asset names to build only those: `pnpm assets hole1 ball`.
+- Add `--no-preview` to skip the preview renders.
 
 ## Asset script skeleton
 ```python
@@ -58,7 +58,7 @@ For custom shapes, build them with `bmesh` or `mesh.from_pydata`, as `_course.py
 - **One asset per script.** Shared building code goes in `assets/src/_<name>.py`, which the build skips.
 
 ## Review loop (always)
-1. `npm run assets -- <name>`
+1. `pnpm assets <name>`
 2. **Look at `.lab/previews/<name>.png`** and compare it with the key art and the art bible. Fix the silhouette, proportions and colours before writing any game code that uses the asset.
 3. Run `inspect_glb.mjs` and confirm the colliders list contains every gameplay surface.
 

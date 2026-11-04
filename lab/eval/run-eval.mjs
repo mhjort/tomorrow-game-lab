@@ -9,7 +9,7 @@
 // scoped allowlist passed with --settings (see permissions.mjs); judges run from a separate dir with a read-only list.
 // Denied tool calls are recorded in the result (see permissions.mjs).
 //
-// Steps: fresh workspace → `npx skills add <lab> -a claude-code --copy` → copy fixtures → `claude -p` build
+// Steps: fresh workspace → `pnpm dlx skills add <lab> -a claude-code --copy` → copy fixtures → `claude -p` build
 //        → objective checks (build, playtest, assets, scenarios) → 4 independent judge runs (`claude -p`)
 //        → lab/eval/results/<ts>.json + a row in lab/eval/history.md
 import { spawnSync, spawn } from 'node:child_process';
@@ -71,7 +71,7 @@ if (!flag('--judge-only')) {
     copyFileSync(join(ROOT, 'lab/fixtures/keyart', f), join(ws, 'reference', f));
   }
   log('installing skills into', ws);
-  const inst = sh('npx', ['-y', 'skills', 'add', ROOT, '-a', 'claude-code', '-y', '--copy'], { cwd: ws });
+  const inst = sh('pnpm', ['dlx', 'skills', 'add', ROOT, '-a', 'claude-code', '-y', '--copy'], { cwd: ws });
   if (!inst.ok) throw new Error(`skills add failed:\n${inst.out}`);
   // Permissions go in a settings file OUTSIDE the workspace, passed with --settings (untrusted workspaces
   // ignore their own .claude/settings.json allow rules).
@@ -115,8 +115,8 @@ check('blender assets', glbs.length > 0 && assetScripts.length > 0, `${assetScri
 const scen = existsSync(join(ws, 'tests/scenarios')) ? readdirSync(join(ws, 'tests/scenarios')).filter((f) => f.endsWith('.json')) : [];
 check('scenarios', scen.length >= 3, `${scen.length} scenarios`);
 if (existsSync(join(ws, 'package.json'))) {
-  const b = sh('npm', ['run', 'build'], { cwd: ws });
-  check('npm run build', b.ok, b.ok ? '' : b.out.slice(-400));
+  const b = sh('pnpm', ['run', 'build'], { cwd: ws });
+  check('pnpm run build', b.ok, b.ok ? '' : b.out.slice(-400));
   const pt = sh(process.execPath, [join(ROOT, 'skills/game-judge/scripts/playtest.mjs'), '--project', ws, '--out', join(ws, '.lab/runs/eval')], { cwd: ws });
   let rep = null;
   try { rep = JSON.parse(readFileSync(join(ws, '.lab/runs/eval/report.json'), 'utf8')); } catch {}

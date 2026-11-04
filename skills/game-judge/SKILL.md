@@ -15,7 +15,7 @@ Requirements in the game project:
 
 ## 1. Playtest
 ```bash
-npm run build && node <skill>/scripts/playtest.mjs            # serves dist/ with vite preview
+pnpm build && node <skill>/scripts/playtest.mjs            # serves dist/ with vite preview
 node <skill>/scripts/playtest.mjs --dev                        # or serve via vite dev (no build)
 #   --backends webgpu,webgl2  --scenarios tests/scenarios  --perf 3  --require-webgpu  --parity-min 0.9  --headed
 ```

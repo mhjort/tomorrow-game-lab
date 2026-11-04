@@ -76,9 +76,12 @@ test('playtest: detects a failing assertion and console errors', { skip: process
 });
 
 test('template: scaffold boots through loading screen + prewarm on both backends', { skip: process.env.SKIP_BROWSER && 'SKIP_BROWSER set', timeout: 180000 }, () => {
-  const proj = tmp('template'); // inside the repo, so node_modules resolve from the root workspace
+  const proj = tmp('template');
   const s = run(process.execPath, [join(SKILLS, 'web-game-runtime/scripts/scaffold.mjs'), proj]);
   assert.equal(s.status, 0, s.stderr);
+  // a real standalone install, as an agent would do (fast: packages hard-link from the pnpm store)
+  const i = run('pnpm', ['install', '--ignore-workspace', '--prefer-offline'], { cwd: proj });
+  assert.equal(i.status, 0, i.stdout + i.stderr);
   const out = join(proj, '.lab/run');
   const r = run(process.execPath, [join(SKILLS, 'game-judge/scripts/playtest.mjs'), '--project', proj, '--dev', '--perf', '0', '--out', out]);
   assert.equal(r.status, 0, r.stdout + r.stderr);

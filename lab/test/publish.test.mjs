@@ -9,7 +9,7 @@ const GAME = join(ROOT, 'examples/minigolf');
 const DIST = join(GAME, 'dist');
 
 test('release: minigolf builds minified + code-split, GLBs meshopt-optimized, within budgets', { timeout: 180000 }, () => {
-  const r = run('npm', ['--workspace', 'examples/minigolf', 'run', 'release'], { cwd: ROOT });
+  const r = run('pnpm', ['--filter', 'minigolf', 'run', 'release'], { cwd: ROOT });
   assert.equal(r.status, 0, r.stdout.slice(-2000) + r.stderr.slice(-2000));
   const report = JSON.parse(readFileSync(join(DIST, 'release-report.json'), 'utf8'));
   assert.deepEqual(report.problems, []);

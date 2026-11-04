@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Validate skills/ for `npx skills add` compatibility and lab conventions.
+// Validate skills/ for `pnpm dlx skills add` compatibility and lab conventions.
 //  - SKILL.md has frontmatter with name (== dir, kebab-case) and description (30..1024 chars)
 //  - SKILL.md body ≤ 200 lines (skills must stay lightweight; push detail into references/)
 //  - every relative path mentioned as `scripts/...`, `references/...`, `judges/...`, `assets/...` exists in the skill

@@ -6,13 +6,13 @@
 // Rules are passed with `claude --settings <file>`, NOT via <workspace>/.claude/settings.json: Claude Code
 // ignores project-level permissions.allow in a workspace that was never trusted interactively.
 //
-// This is containment against accidents, not a sandbox: `node`, `npm`, `python3` and `blender` run arbitrary
+// This is containment against accidents, not a sandbox: `node`, `pnpm`, `python3` and `blender` run arbitrary
 // code. For hard isolation, run the eval in a container/VM.
 
 // The toolchain the skills legitimately need to build a game.
 export const BUILD_ALLOW = [
   'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Skill', 'Agent', 'TodoWrite',
-  'Bash(npm *)', 'Bash(npx *)', 'Bash(node *)',
+  'Bash(pnpm *)', 'Bash(node *)',
   'Bash(blender *)', 'Bash(/Applications/Blender.app/Contents/MacOS/Blender *)',
   'Bash(python3 *)', 'Bash(ffmpeg *)', 'Bash(ffprobe *)',
   'Bash(bash .claude/skills/*)', 'Bash(bash ./.claude/skills/*)',
@@ -26,7 +26,7 @@ export const BUILD_ALLOW = [
 // Never allowed, even if a broader rule would match.
 export const BUILD_DENY = [
   'Bash(sudo *)', 'Bash(curl *)', 'Bash(wget *)', 'Bash(ssh *)', 'Bash(scp *)',
-  'Bash(git push *)', 'Bash(npm publish *)', 'Bash(rm -rf / *)', 'Bash(rm -rf ~ *)',
+  'Bash(git push *)', 'Bash(pnpm publish *)', 'Bash(npm *)', 'Bash(npx *)', 'Bash(rm -rf / *)', 'Bash(rm -rf ~ *)',
   'WebFetch', 'WebSearch',
 ];
 
@@ -35,6 +35,6 @@ export const JUDGE_ALLOW = [
   'Read', 'Glob', 'Grep',
   'Bash(node *)', 'Bash(ls *)', 'Bash(cat *)', 'Bash(head *)', 'Bash(tail *)', 'Bash(jq *)', 'Bash(wc *)', 'Bash(find *)',
 ];
-export const JUDGE_DENY = ['Edit', 'Write', 'WebFetch', 'WebSearch', 'Agent', 'Bash(npm *)', 'Bash(rm *)', 'Bash(mv *)'];
+export const JUDGE_DENY = ['Edit', 'Write', 'WebFetch', 'WebSearch', 'Agent', 'Bash(pnpm *)', 'Bash(npm *)', 'Bash(rm *)', 'Bash(mv *)'];
 
 export const settingsJson = (allow, deny) => JSON.stringify({ permissions: { allow, deny } }, null, 2);

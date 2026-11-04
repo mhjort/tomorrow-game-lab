@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Build every Blender asset script in assets/src/*.py -> public/models/<name>.glb (+ .lab/previews/<name>.png).
 // Files starting with "_" or "lab_" are helpers and are skipped.
-// Usage: npm run assets [-- name ...] [-- --no-preview]
+// Usage: pnpm assets [name ...] [--no-preview]
 import { readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, basename } from 'node:path';

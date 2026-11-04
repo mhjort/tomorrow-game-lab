@@ -8,13 +8,13 @@ description: Scaffold and implement browser games with three.js WebGPURenderer (
 ## Scaffold
 ```bash
 node <skill>/scripts/scaffold.mjs . --lab-bpy <blender-assets skill>/scripts/lab_bpy.py   # never overwrites existing files
-npm install
+pnpm install
 ```
 The scaffold copies `index.html`, `vite.config.js`, `src/engine/*`, `design/style.json`, `tests/` and a `.gitignore`. Use the script rather than `cp -r`: agents' permission systems usually block recursive copies. Scripts:
-- `npm run dev`: development server
-- `npm run build`, then `npm run preview`: production build and preview
-- `npm run assets`: Blender → GLB
-- `npm run release`: optimized HTML5 build in `dist/` (minify, meshopt GLBs, budgets). Deploying is the `publish-web-game` skill.
+- `pnpm dev`: development server
+- `pnpm build`, then `pnpm preview`: production build and preview
+- `pnpm assets`: Blender → GLB
+- `pnpm release`: optimized HTML5 build in `dist/` (minify, meshopt GLBs, budgets). Deploying is the `publish-web-game` skill.
 
 `vite.config.js` is publish-ready: relative `base: './'`, three.js in its own chunk, and `vite-plugin-wasm` for Rapier's real `.wasm` (`@dimforge/rapier3d`, loaded lazily). Keep these settings.
 

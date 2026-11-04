@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Release build for a web-game-runtime project: minified Vite build + optimized GLBs + asset manifest +
-// gzip size report with budgets. Run from the game project root: `npm run release` (or node this file).
+// gzip size report with budgets. Run from the game project root: `pnpm release` (or node this file).
 //
 //   node release.mjs [--project .] [--no-glb-opt] [--no-preload] [--precompress] [--max-js-kb 1500] [--max-total-mb 20] [--skip-build]
 //
@@ -28,7 +28,7 @@ const imp = async (name) => import(req.resolve(name));
 
 // 1. minified production build
 if (!argv.includes('--skip-build')) {
-  const r = spawnSync('npx', ['vite', 'build'], { cwd: project, stdio: 'inherit' });
+  const r = spawnSync('pnpm', ['exec', 'vite', 'build'], { cwd: project, stdio: 'inherit' });
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 if (!existsSync(join(dist, 'index.html'))) {

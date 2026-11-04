@@ -32,4 +32,4 @@ if (labBpy) {
   created.push('assets/src/lab_bpy.py');
 }
 console.log(`scaffolded ${created.length} files into ${dest}${skipped.length ? ` (kept ${skipped.length} existing: ${skipped.join(', ')})` : ''}`);
-console.log('next: npm install && npm run dev   (playtest: game-judge skill)');
+console.log('next: pnpm install && pnpm dev   (playtest: game-judge skill)');
