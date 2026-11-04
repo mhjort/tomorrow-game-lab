@@ -17,9 +17,23 @@ pnpm dlx skills add mhjort/tomorrow-game-lab                       # all skills,
 pnpm dlx skills add mhjort/tomorrow-game-lab -a claude-code -y     # Claude Code, project-level
 pnpm dlx skills add mhjort/tomorrow-game-lab --skill game-judge    # just one skill
 ```
-Requirements: Node ≥ 24 (26 LTS preferred), Google Chrome, Blender 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. Optional: `RUNWARE_API_KEY` for generated images and sound effects. The lab tracks the latest stable releases of every tool and library.
+Requirements: Node ≥ 24 (26 LTS preferred), Google Chrome, Blender 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. Optional: `RUNWARE_API_KEY` for generated images and sound effects (see below). The lab tracks the latest stable releases of every tool and library.
 
 Then ask your agent something like *"Make a 3D minigolf game that looks like reference/keyart.png"*.
+
+### Optional: generated images and sound (Runware)
+
+Splash art, icons and sound effects come from [Runware](https://runware.ai), a pay-as-you-go API for image and audio models. Without a key the games still work, just without generated media.
+
+1. Create an account at [runware.ai](https://runware.ai) and verify your email.
+2. Add credits in the dashboard (new accounts may get some trial credit). Each generated file's cost is recorded in the game's `assets/media.lock.json`, and re-runs reuse locked files at no cost.
+3. Open **API Keys** in the dashboard, create a key, and export it in the shell your agent runs in:
+
+   ```bash
+   export RUNWARE_API_KEY=...   # e.g. in ~/.zshrc; never commit it
+   ```
+
+The `make-web-game` environment check (`scripts/check-env.mjs`) reports whether the key is set, without printing it.
 
 ## Skills
 
