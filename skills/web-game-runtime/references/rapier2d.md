@@ -3,11 +3,11 @@
 Use 2D physics for side-scrollers, top-down games and pinball. The rendering stays three.js; use an orthographic camera or a fixed perspective camera.
 
 ```bash
-npm rm @dimforge/rapier3d-compat && npm i @dimforge/rapier2d-compat
+npm rm @dimforge/rapier3d && npm i @dimforge/rapier2d
 ```
 
 Changes to `src/engine/physics.js`:
-- `import RAPIER from '@dimforge/rapier2d-compat'`
+- `await import('@dimforge/rapier2d')` (same dynamic-import pattern as the 3D wrapper)
 - Gravity becomes `{ x: 0, y: -9.81 }`. Vectors have only `x` and `y`. Rotation is a scalar angle (`body.rotation()`).
 - In `sync()`: `object.position.set(p.x, p.y, object.position.z); object.rotation.z = body.rotation();`
 - Colliders:

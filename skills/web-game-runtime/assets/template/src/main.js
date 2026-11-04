@@ -1,6 +1,7 @@
 // Starter scene: replace the GAME section with your game. Keep the boot order:
-// loading screen -> renderer -> style -> physics -> assets -> game objects -> prewarm -> hooks -> loop -> loading.done() -> ready
-// Every game boots through the loading screen and prewarms all levels/materials before it is shown.
+// loading screen -> PARALLEL(renderer init, physics WASM, all models) -> style -> game objects -> prewarm
+//   -> hooks -> loop -> loading.done() -> ready
+// Every game boots through the loading screen: downloads run in parallel, then everything is prewarmed.
 import * as THREE from 'three/webgpu';
 import { createRenderer, fitToWindow } from './engine/renderer.js';
 import { applyStyle, paletteColor, style } from './engine/style.js';
@@ -9,17 +10,23 @@ import { createLoop } from './engine/loop.js';
 import { createInput } from './engine/input.js';
 import { installTestHooks } from './engine/testHooks.js';
 import { createLoadingScreen, prewarm } from './engine/loading.js';
+import { loadModels } from './engine/assets.js';
+
+const MODELS = []; // GLB names in public/models/ (built by blender-assets), e.g. ['level1', 'player']
 
 const loading = createLoadingScreen({ title: 'Web Game' });
-
-const { renderer, backend } = await createRenderer();
+// Download phase: everything at once, one combined progress bar.
+const [{ renderer, backend }, physics, models] = await loading.parallel('Loading…', [
+  { weight: 0.1, run: () => createRenderer() },
+  { weight: 0.3, run: () => createPhysics() },
+  { weight: 0.3, run: (p) => loadModels(MODELS, p) },
+]);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(style.camera?.fov ?? 50, innerWidth / innerHeight, 0.1, 500);
 camera.position.set(6, 5, 8);
 camera.lookAt(0, 0, 0);
 fitToWindow(renderer, camera);
 applyStyle(scene, renderer);
-const physics = await loading.step('Starting physics', 0.2, () => createPhysics());
 const { RAPIER, world } = physics;
 const input = createInput(renderer.domElement);
 
@@ -54,7 +61,8 @@ function getState() {
 // ---------------------------------------------------------------- /GAME
 
 // Compile every material/pipeline (incl. shadows) before play. Pass ALL level roots, not just the first one.
-await loading.step('Compiling shaders', 0.6, (p) => prewarm(renderer, scene, camera, [scene], p));
+// Compile every material/pipeline (incl. shadows) before play: the scene plus every level/model root.
+await loading.step('Compiling shaders', 0.3, (p) => prewarm(renderer, scene, camera, [scene, ...Object.values(models)], p));
 
 const loop = createLoop({
   renderer,

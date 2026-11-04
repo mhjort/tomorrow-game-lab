@@ -1,0 +1,52 @@
+# Deploy a web-game-runtime project to GitHub Pages on every push to main.
+# Copy to .github/workflows/pages.yml. For a game in a sub-folder of a monorepo, set GAME_DIR.
+# One-time setup: gh api -X POST repos/{owner}/{repo}/pages -f build_type=workflow
+name: Deploy game to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  GAME_DIR: . # e.g. games/my-game
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.GAME_DIR }}/package-lock.json
+      - name: Install
+        working-directory: ${{ env.GAME_DIR }}
+        run: npm ci
+      # GLBs in public/models are committed (built locally with Blender); CI never needs Blender.
+      - name: Release build (minify, optimize GLBs, budgets)
+        working-directory: ${{ env.GAME_DIR }}
+        run: npm run release
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.GAME_DIR }}/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

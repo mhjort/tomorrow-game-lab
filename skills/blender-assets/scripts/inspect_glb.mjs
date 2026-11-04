@@ -53,6 +53,7 @@ export function inspectGlb(path) {
     triangles: tris,
     materials: (gltf.materials || []).map((m) => m.name),
     textures: (gltf.images || []).length,
+    extensions: gltf.extensionsUsed || [],
     meshes,
     nodes,
     colliders: nodes.filter((n) => n.collider).map((n) => `${n.name}:${n.collider}${n.extras?.sensor ? '(sensor)' : ''}`),
@@ -82,6 +83,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const r of reports) {
       console.log(`${r.file}: ${r.triangles ?? '?'} tris, ${r.kb ?? '?'}KB, materials=[${(r.materials || []).join(', ')}]`);
       if (r.colliders?.length) console.log(`  colliders: ${r.colliders.join(', ')}`);
+      if (r.extensions?.length) console.log(`  extensions: ${r.extensions.join(', ')}`);
       for (const p of r.problems) console.log(`  PROBLEM: ${p}`);
     }
   process.exit(bad ? 1 : 0);

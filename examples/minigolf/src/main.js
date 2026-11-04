@@ -25,16 +25,19 @@ const STOP_SPEED = 0.06;
 const STOP_TICKS = 15;
 const HOLED_DELAY = 60;
 
-const { renderer, backend } = await createRenderer();
+// Download phase: renderer init, Rapier WASM chunk and every GLB in parallel, one progress bar.
+const [{ renderer, backend }, physics, models] = await loading.parallel('Loading course…', [
+  { weight: 0.1, run: () => createRenderer() },
+  { weight: 0.3, run: () => createPhysics({ substeps: 4 }) },
+  { weight: 0.3, run: (p) => loadModels([...HOLES.map((h) => h.model), 'ball'], p) },
+]);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(style.camera?.fov ?? 45, innerWidth / innerHeight, 0.05, 200);
 fitToWindow(renderer, camera);
 const { refreshShadows } = applyStyle(scene, renderer, { shadowArea: 8 });
-const physics = await loading.step('Starting physics', 0.1, () => createPhysics({ substeps: 4 }));
 const { RAPIER, world } = physics;
 const input = createInput(renderer.domElement);
 const hud = createHud(document.getElementById('hud'));
-const models = await loading.step('Loading course', 0.4, (p) => loadModels([...HOLES.map((h) => h.model), 'ball'], p));
 
 // ---------------------------------------------------------------- ball
 const ballMesh = models.ball;
@@ -350,7 +353,7 @@ function getState() {
   };
 }
 
-await loading.step('Compiling shaders', 0.5, (p) => prewarm(renderer, scene, camera, HOLES.map((h) => models[h.model]), p));
+await loading.step('Compiling shaders', 0.3, (p) => prewarm(renderer, scene, camera, HOLES.map((h) => models[h.model]), p));
 loadHole(0);
 const loop = createLoop({ update, render, renderer });
 const hooks = installTestHooks({ backend, loop, getState, input: act });

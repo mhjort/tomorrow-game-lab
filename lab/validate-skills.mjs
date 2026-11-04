@@ -89,6 +89,17 @@ for (const f of readdirSync(tplEngine)) {
     errors.push(`examples/minigolf/src/engine/${f} differs from the template (sync it or upstream the change)`);
 }
 
+// vendored copies that must stay byte-identical to their source of truth
+const same = [
+  ['skills/publish-web-game/scripts/release.mjs', 'skills/web-game-runtime/assets/template/scripts/release.mjs'],
+  ['skills/publish-web-game/scripts/release.mjs', 'examples/minigolf/scripts/release.mjs'],
+  ['skills/web-game-runtime/assets/template/vite.config.js', 'examples/minigolf/vite.config.js'],
+];
+for (const [src, copy] of same) {
+  if (!existsSync(join(root, copy))) errors.push(`${copy} missing (copy of ${src})`);
+  else if (readFileSync(join(root, src), 'utf8') !== readFileSync(join(root, copy), 'utf8')) errors.push(`${copy} differs from ${src} (re-copy it)`);
+}
+
 if (errors.length) {
   console.error(`✗ ${errors.length} problem(s):\n  ${errors.join('\n  ')}`);
   process.exit(1);

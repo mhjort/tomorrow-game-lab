@@ -14,6 +14,9 @@ The scaffold copies `index.html`, `vite.config.js`, `src/engine/*`, `design/styl
 - `npm run dev`: development server
 - `npm run build`, then `npm run preview`: production build and preview
 - `npm run assets`: Blender → GLB
+- `npm run release`: optimized HTML5 build in `dist/` (minify, meshopt GLBs, budgets). Deploying is the `publish-web-game` skill.
+
+`vite.config.js` is publish-ready: relative `base: './'`, three.js in its own chunk, and `vite-plugin-wasm` for Rapier's real `.wasm` (`@dimforge/rapier3d`, loaded lazily). Keep these settings.
 
 Before you write any game code, check the starter scene boots on both backends with the `game-judge` playtest.
 
@@ -23,17 +26,17 @@ Before you write any game code, check the starter scene boots on both backends w
 | `renderer.js` | `createRenderer()` → `{ renderer, backend }`; `?renderer=webgl2` forces fallback; `TEST_MODE` (`?test`), `params` |
 | `loop.js` | `createLoop({ update, render, renderer, hz })` fixed step (always pass `renderer`); auto-runs unless `?test`; `step(n)` for tests; frame stats |
 | `physics.js` | `createPhysics({ gravity, hz, substeps })` → `{ RAPIER, world, step, sync, bind, onSensor, collidersFromGltf }` |
-| `assets.js` | `loadModel(name)` / `loadModels([...])` from `public/models/<name>.glb` (cached, cloned, shadows on) |
+| `assets.js` | `loadModels(names, onProgress)`: all GLBs fetched **in parallel** with byte progress (uses `asset-manifest.json` in release builds), meshopt-aware; `loadModel(name)` returns a clone |
 | `style.js` | `style` (design/style.json), `applyStyle(scene, renderer)` → `{ sun, hemi, refreshShadows }` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)` |
 | `input.js` | `createInput(canvas)` → held `keys`, pointer `drag`, `on('dragend', fn)` |
-| `loading.js` | `createLoadingScreen({ title })` → `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)` |
+| `loading.js` | `createLoadingScreen({ title })` → `parallel(label, [{ weight, run(progress) }])`, `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)` |
 | `testHooks.js` | `installTestHooks({ backend, loop, getState, input })`, `createRng(seed)` |
 
 Boot order in `main.js`:
 1. `createLoadingScreen()`; it is shown first
-2. renderer, then scene and camera
-3. `applyStyle` (lights must exist before prewarm)
-4. physics, then load assets: each one is a `loading.step(...)` with progress
+2. **One parallel download phase:** `loading.parallel('Loading…', [createRenderer, createPhysics, loadModels(ALL_MODELS, p), …])`. Every download (models, Rapier `.wasm`, audio, textures) starts at once. Never `await` one download before starting the next.
+3. scene and camera, then `applyStyle` (lights must exist before prewarm)
+4. build game objects from the loaded models
 5. **prewarm all levels/materials** (`loading.step('Compiling shaders', …, p => prewarm(..., allLevelRoots, p))`)
 6. build the first level (`collidersFromGltf`), then `installTestHooks`
 7. `createLoop({ update, render, renderer })`, `loop.start()`, `loop.step(0)`, `loading.done()`, then `hooks.ready = true`

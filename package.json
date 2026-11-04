@@ -2,12 +2,16 @@
   "name": "tomorrow-game-lab",
   "private": true,
   "type": "module",
-  "workspaces": ["examples/minigolf"],
+  "workspaces": [
+    "examples/minigolf"
+  ],
   "scripts": {
     "validate": "node lab/validate-skills.mjs",
     "test": "node lab/validate-skills.mjs && node --test lab/test/*.test.mjs",
-    "test:golden": "npm --workspace examples/minigolf run build && node skills/game-judge/scripts/playtest.mjs --project examples/minigolf",
+    "test:golden": "npm run release:minigolf && node skills/game-judge/scripts/playtest.mjs --project examples/minigolf",
     "keyart": "skills/blender-assets/scripts/run_blender.sh lab/fixtures/keyart/build_keyart.py",
-    "eval": "node lab/eval/run-eval.mjs"
+    "eval": "node lab/eval/run-eval.mjs",
+    "release:minigolf": "npm --workspace examples/minigolf run release",
+    "site": "npm run release:minigolf && node lab/build-site.mjs"
   }
 }

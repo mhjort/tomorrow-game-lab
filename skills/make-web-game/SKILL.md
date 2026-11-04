@@ -13,6 +13,7 @@ Entry point of the tomorrow-game-lab skills. It orchestrates four sibling skills
 | `web-game-runtime` | project template: three.js WebGPU/WebGL2, Rapier, fixed-step loop, `window.__game` test hooks |
 | `blender-assets` | headless Blender Python scripts → `public/models/*.glb` + preview renders |
 | `game-judge` | headless Chrome playtest + judge rubrics → `verdict.md` with a fix list |
+| `publish-web-game` | optimized release build (`npm run release`) + GitHub Pages deploy + live smoke test |
 
 If a sibling skill is not installed, tell the user: `npx skills add <repo> --skill <name>`.
 
@@ -43,10 +44,12 @@ tests/scenarios/   playtest scenarios (*.json) + bots/*.js
 7. **Playtest** — `game-judge` playtest. Fix every failing assertion and console error before judging. Judges are expensive; a red playtest is cheap.
 8. **Judge** — run the `game-judge` judges in parallel as independent subagents, then aggregate.
 9. **Iterate** — apply `verdict.md` fixes in order (blockers → majors), rebuild assets if scripts changed, then re-run steps 7–8. Stop when the verdict is PASS or after **3 rounds**. Then report the scores, the remaining issues, and how to play (`npm run dev`).
+10. **Publish** (when asked, or when the user wants a link) — `publish-web-game`: release build, GitHub Pages deploy, live-URL playtest.
 
 ## Definition of done
 - `npm run build` succeeds, and the playtest passes on **webgpu and webgl2** with zero console errors.
-- The game boots through a loading screen with a progress bar that loads assets and prewarms all levels/materials before play.
+- The game boots through a loading screen with a progress bar. All downloads run in one parallel phase, then every level/material is prewarmed before play.
+- `npm run release` succeeds within the size budgets.
 - Every judge passes (see `game-judge`). Remaining minor issues are listed in your final message.
 - A full-game bot reaches the end state. The README or final message explains the controls.
 

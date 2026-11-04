@@ -1,4 +1,4 @@
-# Rapier 3D cheat sheet (`@dimforge/rapier3d-compat` 0.21)
+# Rapier 3D cheat sheet (`@dimforge/rapier3d` 0.21, loaded lazily by engine/physics.js)
 
 ```js
 const physics = await createPhysics({ substeps: 1 });      // engine/physics.js

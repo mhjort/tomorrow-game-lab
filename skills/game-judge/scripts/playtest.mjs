@@ -81,6 +81,21 @@ async function openGame(browser, url, backend, extra = '') {
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('requestfailed', (r) => errors.push(`requestfailed: ${r.url()} ${r.failure()?.errorText}`));
   page.on('response', (r) => r.status() >= 400 && errors.push(`http ${r.status()}: ${r.url()}`));
+  // network timeline (ms since navigation) — shows whether assets load in parallel
+  const started = new Map();
+  const network = [];
+  const tNav = Date.now();
+  page.on('request', (r) => started.set(r, Date.now() - tNav));
+  page.on('requestfinished', async (r) => {
+    const sizes = await r.sizes().catch(() => null);
+    network.push({
+      file: decodeURIComponent(new URL(r.url()).pathname.split('/').pop() || '/'),
+      type: r.resourceType(),
+      start: started.get(r) ?? 0,
+      end: Date.now() - tNav,
+      kb: sizes ? Number((sizes.responseBodySize / 1024).toFixed(1)) : null,
+    });
+  });
   const q = new URLSearchParams({ test: '1', seed: '1' });
   if (backend === 'webgl2') q.set('renderer', 'webgl2');
   const full = `${url}${url.includes('?') ? '&' : '?'}${q}${extra}`;
@@ -90,10 +105,10 @@ async function openGame(browser, url, backend, extra = '') {
     await page.waitForFunction(() => window.__game?.ready === true, null, { timeout: readyTimeout });
   } catch (e) {
     errors.push(`boot failed: ${e.message.split('\n')[0]} (window.__game.ready not true after ${readyTimeout}ms)`);
-    return { page, errors, warnings, ready: false, bootMs: Date.now() - t0 };
+    return { page, errors, warnings, ready: false, bootMs: Date.now() - t0, network };
   }
   const reported = await page.evaluate(() => window.__game.backend);
-  return { page, errors, warnings, ready: true, reported, bootMs: Date.now() - t0 };
+  return { page, errors, warnings, ready: true, reported, bootMs: Date.now() - t0, network: [...network] };
 }
 
 function evalAssert(expr, state) {
@@ -106,7 +121,7 @@ function evalAssert(expr, state) {
 
 async function runScenario(browser, url, backend, scenario, shotDir) {
   const g = await openGame(browser, url, backend);
-  const res = { name: scenario.name, backend, reported: g.reported, bootMs: g.bootMs, pass: g.ready, steps: [], screenshots: [], errors: g.errors, warnings: g.warnings };
+  const res = { name: scenario.name, backend, reported: g.reported, bootMs: g.bootMs, pass: g.ready, steps: [], screenshots: [], errors: g.errors, warnings: g.warnings, network: g.network };
   if (!g.ready) {
     await g.page.screenshot({ path: join(shotDir, `${scenario.name}-boot-failure.png`) }).catch(() => {});
     await g.page.close();
@@ -189,6 +204,21 @@ async function measurePerf(browser, url, backend) {
   return { seconds: perfSeconds, ...stats, fps: stats.frames / perfSeconds, note: 'headless timings are indicative only' };
 }
 
+/** Max number of asset requests (scripts, fetches, wasm) in flight at once during boot. */
+function parallelism(network) {
+  const ev = network
+    .filter((n) => ['script', 'fetch', 'xhr', 'other'].includes(n.type))
+    .flatMap((n) => [
+      [n.start, 1],
+      [n.end, -1],
+    ])
+    .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  let cur = 0;
+  let max = 0;
+  for (const [, d] of ev) max = Math.max(max, (cur += d));
+  return max;
+}
+
 // ------------------------------------------------------------------ main
 const scenarios = existsSync(scenarioDir)
   ? readdirSync(scenarioDir)
@@ -214,6 +244,9 @@ try {
     const b = { scenarios: [] };
     for (const sc of scenarios) {
       const r = await runScenario(browser, server.url, backend, sc, shotDir);
+      // keep the boot network timeline once per backend (first scenario), drop it from the rest
+      if (!b.network) b.network = { requests: r.network, maxParallel: parallelism(r.network), bootMs: r.bootMs };
+      delete r.network;
       b.scenarios.push(r);
       b.reported ??= r.reported;
       console.log(`[playtest] ${backend.padEnd(6)} ${r.pass ? 'PASS' : 'FAIL'} ${sc.name}${r.reported && r.reported !== backend ? ` (got ${r.reported})` : ''}`);
@@ -258,6 +291,12 @@ const lines = [`# Playtest ${report.pass ? 'PASS' : 'FAIL'}`, '', `- url: ${repo
 for (const [k, b] of Object.entries(report.backends)) {
   lines.push(`## ${k} (reported: ${b.reported ?? '?'})`, '');
   if (b.perf) lines.push(`perf: ${b.perf.fps?.toFixed?.(1) ?? '?'} fps, avg ${b.perf.avgFrameMs?.toFixed?.(2) ?? '?'} ms, worst ${b.perf.worstFrameMs?.toFixed?.(2) ?? '?'} ms`, '');
+  if (b.network) {
+    const big = [...b.network.requests].sort((x, y) => (y.kb ?? 0) - (x.kb ?? 0)).slice(0, 6);
+    lines.push(`loading: ${b.network.requests.length} requests, max ${b.network.maxParallel} in parallel, ready after ${b.network.bootMs} ms`);
+    for (const n of big) lines.push(`  - ${n.file} (${n.type}) ${n.start}–${n.end} ms, ${n.kb ?? '?'} KB`);
+    lines.push('');
+  }
   for (const s of b.scenarios) {
     lines.push(`- ${s.pass ? '✅' : '❌'} **${s.name}** boot ${s.bootMs}ms${s.errors.length ? `, ${s.errors.length} errors` : ''}`);
     for (const st of s.steps.filter((x) => x.failed)) lines.push(`  - step ${st.i}: ${st.failed}`);

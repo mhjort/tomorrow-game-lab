@@ -1,7 +1,11 @@
 // Loading screen with a progress bar. Every game boots through it: load assets → physics → prewarm, then reveal.
 //
 //   const loading = createLoadingScreen({ title: 'My Game' });
-//   const models = await loading.step('Loading models', 0.5, (p) => loadModels(names, p));
+//   const [{ renderer }, physics, models] = await loading.parallel('Loading…', [
+//     { weight: 0.1, run: () => createRenderer() },
+//     { weight: 0.2, run: () => createPhysics() },
+//     { weight: 0.4, run: (p) => loadModels(names, p) },
+//   ]);
 //   await loading.step('Compiling shaders', 0.4, (p) => prewarm(renderer, scene, camera, roots, p));
 //   loading.done();
 //
@@ -49,6 +53,32 @@ export function createLoadingScreen({ title = document.title } = {}) {
       render();
       await new Promise((r) => requestAnimationFrame(r)); // let the bar paint between steps
       return result;
+    },
+    /**
+     * Run weighted tasks concurrently under one label: [{ weight, run: (progress) => Promise }].
+     * Use it for the download phase (renderer init, physics WASM, every model) so nothing waits on anything else.
+     */
+    async parallel(text, tasks) {
+      const entries = tasks.map((t) => ({ weight: t.weight, progress: 0 }));
+      steps.push(...entries);
+      label.textContent = text;
+      render();
+      const results = await Promise.all(
+        tasks.map((t, i) =>
+          Promise.resolve(
+            t.run((p) => {
+              entries[i].progress = Math.min(1, Math.max(0, p));
+              render();
+            }),
+          ).then((r) => {
+            entries[i].progress = 1;
+            render();
+            return r;
+          }),
+        ),
+      );
+      await new Promise((r) => requestAnimationFrame(r));
+      return results;
     },
     done() {
       // in test mode remove instantly so screenshots never contain the overlay

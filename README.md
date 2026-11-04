@@ -1,6 +1,8 @@
 # tomorrow-game-lab
 
-Lightweight agent skills for building **web games** from a prompt or from key art. There are five skills, one stack, and no engine zoo.
+**▶ Play the example: [Island Putt (3D minigolf)](https://mhjort.github.io/tomorrow-game-lab/minigolf/)** · [all examples](https://mhjort.github.io/tomorrow-game-lab/)
+
+Lightweight agent skills for building **web games** from a prompt or from key art. There are six skills, one stack, and no engine zoo.
 
 - **Runtime:** three.js `WebGPURenderer`, which falls back to WebGL2 automatically, plus Vite. Rapier 3D/2D handles physics when a game needs it.
 - **Assets:** Python scripts run in headless **Blender** and export GLB files with physics collider tags and preview renders.
@@ -26,6 +28,7 @@ Then ask your agent something like *"Make a 3D minigolf game that looks like ref
 | [`key-art-direction`](skills/key-art-direction/SKILL.md) | image/video → key frames, palette, `design/art-bible.md`, `design/style.json` |
 | [`web-game-runtime`](skills/web-game-runtime/SKILL.md) | Vite + three.js WebGPU/WebGL2 template, fixed-step loop, Rapier wrapper, `window.__game` test hooks |
 | [`blender-assets`](skills/blender-assets/SKILL.md) | `lab_bpy` helper, Blender → GLB with collider tags, preview renders, GLB inspector |
+| [`publish-web-game`](skills/publish-web-game/SKILL.md) | `npm run release` (minify, code-split, meshopt GLBs, gzip budgets) → GitHub Pages workflow → live-URL playtest |
 | [`game-judge`](skills/game-judge/SKILL.md) | Playwright playtest (scenarios, bots, screenshots, perf, SSIM backend parity) + 4 judge rubrics + aggregator |
 
 ## How verification works
@@ -54,6 +57,8 @@ examples/minigolf/      golden test game, built by following the skills (3 holes
 lab/fixtures/keyart/    original key art fixtures (rendered by Blender: minigolf.png + minigolf.mp4)
 lab/validate-skills.mjs skill format + conventions + template/example drift check
 lab/test/               node:test suites for every script (frames, palette, Blender→GLB, playtest, aggregator)
+site/                   GitHub Pages landing page (deployed by .github/workflows/pages.yml)
+lab/build-site.mjs      assembles _site/: site/ + each example's release build at /<name>/
 lab/eval/run-eval.mjs   end-to-end agent eval (fresh workspace → install skills → claude -p → independent judges)
 lab/eval/permissions.mjs scoped allowlists for the unattended eval agents (no permission bypass)
 ```
@@ -64,6 +69,8 @@ lab/eval/permissions.mjs scoped allowlists for the unattended eval agents (no pe
 | `npm test` | validator + all script tests, including both-backend playtest of minigolf (~15 s) |
 | `npm run test:golden` | build minigolf and run its playtest (writes `examples/minigolf/.lab/runs/latest`) |
 | `npm run keyart` | re-render the key-art fixtures in Blender |
+| `npm run release:minigolf` | optimized release build of minigolf (`examples/minigolf/dist`) |
+| `npm run site` | release build + assemble the Pages site in `_site/` (landing page + `/minigolf/`) |
 | `npm run eval -- --input image\|video\|both [--model opus] [--budget 25]` | expensive agent E2E eval; results → `lab/eval/results/`, `lab/eval/history.md` |
 | `cd examples/minigolf && npm run assets && npm run dev` | rebuild minigolf GLBs, play it |
 

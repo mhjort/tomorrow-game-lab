@@ -1,11 +1,19 @@
-// Rapier 3D wrapper. For 2D games swap to @dimforge/rapier2d-compat (see references/rapier2d.md).
-import RAPIER from '@dimforge/rapier3d-compat';
+// Rapier 3D wrapper. For 2D games swap to @dimforge/rapier2d (see references/rapier2d.md).
+// Rapier is a dynamic import of the non-compat build: a real .wasm file (~1.1 MB gzip, streaming compile,
+// needs vite-plugin-wasm) that downloads in parallel with the models. The -compat build inlines the WASM as
+// base64 (~1.6 MB gzip + main-thread decode), so avoid it for release builds.
 import * as THREE from 'three/webgpu';
+
+let RAPIER;
 
 // substeps: Rapier clamps rotation to ~π/4 per step, i.e. 47 rad/s at 60 Hz. Small fast-rolling
 // bodies (a 5 cm ball at 4 m/s needs 80 rad/s) decelerate unnaturally unless you substep (4 is plenty).
 export async function createPhysics({ gravity = { x: 0, y: -9.81, z: 0 }, hz = 60, substeps = 1 } = {}) {
-  await RAPIER.init();
+  if (!RAPIER) {
+    const mod = await import('@dimforge/rapier3d');
+    RAPIER = mod.default ?? mod;
+    if (typeof RAPIER.init === 'function') await RAPIER.init(); // -compat builds need init()
+  }
   const world = new RAPIER.World(gravity);
   world.timestep = 1 / hz / substeps;
   const events = new RAPIER.EventQueue(true);
