@@ -18,7 +18,7 @@ Entry point of the tomorrow-game-lab skills. It orchestrates four sibling skills
 If a sibling skill is not installed, tell the user: `npx skills add <repo> --skill <name>`.
 
 ## Requirements
-Node ≥ 20, Google Chrome, Blender ≥ 4.2 (`blender` on PATH or `BLENDER=`), ffmpeg. Check them first with `node <skill>/scripts/check-env.mjs`, not by listing system folders. Report anything missing before starting.
+Node ≥ 24 (26 LTS preferred), Google Chrome, Blender ≥ 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. Prefer the latest stable release of every tool and library. Check them first with `node <skill>/scripts/check-env.mjs`, not by listing system folders. Report anything missing before starting.
 
 ## Project layout (every skill assumes this)
 ```

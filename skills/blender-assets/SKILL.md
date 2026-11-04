@@ -64,7 +64,8 @@ For custom shapes, build them with `bmesh` or `mesh.from_pydata`, as `_course.py
 
 ## Gotchas
 - `--factory-startup` gives an empty, predictable scene. Don't depend on user preferences or add-ons.
-- The Blender 4.2+ render engine is `BLENDER_EEVEE_NEXT`. `configure_render` falls back to `BLENDER_EEVEE` automatically.
+- Target the latest Blender LTS (5.2). The EEVEE engine id is `BLENDER_EEVEE` (Blender 4.x called it `BLENDER_EEVEE_NEXT`). New materials and worlds already have node trees, so do not set `use_nodes`: it is deprecated and will be removed in 6.0.
+- Preview backdrop: `setup_lighting` lights the scene with `style.ambient` but shows the camera `style.background` (a Light Path "Is Camera Ray" mix in the world). Blender 5.2's EEVEE honours this; 4.x silently showed the ambient colour. So set `background` in `style.json` explicitly.
 - Booleans: use the EXACT solver (the `boolean_cut` default), and cut a single mesh before joining it with others.
 - glTF splits vertices along hard edges. The runtime welds them again before building trimesh colliders, so flat shading is safe.
 - To render key art or marketing stills, write a separate script that calls `L.setup_camera`, `L.setup_lighting` and `L.configure_render` without exporting.

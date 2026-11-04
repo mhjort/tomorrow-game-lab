@@ -16,7 +16,7 @@ npx skills add mhjort/tomorrow-game-lab                       # all skills, pick
 npx skills add mhjort/tomorrow-game-lab -a claude-code -y     # Claude Code, project-level
 npx skills add mhjort/tomorrow-game-lab --skill game-judge    # just one skill
 ```
-Requirements: Node ≥ 20, Google Chrome, Blender ≥ 4.2 (`blender` on PATH or `BLENDER=`), ffmpeg.
+Requirements: Node ≥ 24 (26 LTS preferred), Google Chrome, Blender 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. The lab tracks the latest stable releases of every tool and library.
 
 Then ask your agent something like *"Make a 3D minigolf game that looks like reference/keyart.png"*.
 

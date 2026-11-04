@@ -18,11 +18,18 @@ const chromePath = firstExisting([
   '/usr/bin/google-chrome-stable',
   'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
 ]);
+// The lab tracks the latest stable releases: Node 26 LTS, Blender 5.2 LTS.
+const atLeast = (v, min) => {
+  const a = (v?.match(/\d+(\.\d+)*/)?.[0] ?? '0').split('.').map(Number);
+  for (let i = 0; i < min.length; i++) if ((a[i] ?? 0) !== min[i]) return (a[i] ?? 0) > min[i];
+  return true;
+};
+const blenderVer = blenderPath && ver(blenderPath)?.replace(/^Blender\s*/, '');
 const rows = [
-  ['node ≥ 20', process.versions.node, Number(process.versions.node.split('.')[0]) >= 20, true],
+  ['node ≥ 24 (26 LTS preferred)', process.versions.node, atLeast(process.versions.node, [24]), true],
   ['npm', ver('npm'), !!ver('npm'), true],
   ['Google Chrome (playtests)', chromePath, !!chromePath, true],
-  ['Blender ≥ 4.2 (assets)', blenderPath && ver(blenderPath)?.replace(/^Blender\s*/, ''), !!blenderPath, true],
+  ['Blender ≥ 5.2 LTS (assets)', blenderVer, !!blenderPath && atLeast(blenderVer, [5, 2]), true],
   ['ffmpeg (video refs, parity)', ver('ffmpeg', ['-version'])?.split(' ').slice(0, 3).join(' '), !!ver('ffmpeg', ['-version']), false],
   ['python3 (palette)', ver('python3'), !!ver('python3'), false],
 ];

@@ -1,4 +1,4 @@
-"""lab_bpy — tiny helper module for headless Blender asset scripts (Blender 4.2+).
+"""lab_bpy — tiny helper module for headless Blender asset scripts (Blender 5.2 LTS+).
 
 Copy this file next to your asset scripts (e.g. assets/src/lab_bpy.py) and:
 
@@ -21,6 +21,11 @@ import sys
 
 import bpy
 import mathutils
+
+MIN_BLENDER = (5, 2)
+if bpy.app.version[:2] < MIN_BLENDER:
+    print(f"[lab_bpy] WARNING: Blender {bpy.app.version_string} is older than the supported "
+          f"{MIN_BLENDER[0]}.{MIN_BLENDER[1]} LTS; install the latest LTS (brew upgrade --cask blender)", file=sys.stderr)
 
 # ---------------------------------------------------------------- args / style
 
@@ -85,7 +90,6 @@ def reset_scene():
 
 def material(name, rgba, roughness=0.7, metallic=0.0, emission=None, emission_strength=1.0):
     mat = bpy.data.materials.get(name) or bpy.data.materials.new(name)
-    mat.use_nodes = True
     bsdf = mat.node_tree.nodes["Principled BSDF"]
     bsdf.inputs["Base Color"].default_value = rgba
     bsdf.inputs["Roughness"].default_value = roughness
@@ -263,7 +267,6 @@ def setup_lighting(style):
     scene = bpy.context.scene
     world = scene.world or bpy.data.worlds.new("World")
     scene.world = world
-    world.use_nodes = True
     nt = world.node_tree
     bg = nt.nodes["Background"]  # lighting: ambient colour/intensity
     bg.inputs["Color"].default_value = color(style["ambient"]["color"])
@@ -308,12 +311,9 @@ def setup_camera(objs, yaw_deg=35, pitch_deg=30, fov_deg=40, margin=1.15, target
     return cam
 
 
-def configure_render(path, size=(768, 768), engine="BLENDER_EEVEE_NEXT", samples=32):
+def configure_render(path, size=(768, 768), engine="BLENDER_EEVEE", samples=32):
     scene = bpy.context.scene
-    try:
-        scene.render.engine = engine
-    except TypeError:
-        scene.render.engine = "BLENDER_EEVEE"
+    scene.render.engine = engine
     if scene.render.engine.startswith("BLENDER_EEVEE"):
         scene.eevee.taa_render_samples = samples
     else:

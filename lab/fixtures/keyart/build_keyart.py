@@ -24,6 +24,7 @@ style = {
     **L.DEFAULT_STYLE,
     "sun": {"color": "#ffe2b8", "intensity": 4.0, "elevation": 32, "azimuth": 60},
     "ambient": {"color": "#a7c8ff", "intensity": 0.8},
+    "background": "#ffc89a",  # warm sand backdrop seen by the camera
 }
 
 L.reset_scene()
@@ -70,7 +71,6 @@ for i, (x, y) in enumerate([(-2.6, -1.5), (4.3, 4.5), (-2.4, 4.6), (4.6, 1.2)]):
 
 scene = bpy.context.scene
 scene.world = bpy.data.worlds.new("World")
-scene.world.use_nodes = True
 sky = scene.world.node_tree.nodes["Background"]
 sky.inputs["Color"].default_value = L.color("#ffcf9e")
 sky.inputs["Strength"].default_value = 0.9

@@ -6,3 +6,4 @@
 - Before finishing any change, run `npm test`. It needs Chrome, Blender and ffmpeg; set `SKIP_BROWSER=1` to skip the browser tests.
 - Generated output (`.lab/`, `lab/.tmp/`, `dist/`) is gitignored. The key-art fixtures in `lab/fixtures/keyart/` are committed. Regenerate them with `npm run keyart`.
 - When you learn a non-obvious engine/physics gotcha, add it to the relevant `references/*.md` or SKILL.md "Gotchas" section. That is how the lab improves.
+- This is a bleeding-edge lab: prefer the **latest stable** release of every tool and library (Blender 5.2 LTS, current Node LTS, latest npm packages, latest GitHub Actions majors). Don't add compatibility shims for old versions; when bumping, check `npm view <pkg> version` / release notes and update skills, the template, the example and CI together.
