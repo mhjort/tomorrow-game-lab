@@ -1,5 +1,7 @@
 # tomorrow-game-lab
 
+[![Test](https://github.com/mhjort/tomorrow-game-lab/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/mhjort/tomorrow-game-lab/actions/workflows/test.yml)
+
 **▶ Play the example: [Island Putt (3D minigolf)](https://mhjort.github.io/tomorrow-game-lab/minigolf/)** · [all examples](https://mhjort.github.io/tomorrow-game-lab/)
 
 Lightweight agent skills for building **web games** from a prompt or from key art. There are seven skills, one stack, and no engine zoo.

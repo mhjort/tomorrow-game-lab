@@ -1,0 +1,55 @@
+# Run the lab test suite (`pnpm test`) on every push to main and on pull requests.
+# Needs Blender and ffmpeg. Browser playtests are skipped (SKIP_BROWSER=1): no GPU on runners, too slow.
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BLENDER_VERSION: 5.2.3
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version from package.json "packageManager"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install ffmpeg and Blender runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg libxi6 libxkbcommon0 libxxf86vm1 libsm6 libgl1 libegl1
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/blender
+          key: blender-${{ env.BLENDER_VERSION }}-linux-x64
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        run: |
+          minor="${BLENDER_VERSION%.*}"
+          mkdir -p ~/blender
+          curl -fsSL "https://download.blender.org/release/Blender${minor}/blender-${BLENDER_VERSION}-linux-x64.tar.xz" \
+            | tar -xJ -C ~/blender --strip-components=1
+
+      - name: Test
+        run: SKIP_BROWSER=1 BLENDER="$HOME/blender/blender" pnpm test
