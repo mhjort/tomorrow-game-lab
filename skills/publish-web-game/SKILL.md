@@ -57,6 +57,7 @@ gh run watch "$(gh run list --workflow pages.yml --limit 1 --json databaseId -q 
 - For a game in a sub-folder (monorepo), set `GAME_DIR` in the workflow.
 - Several games in one repo: build each one and assemble a site folder (`/<game>/` per game plus an index page) before `upload-pages-artifact`. The tomorrow-game-lab repo's own workflow is an example.
 - Pages enforces HTTPS, so WebGPU's secure-context requirement is met.
+- **License is the user's choice.** The template sets no license. Before the first public deploy, ask the user which license they want (or none: all rights reserved). Then add the `LICENSE` file and the `license` field in `package.json` yourself. Never pick a license on their behalf.
 
 ## 4. Smoke-test the live URL
 ```bash
