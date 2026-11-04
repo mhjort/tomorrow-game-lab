@@ -2,7 +2,7 @@
 // Release build for a web-game-runtime project: minified Vite build + optimized GLBs + asset manifest +
 // gzip size report with budgets. Run from the game project root: `npm run release` (or node this file).
 //
-//   node release.mjs [--project .] [--no-glb-opt] [--max-js-kb 1500] [--max-total-mb 20] [--skip-build]
+//   node release.mjs [--project .] [--no-glb-opt] [--no-preload] [--max-js-kb 1500] [--max-total-mb 20] [--skip-build]
 //
 // Writes dist/asset-manifest.json (the runtime loader uses it for byte-accurate progress) and
 // dist/release-report.json (sizes, budgets; read by the technical judge). Exit 1 if a budget is exceeded.
@@ -60,7 +60,27 @@ if (glbs.length && !argv.includes('--no-glb-opt')) {
   }
 }
 
-// 3. manifest + size report
+// 3. preload hints: the browser starts EVERY download while parsing index.html, instead of waiting for the
+//    entry module (which waits for three.js) to run the loader. Lazy chunks -> modulepreload; .wasm and
+//    models -> preload as fetch (crossorigin so the loader's fetch() reuses the response).
+if (!argv.includes('--no-preload')) {
+  const htmlPath = join(dist, 'index.html');
+  let page = readFileSync(htmlPath, 'utf8');
+  const rel = (f) => `./${relative(dist, f)}`;
+  const hints = walk(dist)
+    .filter((f) => /\.(js|wasm|glb)$/.test(f) && !page.includes(relative(dist, f)))
+    .map((f) =>
+      f.endsWith('.js') ? `<link rel="modulepreload" crossorigin href="${rel(f)}">` : `<link rel="preload" as="fetch" crossorigin href="${rel(f)}">`,
+    );
+  hints.push('<link rel="preload" as="fetch" crossorigin href="./asset-manifest.json">'); // written below
+  if (hints.length) {
+    page = page.replace('</head>', `    ${hints.join('\n    ')}\n  </head>`);
+    writeFileSync(htmlPath, page);
+    console.log(`preload hints: ${hints.length} (lazy chunks, wasm, models)`);
+  }
+}
+
+// 4. manifest + size report
 const files = walk(dist).filter((f) => !/\/(asset-manifest|release-report)\.json$/.test(f));
 const manifest = Object.fromEntries(files.filter((f) => !f.endsWith('.html')).map((f) => [relative(dist, f), statSync(f).size]));
 writeFileSync(join(dist, 'asset-manifest.json'), JSON.stringify(manifest));

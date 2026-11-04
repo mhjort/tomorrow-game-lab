@@ -17,8 +17,9 @@ npm run release            # = node scripts/release.mjs  [--max-js-kb 1500] [--m
 ```
 1. Runs `vite build`. The template's `vite.config.js` sets `base: './'` (relative URLs), splits three.js into its own chunk, and lazy-loads Rapier as its own JS chunk plus a real `.wasm` file.
 2. Optimizes every `dist/**/*.glb` in place: dedup, weld, and meshopt (quantize + reorder + compress), typically 2–3× smaller. The runtime loader decodes these with `MeshoptDecoder`. Marker empties and collider extras are preserved; the script fails if the node set changes.
-3. Writes `dist/asset-manifest.json` (file → bytes) so the loading screen can show byte-accurate progress.
-4. Prints a gzip size table, checks the budgets, and writes `dist/release-report.json` for the technical judge. Exit 1 means over budget.
+3. Injects preload hints into `dist/index.html`: `modulepreload` for lazy JS chunks, and `preload as=fetch crossorigin` for the `.wasm`, every GLB and the manifest. The browser then starts **every** download while parsing the HTML, instead of after three.js has loaded and the entry module has run. On the live site that took the ready time from about 3.5 s down to about the size of the largest file. The loader's `fetch()` reuses the preloaded responses, so nothing is downloaded twice. If a preload ever goes unused, Chrome logs a console warning.
+4. Writes `dist/asset-manifest.json` (file → bytes) so the loading screen can show byte-accurate progress.
+5. Prints a gzip size table, checks the budgets, and writes `dist/release-report.json` for the technical judge. Exit 1 means over budget.
 
 If the build is over budget, look at the biggest rows first:
 - textures → KTX2 or WebP, or smaller sizes

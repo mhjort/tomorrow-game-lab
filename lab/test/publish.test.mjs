@@ -45,6 +45,11 @@ test('release: optimized build plays on both backends and loads assets in parall
     const glbs = b.network.requests.filter((n) => n.file.endsWith('.glb'));
     assert.ok(wasm && glbs.length === 4, 'wasm + 4 GLBs requested');
     assert.ok(glbs.some((g) => g.start < wasm.end && g.end > wasm.start), 'models download while the physics WASM downloads');
+    // preload hints: models + wasm start with the HTML, not after three.js has loaded and the entry module ran
+    const three = b.network.requests.find((n) => /^three-.*\.js$/.test(n.file));
+    assert.ok(glbs.every((g) => g.start < three.end) && wasm.start < three.end, 'assets start before three.js finishes');
+    const dups = b.network.requests.filter((x, i, a) => a.findIndex((y) => y.file === x.file) !== i);
+    assert.deepEqual(dups, [], 'preloaded responses are reused (no double downloads)');
   }
 });
 
