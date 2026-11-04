@@ -188,23 +188,35 @@ function act(a) {
 }
 
 // ---------------------------------------------------------------- controls
-input.on('dragend', ({ dx, dy }) => {
-  if (g.phase !== 'aim' || Math.hypot(dx, dy) < 12) return;
-  const { angle, power } = dragAim(dx, dy);
-  shoot(angle, power);
-});
+// The camera follows the aim, so a drag must be read in the camera frame captured when it STARTED.
+// Reading it against the live camera is a feedback loop: aim turns -> camera turns -> same drag
+// now means a new aim -> ... and the view spins. The camera also holds still while dragging, so
+// the arrow on screen always points straight away from the pointer.
+const DRAG_DEAD_ZONE = 16; // px: below this a drag is a click/cancel and doesn't aim or shoot
+let dragFrame = null; // { fwd, right } on the ground plane, frozen for the whole drag
 
-function dragAim(dx, dy) {
-  // pull back like a slingshot: shot goes opposite to the drag, in the camera's ground frame
+input.on('dragstart', () => {
+  if (g.phase !== 'aim') return;
   const fwd = new THREE.Vector3();
   camera.getWorldDirection(fwd);
   fwd.y = 0;
   fwd.normalize();
-  const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0));
-  const dir = right.multiplyScalar(-dx).add(fwd.multiplyScalar(dy));
+  dragFrame = { fwd, right: new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)) };
+});
+input.on('dragend', ({ dx, dy }) => {
+  const frame = dragFrame;
+  dragFrame = null;
+  if (!frame || g.phase !== 'aim' || Math.hypot(dx, dy) < DRAG_DEAD_ZONE) return;
+  const { angle, power } = dragAim(frame, dx, dy);
+  shoot(angle, power);
+});
+
+function dragAim(frame, dx, dy) {
+  // pull back like a slingshot: shot goes opposite to the drag, in the drag-start ground frame
+  const dir = frame.right.clone().multiplyScalar(-dx).addScaledVector(frame.fwd, dy);
   return {
     angle: THREE.MathUtils.radToDeg(Math.atan2(dir.x, -dir.z)),
-    power: THREE.MathUtils.clamp(Math.hypot(dx, dy) / 260, 0, 1),
+    power: THREE.MathUtils.clamp((Math.hypot(dx, dy) - DRAG_DEAD_ZONE) / 240, 0, 1),
   };
 }
 
@@ -227,16 +239,18 @@ addEventListener('keyup', (e) => {
 function update(dt) {
   g.tick++;
   if (g.phase === 'aim') {
-    const turn = (input.down('ArrowLeft') || input.down('KeyA') ? -1 : 0) + (input.down('ArrowRight') || input.down('KeyD') ? 1 : 0);
+    const turn = dragFrame ? 0 : (input.down('ArrowLeft') || input.down('KeyA') ? -1 : 0) + (input.down('ArrowRight') || input.down('KeyD') ? 1 : 0);
     g.aim.angle += turn * 90 * dt;
     if (input.down('Space')) {
       g.charging = true;
       g.chargeT += dt / 1.2;
       g.aim.power = 1 - Math.abs(1 - (g.chargeT % 2)); // ping-pong 0..1
     } else g.chargeT = 0;
-    if (input.drag.active) {
-      const a = dragAim(input.drag.x - input.drag.startX, input.drag.y - input.drag.startY);
-      if (a.power > 0.02) Object.assign(g.aim, a);
+    if (dragFrame) {
+      const dx = input.drag.x - input.drag.startX;
+      const dy = input.drag.y - input.drag.startY;
+      if (Math.hypot(dx, dy) >= DRAG_DEAD_ZONE) Object.assign(g.aim, dragAim(dragFrame, dx, dy));
+      else g.aim.power = 0; // dragged back to the start: shows the shot is cancelled
     }
   }
 
@@ -286,7 +300,7 @@ function update(dt) {
     }
   }
   if (g.flag) g.flag.rotation.z = Math.sin(g.tick * 0.08) * 0.12;
-  updateCamera(0.08);
+  if (!dragFrame) updateCamera(0.08); // hold the view still while the player is aiming with the pointer
 }
 
 function applyRollingResistance(dt) {

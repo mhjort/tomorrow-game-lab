@@ -1,0 +1,60 @@
+{
+  "name": "drag-aim-stable",
+  "description": "Real mouse: holding a slingshot drag still keeps the aim still (no camera/aim feedback loop), and the putt goes where the arrow pointed.",
+  "steps": [
+    {
+      "step": 30
+    },
+    {
+      "drag": {
+        "from": [
+          640,
+          360
+        ],
+        "to": [
+          645,
+          365
+        ]
+      }
+    },
+    {
+      "assert": "state.strokes === 0 && state.phase === 'aim'",
+      "label": "tiny drag (click) does not shoot"
+    },
+    {
+      "drag": {
+        "from": [
+          640,
+          360
+        ],
+        "to": [
+          560,
+          520
+        ],
+        "hold": 5,
+        "release": false
+      }
+    },
+    {
+      "assert": "state.phase === 'aim' && Math.abs(state.aim.angle - 26.57) < 1",
+      "label": "pull down-left aims up-right (atan(80/160))"
+    },
+    {
+      "step": 120
+    },
+    {
+      "assert": "Math.abs(state.aim.angle - 26.57) < 1",
+      "label": "aim does not drift while the pointer is held still"
+    },
+    {
+      "screenshot": "drag-held"
+    },
+    {
+      "pointerUp": true
+    },
+    {
+      "assert": "state.strokes === 1 && state.phase === 'rolling' && Math.abs(state.aim.angle - 26.57) < 1",
+      "label": "shot uses the aim the player saw"
+    }
+  ]
+}

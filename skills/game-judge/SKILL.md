@@ -36,13 +36,15 @@ Exit codes: 0 = pass, 1 = a scenario failed or there was a console error, 2 = se
     { "assert": "state.strokes === 1", "label": "hole in one" },
     { "screenshot": "after" },
     { "key": "Space", "steps": 30 },                       // real keyboard: hold for 30 ticks
-    { "drag": { "from": [640, 500], "to": [640, 650] } },  // real pointer drag
+    { "drag": { "from": [640, 500], "to": [640, 650] } },  // real pointer drag (press, move, release)
+    { "drag": { "from": [640, 500], "to": [600, 650], "hold": 60, "release": false } }, // keep it pressed for 60 ticks
+    { "pointerUp": true },                                 // release a held drag
     { "script": "bots/play-round.js", "args": {} },        // file: `async (game, args) => result`
     { "eval": "window.__game.getState().phase" }
   ] }
 ```
 - `state` in expressions is `__game.getState()`.
-- Write one scenario per brief rule. Include a full-game bot and a boot scenario that takes an **overview** screenshot framed like the key art.
+- Write one scenario per brief rule. `input` steps skip the real controls, so also write **at least one real-input scenario per control scheme**: a held `drag`/`key`, asserts while it is held (no drift), then the release (see the controls reference in the `web-game-runtime` skill). Include a full-game bot and a boot scenario that takes an **overview** screenshot framed like the key art.
 - Take a screenshot right after each *natural* level transition (won/finished → next level), not only after `loadLevel` hooks. Backend-specific bugs hide there.
 - Fix failures in the game, not by loosening asserts, unless the brief changed.
 

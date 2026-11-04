@@ -29,7 +29,7 @@ Before you write any game code, check the starter scene boots on both backends w
 | `physics.js` | `createPhysics({ gravity, hz, substeps })` → `{ RAPIER, world, step, sync, bind, onSensor, collidersFromGltf }` |
 | `assets.js` | `loadModels(names, onProgress)`: all GLBs fetched **in parallel** with byte progress (uses `asset-manifest.json` in release builds), meshopt-aware; `loadModel(name)` returns a clone |
 | `style.js` | `style` (design/style.json), `applyStyle(scene, renderer)` → `{ sun, hemi, refreshShadows }` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)` |
-| `input.js` | `createInput(canvas)` → held `keys`, pointer `drag`, `on('dragend', fn)` |
+| `input.js` | `createInput(canvas)` → held `keys`, pointer `drag`, `on('dragstart' \| 'dragend', fn)` (`pointercancel` ends a drag as `{dx:0, dy:0, cancelled}`) |
 | `audio.js` | `createAudio()` → `load(names, onProgress)` (`public/sfx/<name>.mp3`, parallel, decoded up front), `play(name, { volume, rate })`, `setMuted`, `counts` (plays per sound, also in `?test` where nothing is audible) |
 | `loading.js` | `createLoadingScreen({ title, image })` → `parallel(label, [{ weight, run(progress) }])`, `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)` |
 | `testHooks.js` | `installTestHooks({ backend, loop, getState, input })`, `createRng(seed)` |
@@ -58,6 +58,7 @@ Boot order in `main.js`:
 - Load levels from GLB plus named marker empties (Spawn, Goal…). Read them with `root.getObjectByName('Spawn').getWorldPosition(v)`.
 - To change level, call `physics.removeBody(levelBody)`; it removes the colliders and sensor handlers too. Remove the old scene root, add the new one, then call `refreshShadows()` (from `applyStyle`). Prewarm must include every level, so the swap doesn't hitch.
 - Support a `?level=N` deep link (read with `params` from `renderer.js`), so people reviewing the game can jump straight to a level.
+- Controls: read a drag in the frame captured on `dragstart`, never against a camera that the drag itself moves (that is a feedback loop, and the view spins). Hold the camera still during the gesture. Add a dead zone. Test with **real** held `drag`/`key` playtest steps, not only `input()` actions. See `references/controls.md`.
 - Use a DOM overlay (`#hud`) for the HUD; it is cheap and readable in screenshots. Show the controls on screen.
 - Play sounds from gameplay events in `update()` (deterministic), never from `render()`. Put `sfx: { ...audio.counts }` in `getState()` so scenarios can assert on cues. Give players a mute key.
 - Keep all code in `import * as THREE from 'three/webgpu'`. Use addons from `three/addons/...`. Never mix in `three` (the WebGL-only build).
@@ -67,3 +68,4 @@ Boot order in `main.js`:
 - `references/rapier2d.md`: switching to 2D physics (top-down/side-on games)
 - `references/webgpu-notes.md`: WebGPURenderer, TSL materials, post-processing, fallback caveats
 - `references/perf-budget.md`: targets and how to measure them
+- `references/controls.md`: input/camera feel rules (feedback loops, dead zones, cancel, sensitivity) and how to test them with real input

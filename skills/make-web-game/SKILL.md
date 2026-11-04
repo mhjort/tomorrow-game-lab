@@ -44,7 +44,8 @@ tests/scenarios/   playtest scenarios (*.json) + bots/*.js
    - All gameplay goes through `update(dt)` (fixed step). Rendering only reads state.
    - Every player action is a high-level action object, and `__game.input(action)` accepts the same objects, so tests exercise real game logic.
    - Use `createRng()` instead of `Math.random()`. No wall-clock time in gameplay.
-6. **Scenarios** — write one `tests/scenarios/*.json` per brief rule, plus a bot (`tests/scenarios/bots/*.js`) that plays the whole game to its end state. Include `screenshot` steps: an *overview* shot framed like the key art, plus the main play view.
+   - Controls follow the controls reference in the `web-game-runtime` skill: a drag is read in the frame captured at its start, the camera holds still during a gesture, and there is a dead zone and a cancel.
+6. **Scenarios** — write one `tests/scenarios/*.json` per brief rule, plus a bot (`tests/scenarios/bots/*.js`) that plays the whole game to its end state. At least one scenario per control scheme must drive **real** input (`drag`/`key` steps held across ticks) and assert that the result is right and doesn't drift. `input()` actions bypass the controls entirely. Include `screenshot` steps: an *overview* shot framed like the key art, plus the main play view.
 7. **Playtest** — `game-judge` playtest. Fix every failing assertion and console error before judging. Judges are expensive; a red playtest is cheap.
 8. **Judge** — run the `game-judge` judges in parallel as independent subagents, then aggregate.
 9. **Iterate** — apply `verdict.md` fixes in order (blockers → majors), rebuild assets if scripts changed, then re-run steps 7–8. Stop when the verdict is PASS or after **3 rounds**.
@@ -66,4 +67,5 @@ tests/scenarios/   playtest scenarios (*.json) + bots/*.js
 ## Gotchas
 - Small, fast-spinning Rapier bodies (balls) need `createPhysics({ substeps: 4 })`, because Rapier caps rotation at about π/4 per step.
 - Blender is Z-up and glTF/three is Y-up: Blender `(x, y, z)` → three `(x, z, -y)`. Use named empties (`Tee`, `Spawn`, …) and read them with `getObjectByName` instead of hard-coding coordinates in two places.
+- A camera that follows the aim + a drag read against the live camera = a feedback loop, and the view spins as soon as the player pulls too far. Freeze the frame at `dragstart`. Only a held real-input scenario catches this.
 - Don't let judges see your reasoning. Pass them only the files their rubric lists.

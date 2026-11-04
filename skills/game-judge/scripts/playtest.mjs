@@ -174,7 +174,11 @@ async function runScenario(browser, url, backend, scenario, shotDir) {
         await page.mouse.move(x0, y0);
         await page.mouse.down();
         await page.mouse.move(x1, y1, { steps: 8 });
-        await page.mouse.up();
+        // hold: game ticks to run with the pointer still down (camera/aim feedback loops only show over time)
+        if (s.drag.hold) await page.evaluate((n) => window.__game.step(n), s.drag.hold);
+        if (s.drag.release !== false) await page.mouse.up();
+      } else if (s.pointerUp !== undefined) {
+        await page.mouse.up(); // ends a { drag: { release: false } }
       } else if (s.eval !== undefined) rec.result = await page.evaluate(s.eval);
       else if (s.script !== undefined) {
         // { script: "bots/x.js", args: {...} } — file holds `async (game, args) => {...}`, path relative to scenario dir

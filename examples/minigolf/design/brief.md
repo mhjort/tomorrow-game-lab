@@ -4,7 +4,7 @@
 Aim → set power → putt → watch the ball roll and bounce off rails → it stops (aim again) or drops in the cup (next hole).
 
 ## Controls
-- **Mouse/touch:** drag *back* from anywhere (slingshot); direction is opposite the drag in screen space, length = power. Release to putt.
+- **Mouse/touch:** drag *back* from anywhere (slingshot); direction is opposite the drag in screen space, length = power (16 px dead zone; drag back to the start to cancel). The drag is read in the camera frame at press, and the camera holds still until release. Release to putt.
 - **Keyboard:** ←/→ or A/D rotate aim, hold Space to charge power, release to putt. R restarts the hole.
 
 ## Rules

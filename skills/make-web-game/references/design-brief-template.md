@@ -10,6 +10,8 @@ One sentence: who you are, what you do, why it's fun.
 - **Mouse/touch:** …
 - **Keyboard:** …
 (Every control maps to a high-level action that `__game.input` also accepts.)
+- **Reference frame & camera during input:** e.g. "drag is read in the camera frame at press; camera holds still until release"
+- **Sensitivity / dead zone / cancel:** e.g. "full power at 260 px, 16 px dead zone, drag back to start cancels"
 
 ## Rules
 - Scoring / progression: …
@@ -44,4 +46,5 @@ Images: splash (loading-screen background, framed like the key art), icon (favic
 |---|---|
 | 01-boot | boots, no errors, overview + play screenshots |
 | 02-… | rule … |
+| 0N-controls | real held `drag`/`key` input aims correctly, doesn't drift while held, releases as aimed |
 | 0N-full-run | bot plays to the end state |
