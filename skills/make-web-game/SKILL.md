@@ -1,6 +1,6 @@
 ---
 name: make-web-game
-description: Build a complete browser game (three.js WebGPU with WebGL2 fallback, optional Rapier physics, Blender-scripted 3D assets) from a short prompt and/or a reference image or video (key art), then verify it with headless Chrome playtests and independent judge agents, iterating until it passes. Use when asked to make, prototype, or remake a web/browser/three.js game, or to turn concept art or a gameplay video into a playable game.
+description: Build, change or fix a browser game (three.js WebGPU with WebGL2 fallback, optional Rapier physics, Blender-scripted 3D assets) from a short prompt and/or a reference image or video (key art), then verify it with headless Chrome playtests and independent judge agents, iterating until it passes. Use when asked to make, prototype, remake, change or fix a web/browser/three.js game, or to turn concept art or a gameplay video into a playable game.
 ---
 
 # make-web-game
@@ -56,12 +56,21 @@ tests/scenarios/   playtest scenarios (*.json) + bots/*.js
     Don't ask mid-build. With no user available (unattended runs), list the questions in the final report.
 11. **Publish** (when asked, or when the user wants a link) — `publish-web-game`: release build, GitHub Pages deploy, live-URL playtest.
 
+## Every hand-off ends with a play link
+Whenever you finish a change the user can see or feel (a new game, a fix, a tuning tweak, a new level), your final message **starts with a working local link**. Don't make the user ask where to test. Follow `references/human-review.md` §1 to start and check the server, then send:
+- the URL, plus a deep link (`?level=N`) to the part that changed
+- the controls, in one line
+- **what to try**: 1–4 concrete actions that show the change, e.g. "pull far back and hold still: the view should stay put"
+
+Leave the server running and say so. This is not the full taste review (step 10). Don't add a list of questions to every hand-off. Skip the link only in unattended runs, or when the change has no visible effect (docs, CI).
+
 ## Definition of done
 - `pnpm build` succeeds, and the playtest passes on **webgpu and webgl2** with zero console errors.
 - The game boots through a loading screen with a progress bar. All downloads run in one parallel phase, then every level/material is prewarmed before play.
 - `pnpm release` succeeds within the size budgets.
 - Every judge passes (see `game-judge`). Remaining minor issues are listed in your final message.
 - A full-game bot reaches the end state. The README or final message explains the controls.
+- The final message starts with a checked local play link, the controls and what to try.
 - The user has played it from a working local link and their feedback has been addressed (or, in unattended runs, the questions are in the report).
 
 ## Gotchas

@@ -1,6 +1,15 @@
 # Human review: the taste check
 
-Judges and bots catch bugs and check the game against the brief. They can't tell you whether it is *fun*, whether the controls feel right, or whether a sound is annoying. Only a person can. Ask **once**, when you believe the game is ready: playtest green, judges passed. Don't ask after every change; the user's time is the scarcest resource in the loop.
+Judges and bots catch bugs and check the game against the brief. They can't tell you whether it is *fun*, whether the controls feel right, or whether a sound is annoying. Only a person can. Ask **once**, when you believe the game is ready: playtest green, judges passed. Don't ask for a review after every change; the user's time is the scarcest resource in the loop.
+
+The *link* is different: **every** hand-off after a visible change (a fix, a tweak) still gives a checked local link, the controls and 1–4 things to try, using §1 below. That's a short message with no list of questions:
+````
+**Play: http://localhost:5173/?hole=2**: the server is running
+
+Controls: drag back to putt · ←/→ aim, hold Space · M sound
+
+Try: pull far back and hold the mouse still. The view should stay put and the shot should go where the arrow points.
+````
 
 ## 1. Make it one click to play
 - Start the dev server in the background and **check that it answers** before you send the link:

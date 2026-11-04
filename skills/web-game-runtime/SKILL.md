@@ -59,6 +59,7 @@ Boot order in `main.js`:
 - To change level, call `physics.removeBody(levelBody)`; it removes the colliders and sensor handlers too. Remove the old scene root, add the new one, then call `refreshShadows()` (from `applyStyle`). Prewarm must include every level, so the swap doesn't hitch.
 - Support a `?level=N` deep link (read with `params` from `renderer.js`), so people reviewing the game can jump straight to a level.
 - Controls: read a drag in the frame captured on `dragstart`, never against a camera that the drag itself moves (that is a feedback loop, and the view spins). Hold the camera still during the gesture. Add a dead zone. Test with **real** held `drag`/`key` playtest steps, not only `input()` actions. See `references/controls.md`.
+- After any change the user can see or feel, end with a checked `pnpm dev` link, the controls and what to try (the `make-web-game` skill's hand-off rule). Don't make the user ask where to test.
 - Use a DOM overlay (`#hud`) for the HUD; it is cheap and readable in screenshots. Show the controls on screen.
 - Play sounds from gameplay events in `update()` (deterministic), never from `render()`. Put `sfx: { ...audio.counts }` in `getState()` so scenarios can assert on cues. Give players a mute key.
 - Keep all code in `import * as THREE from 'three/webgpu'`. Use addons from `three/addons/...`. Never mix in `three` (the WebGL-only build).
