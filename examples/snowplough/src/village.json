@@ -1,0 +1,15 @@
+{
+  "about": "The village map, read by assets/src/village.py (houses, trees, lamps) and src/world.js (snow, collisions, paths). One char per 6 m tile; row 0 is north (-z), col 0 is west (-x). . street  S square (cleared)  P start (street)  T trees/yard  e w n s house with its door facing east/west/north/south. Houses are numbered in reading order.",
+  "tile": 6,
+  "rows": [
+    "TTTsssTTT",
+    "Te.SSS.wT",
+    "T.......T",
+    "Te.e.w.wT",
+    "Te.e.w.wT",
+    "Te.e.w.wT",
+    "T.......T",
+    "Te.e.w.wT",
+    "TTTTPTTTT"
+  ]
+}

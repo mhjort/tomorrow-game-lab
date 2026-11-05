@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Inspect GLB files without dependencies: triangles, local bounds, nodes, collider tags, budgets.
-// Usage: node inspect_glb.mjs <file.glb...> [--max-tris 20000] [--max-kb 2048] [--json]
-// Exit code 1 if any budget is exceeded or a file is invalid.
+// Inspect GLB files without dependencies: triangles, local bounds, nodes, collider tags.
+// Usage: node inspect_glb.mjs <file.glb...> [--max-tris N] [--max-kb N] [--json]
+// Budgets are opt-in: while a game is built to match its reference, counts are reported, not capped. The
+// optimize-web-game pass passes budgets for the agreed target device. Exit 1 if a file is invalid or over a budget given.
 import { readFileSync, statSync } from 'node:fs';
 import { basename } from 'node:path';
 
@@ -10,8 +11,8 @@ const opt = (name, def) => {
   const i = argv.indexOf(name);
   return i >= 0 ? Number(argv[i + 1]) : def;
 };
-const maxTris = opt('--max-tris', 20000);
-const maxKb = opt('--max-kb', 2048);
+const maxTris = opt('--max-tris', Infinity);
+const maxKb = opt('--max-kb', Infinity);
 const asJson = argv.includes('--json');
 const files = argv.filter((a, i) => !a.startsWith('--') && !['--max-tris', '--max-kb'].includes(argv[i - 1]));
 
@@ -53,6 +54,9 @@ export function inspectGlb(path) {
     triangles: tris,
     materials: (gltf.materials || []).map((m) => m.name),
     textures: (gltf.images || []).length,
+    imageTypes: (gltf.images || []).map((i) => i.mimeType),
+    joints: (gltf.skins || []).reduce((n, sk) => n + sk.joints.length, 0),
+    animations: (gltf.animations || []).map((an) => an.name),
     extensions: gltf.extensionsUsed || [],
     meshes,
     nodes,

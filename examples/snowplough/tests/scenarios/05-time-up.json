@@ -1,0 +1,15 @@
+{
+  "name": "time-up",
+  "description": "Rule: at 18:00 the festival starts without whoever is not at the square; the game ends with the count, and R restarts with fresh snow.",
+  "steps": [
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "step": 30 },
+    { "input": { "type": "setTime", "seconds": 1 } },
+    { "step": 70 },
+    { "assert": "state.phase === 'lost' && state.timeLeft === 0 && state.arrived < state.total", "label": "time up: lost" },
+    { "assert": "state.music === null", "label": "the music stops" },
+    { "screenshot": "time-up" },
+    { "key": "KeyR", "steps": 2 },
+    { "assert": "state.phase === 'intro' && state.timeLeft === 150 && state.reached === 0 && state.cleared < 0.3 && state.plough.z > 24", "label": "R: a fresh village" }
+  ]
+}

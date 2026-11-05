@@ -53,8 +53,9 @@ test('release: optimized build plays on both backends and loads assets in parall
     const three = b.network.requests.find((n) => /^three-.*\.js$/.test(n.file));
     assert.ok(glbs.every((g) => g.start < three.end) && wasm.start < three.end, 'assets start before three.js finishes');
     const sfx = b.network.requests.filter((n) => n.file.endsWith('.mp3'));
-    assert.equal(sfx.length, 5, 'every sound effect requested');
-    assert.ok(sfx.every((x) => x.start < three.end), 'sound effects preload with the HTML');
+    assert.equal(sfx.length, 6, 'every sound effect + the music loop requested');
+    assert.ok(sfx.every((x) => x.start < three.end), 'sound effects and music preload with the HTML');
+    assert.ok(b.network.requests.some((n) => n.file === 'course.json'), 'music loop sidecar fetched');
     const dups = b.network.requests.filter((x, i, a) => a.findIndex((y) => y.file === x.file) !== i);
     assert.deepEqual(dups, [], 'preloaded responses are reused (no double downloads)');
   }

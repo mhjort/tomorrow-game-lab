@@ -1,5 +1,7 @@
 # Performance budget (mid-range laptop, 1080p)
 
+These are targets for the `optimize-web-game` pass, after the game matches its reference and the user has played it. While building, only keep the game playable; don't trim the look to fit them.
+
 | metric | target | how to check |
 |---|---|---|
 | frame time (avg) | < 8 ms CPU+submit | playtest `perf` (`?test&realtime`), `renderer.info.render` |

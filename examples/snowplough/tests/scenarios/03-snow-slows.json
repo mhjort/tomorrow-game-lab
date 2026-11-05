@@ -1,0 +1,13 @@
+{
+  "name": "snow-slows",
+  "description": "Rule: fresh snow slows the plough (about 4 m/s), cleared road lets it run (7 m/s). Drive the avenue twice: the second pass, on the cleared lane, is much faster.",
+  "steps": [
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "step": 120 },
+    { "assert": "state.plough.speed > 3 && state.plough.speed < 4.8 && state.plough.load > 0.8", "label": "ploughing fresh snow: ~4 m/s under load" },
+    { "step": 120 },
+    { "input": { "type": "teleport", "x": 0, "z": 25, "heading": 0 } },
+    { "step": 100 },
+    { "assert": "state.plough.speed > 6 && state.plough.load < 0.3", "label": "on the cleared lane: near top speed" }
+  ]
+}

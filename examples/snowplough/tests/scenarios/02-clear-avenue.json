@@ -1,0 +1,29 @@
+{
+  "name": "clear-avenue",
+  "description": "Rule: a door counts as reached when a cleared path joins its doorstep to the square. One pass up the avenue reaches the 8 houses on it (the 3 facing the square are connected from the start), lights their lamps, and sends their villagers walking to the square.",
+  "steps": [
+    { "step": 5 },
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "until": "state.plough.z < -11", "max": 900 },
+    { "input": { "type": "drive", "throttle": 0, "steer": 0 } },
+    { "step": 12 },
+    { "assert": "state.reached === 11", "label": "the 8 avenue houses connect (6, 7, 10, 11, 14, 15, 18, 19), plus the 3 that open onto the square" },
+    { "assert": "[6, 7, 10, 11, 14, 15, 18, 19].every((i) => state.villagers[i].state !== 'waiting')", "label": "their villagers set off" },
+    { "assert": "state.villagers.filter((v) => v.state === 'waiting').length === 10", "label": "everyone else still waits at home" },
+    { "assert": "JSON.stringify(state.lit) === '[0,1,2,6,7,10,11,14,15,18,19]'", "label": "exactly those 11 house lamps are lit" },
+    { "assert": "state.sfx.scrape >= 5", "label": "scraping while ploughing" },
+    { "screenshot": "avenue", "compare": "design/reference/frames/frame_06.png" },
+    { "input": { "type": "camera", "mode": "overview" } },
+    { "step": 1 },
+    { "screenshot": "avenue-overview", "compare": "design/reference/frames/frame_05.png" },
+    { "input": { "type": "camera", "mode": "chase" } },
+    { "step": 60 },
+    { "assert": "state.sfx.chime === 11", "label": "one chime per reached house" },
+    { "step": 540 },
+    { "assert": "Math.abs(state.plough.speed) < 0.01 && state.arrived === 3", "label": "plough parked on the avenue: nobody gets past it (only the square's own 3 have arrived)" },
+    { "assert": "state.villagers.filter((v) => v.state === 'walking').every((v) => v.z > state.plough.z + 2)", "label": "the walkers wait behind (south of) the plough" },
+    { "input": { "type": "teleport", "x": 18, "z": 12, "heading": 1.57 } },
+    { "until": "state.arrived === 11", "max": 2400 },
+    { "assert": "state.phase === 'play'", "label": "the game goes on until every house is reached" }
+  ]
+}

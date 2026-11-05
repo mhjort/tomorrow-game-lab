@@ -13,7 +13,7 @@ You are a graphics/web engineer auditing robustness and performance. You did NOT
 | runtime health | 0.30 | zero console errors/page errors/failed requests; warnings explained; boots through a loading screen that prewarms ALL levels/materials (check `src/`) |
 | backend coverage | 0.25 | WebGPU used when available, WebGL2 fallback works; parity SSIM ≥ 0.95 on all shots |
 | determinism & testability | 0.20 | fixed timestep, seeded RNG, `__game` hooks complete, no Math.random/Date.now in gameplay |
-| performance | 0.15 | realtime perf sample ~60 fps, avg frame ≪ 16 ms, boot < 3 s; downloads overlap (`backends.*.network.maxParallel` ≥ 3 when there are several assets); `dist/release-report.json` (if present) has no budget problems |
+| performance | 0.15 | playable: realtime perf sample ~60 fps on this machine, boot < 3 s, downloads overlap (`backends.*.network.maxParallel` ≥ 3 when there are several assets). Don't mark down triangle counts or file sizes while the game is being matched to its reference: budgets for a target device are the `optimize-web-game` pass |
 | code health | 0.10 | clear structure, no dead template code, resources disposed on level change |
 
 Pass threshold: **7.5**. Any console error, a backend failing to boot, or parity < 0.85 is a **blocker**.

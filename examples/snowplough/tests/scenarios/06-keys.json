@@ -1,0 +1,19 @@
+{
+  "name": "keys",
+  "description": "Real keyboard: ↑ drives, ↑+→ turns right (clockwise), releasing everything stops steering input (no stuck keys), ↓ brakes.",
+  "steps": [
+    { "step": 5 },
+    { "key": "ArrowUp", "steps": 60 },
+    { "assert": "state.phase === 'play' && state.plough.z < 24 && Math.abs(state.plough.heading) < 0.01", "label": "↑ drives straight north" },
+    { "key": ["ArrowUp", "ArrowRight"], "steps": 30, "release": false },
+    { "assert": "state.controls.throttle === 1 && state.controls.steer === 1 && state.plough.heading > 0.2", "label": "↑+→ held: turning right" },
+    { "keyUp": ["ArrowRight", "ArrowUp"] },
+    { "step": 2 },
+    { "assert": "state.controls.throttle === 0 && state.controls.steer === 0", "label": "released: no input sticks" },
+    { "key": "ArrowDown", "steps": 20, "release": false },
+    { "assert": "state.plough.speed < 1.2", "label": "↓ brakes hard" },
+    { "step": 40 },
+    { "keyUp": "ArrowDown" },
+    { "assert": "state.plough.speed < -0.5", "label": "holding ↓ after stopping reverses" }
+  ]
+}

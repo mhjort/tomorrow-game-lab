@@ -77,25 +77,33 @@ for (const name of names) {
   }
 }
 
-// the copy of lab_bpy.py in the example must match the skill's (it's a vendored helper)
-const vendored = join(root, 'examples', 'minigolf', 'assets', 'src', 'lab_bpy.py');
-if (existsSync(vendored) && readFileSync(vendored, 'utf8') !== readFileSync(join(skillsDir, 'blender-assets', 'scripts', 'lab_bpy.py'), 'utf8'))
-  errors.push('examples/minigolf/assets/src/lab_bpy.py is out of date with skills/blender-assets/scripts/lab_bpy.py');
-// the example's engine must match the template's engine
+// every example vendors the blender helpers, the template's engine and scripts: they must not drift
+const EXAMPLES = readdirSync(join(root, 'examples')).filter((d) => existsSync(join(root, 'examples', d, 'package.json')));
 const tplEngine = join(skillsDir, 'web-game-runtime', 'assets', 'template', 'src', 'engine');
-for (const f of readdirSync(tplEngine)) {
-  const ex = join(root, 'examples', 'minigolf', 'src', 'engine', f);
-  if (existsSync(ex) && readFileSync(ex, 'utf8') !== readFileSync(join(tplEngine, f), 'utf8'))
-    errors.push(`examples/minigolf/src/engine/${f} differs from the template (sync it or upstream the change)`);
+for (const ex of EXAMPLES) {
+  for (const h of ['lab_bpy.py', 'lab_rig.py']) {
+    const vendored = join(root, 'examples', ex, 'assets', 'src', h);
+    if (existsSync(vendored) && readFileSync(vendored, 'utf8') !== readFileSync(join(skillsDir, 'blender-assets', 'scripts', h), 'utf8'))
+      errors.push(`examples/${ex}/assets/src/${h} is out of date with skills/blender-assets/scripts/${h}`);
+  }
+  for (const f of readdirSync(tplEngine)) {
+    const copy = join(root, 'examples', ex, 'src', 'engine', f);
+    if (existsSync(copy) && readFileSync(copy, 'utf8') !== readFileSync(join(tplEngine, f), 'utf8'))
+      errors.push(`examples/${ex}/src/engine/${f} differs from the template (sync it or upstream the change)`);
+  }
 }
 
 // vendored copies that must stay byte-identical to their source of truth
 const same = [
   ['skills/publish-web-game/scripts/release.mjs', 'skills/web-game-runtime/assets/template/scripts/release.mjs'],
-  ['skills/publish-web-game/scripts/release.mjs', 'examples/minigolf/scripts/release.mjs'],
-  ['skills/web-game-runtime/assets/template/vite.config.js', 'examples/minigolf/vite.config.js'],
   ['skills/generate-media/scripts/generate-media.mjs', 'skills/web-game-runtime/assets/template/scripts/generate-media.mjs'],
-  ['skills/generate-media/scripts/generate-media.mjs', 'examples/minigolf/scripts/generate-media.mjs'],
+  ['skills/generate-media/scripts/preview_glb.py', 'skills/web-game-runtime/assets/template/scripts/preview_glb.py'],
+  ...EXAMPLES.flatMap((ex) => [
+    ['skills/publish-web-game/scripts/release.mjs', `examples/${ex}/scripts/release.mjs`],
+    ['skills/web-game-runtime/assets/template/vite.config.js', `examples/${ex}/vite.config.js`],
+    ['skills/generate-media/scripts/generate-media.mjs', `examples/${ex}/scripts/generate-media.mjs`],
+    ['skills/generate-media/scripts/preview_glb.py', `examples/${ex}/scripts/preview_glb.py`],
+  ]),
 ];
 for (const [src, copy] of same) {
   if (!existsSync(join(root, copy))) errors.push(`${copy} missing (copy of ${src})`);

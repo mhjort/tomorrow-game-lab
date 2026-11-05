@@ -1,0 +1,56 @@
+{
+  "palette": {
+    "snow": "#0f66a4",
+    "snowShadow": "#1d5a92",
+    "snowLit": "#f2c6cf",
+    "road": "#8c6774",
+    "heap": "#c9c3e0",
+    "wood": "#7a4636",
+    "roofDark": "#2a2436",
+    "door": "#8a1a14",
+    "window": "#ff9a2e",
+    "windowOff": "#3a3048",
+    "pine": "#0e3f6b",
+    "accent": "#e88a1c",
+    "sky": "#0b2f55",
+    "stone": "#4c5a55",
+    "plaster": "#8a5640",
+    "timber": "#5e2a22",
+    "trimGreen": "#2f4f3a",
+    "doorGreen": "#2f5a3e",
+    "snowStreet": "#1f6aae",
+    "leaf": "#4a7a3a",
+    "fire": "#ff7a26",
+    "snowRim": "#e4ddf2",
+    "blade": "#f0a52a",
+    "steel": "#6a6e78",
+    "roofSnow": "#d6e0f4"
+  },
+  "background": "#1d4a78",
+  "fog": {
+    "color": "#1d4a78",
+    "near": 20,
+    "far": 52
+  },
+  "sun": {
+    "color": "#b8d6f0",
+    "intensity": 1.0,
+    "elevation": 58,
+    "azimuth": 325,
+    "shadows": true
+  },
+  "ambient": {
+    "color": "#1f6a96",
+    "ground": "#123c6a",
+    "intensity": 0.7
+  },
+  "materials": {
+    "roughness": 0.9,
+    "metalness": 0.0
+  },
+  "camera": {
+    "fov": 30
+  },
+  "toneMapping": "ACES",
+  "exposure": 0.95
+}

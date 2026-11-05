@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Headless Chrome playtest for web games that implement the window.__game contract.
 //
-// Scenario steps: {step:n} {input:{...}} {until:'expr',max} {assert:'expr'} {screenshot:name}
-//                 {key:'Space',steps:n} {drag:{from,to}} {eval:'js'} {script:'bots/x.js',args}
+// Scenario steps: {step:n} {input:{...}} {until:'expr',max} {assert:'expr'} {screenshot:name, compare?:'design/reference/x.png'}
+//                 {key:'Space'|['ArrowUp','ArrowRight'],steps:n,release?} {keyUp:k} {drag:{from,to}} {eval:'js'}
+//                 {script:'bots/x.js',args}
 //
 // Usage: node playtest.mjs [--project .] [--url http://...] [--scenarios tests/scenarios]
 //                          [--backends webgpu,webgl2] [--size 1280x720] [--perf 3] [--headed]
@@ -165,10 +166,16 @@ async function runScenario(browser, url, backend, scenario, shotDir) {
         const p = join(shotDir, `${scenario.name}-${s.screenshot}.png`);
         await page.screenshot({ path: p });
         res.screenshots.push(relative(outDir, p));
+        // "compare": the reference frame this shot is framed like (project-relative); visual-pack.mjs pairs them
+        if (s.compare) (res.compare ??= []).push({ shot: relative(outDir, p), ref: s.compare });
       } else if (s.key !== undefined) {
-        await page.keyboard.down(s.key);
+        // one key or a chord (['ArrowUp', 'ArrowRight']) held for `steps` ticks; release: false keeps it down
+        const keys = [].concat(s.key);
+        for (const k of keys) await page.keyboard.down(k);
         if (s.steps) await page.evaluate((n) => window.__game.step(n), s.steps);
-        await page.keyboard.up(s.key);
+        if (s.release !== false) for (const k of keys.reverse()) await page.keyboard.up(k);
+      } else if (s.keyUp !== undefined) {
+        for (const k of [].concat(s.keyUp)) await page.keyboard.up(k);
       } else if (s.drag !== undefined) {
         const [[x0, y0], [x1, y1]] = [s.drag.from, s.drag.to];
         await page.mouse.move(x0, y0);

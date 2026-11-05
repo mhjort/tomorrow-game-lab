@@ -10,7 +10,8 @@
     "keyart": "skills/blender-assets/scripts/run_blender.sh lab/fixtures/keyart/build_keyart.py",
     "eval": "node lab/eval/run-eval.mjs",
     "release:minigolf": "pnpm --filter minigolf run release",
-    "site": "pnpm release:minigolf && node lab/build-site.mjs"
+    "release:snowplough": "pnpm --filter snowplough run release",
+    "site": "pnpm release:minigolf && pnpm release:snowplough && node lab/build-site.mjs"
   },
   "packageManager": "pnpm@12.16.1"
 }

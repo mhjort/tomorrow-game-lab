@@ -33,7 +33,7 @@ Try:
 
 I'd like your take on:
 1. Putt feel: is the power range too strong or too weak?
-2. Sounds: is anything too loud, too quiet or annoying? (sound starts after your first click)
+2. Sound and music: is anything too loud, too quiet or annoying? Does the music fit? (audio starts after your first click)
 3. Does it look like the key art?
 
 Judges: visual 8.1 · gameplay 7.6 · technical 8.4 · assets 7.9. Known minor issues: …
@@ -41,6 +41,7 @@ Judges: visual 8.1 · gameplay 7.6 · technical 8.4 · assets 7.9. Known minor i
 - Ask 2–4 **specific** questions about things only a person can judge: feel, tuning, sound, look, difficulty. Don't ask "is it OK?".
 - Start with the link. Keep the scores and known issues short and put them last.
 - Mention the traps: audio starts only after a click, and the first load compiles shaders.
+- Video-first: give the path of the source video, and name the brief's additions (what the game shows that the video doesn't), so the user can check them against the clip.
 
 ## 3. Act on the answer
 - Turn the feedback into concrete changes, such as a tuning constant, a `gain` in `design/media.json`, or a camera angle. Make them, then re-run the playtest, plus any judges whose inputs changed.

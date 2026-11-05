@@ -32,7 +32,7 @@ const rows = [
   ['Blender ≥ 5.2 LTS (assets)', blenderVer, !!blenderPath && atLeast(blenderVer, [5, 2]), true],
   ['ffmpeg (video refs, parity)', ver('ffmpeg', ['-version'])?.split(' ').slice(0, 3).join(' '), !!ver('ffmpeg', ['-version']), false],
   ['python3 (palette)', ver('python3'), !!ver('python3'), false],
-  ['RUNWARE_API_KEY (generated media)', process.env.RUNWARE_API_KEY ? 'set' : null, !!process.env.RUNWARE_API_KEY, false], // never print the value
+  ['RUNWARE_API_KEY (generated media, music, video, 3D)', process.env.RUNWARE_API_KEY ? 'set' : null, !!process.env.RUNWARE_API_KEY, false], // never print the value
 ];
 let missing = 0;
 for (const [name, value, ok, required] of rows) {

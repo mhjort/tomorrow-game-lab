@@ -1,0 +1,19 @@
+{
+  "name": "boot",
+  "description": "Boots to the intro card with the plough parked at the bottom of the avenue; driving up the avenue clears snow; key-art-style overview and chase shots.",
+  "steps": [
+    { "step": 30 },
+    { "assert": "state.phase === 'intro' && state.reached === 0 && state.total === 21", "label": "intro, 21 houses, none reached" },
+    { "assert": "Math.abs(state.plough.speed) < 0.01", "label": "parked until the player drives" },
+    { "assert": "state.outfits === 5", "label": "the villagers wear 5 different outfits, like the crowd in the video" },
+    { "screenshot": "intro" },
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "assert": "state.phase === 'play'", "label": "driving starts the game" },
+    { "step": 150 },
+    { "assert": "state.plough.z < 19 && state.plough.load > 0.8 && state.plough.speed < 5", "label": "the plough drove north into fresh snow, which slows it" },
+    { "screenshot": "play", "compare": "design/reference/frames/frame_02.png" },
+    { "input": { "type": "camera", "mode": "overview" } },
+    { "step": 1 },
+    { "screenshot": "overview", "compare": "design/reference/keyart.png" }
+  ]
+}

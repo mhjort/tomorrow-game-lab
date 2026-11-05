@@ -1,0 +1,18 @@
+{
+  "name": "full-run",
+  "description": "A bot clears every street with real drive actions: every house connects, every villager walks to the square, the festival starts before 18:00.",
+  "steps": [
+    { "step": 10 },
+    { "script": "bots/clear-village.js", "args": { "log": true } },
+    { "assert": "state.reached === 21", "label": "all 21 doors connected" },
+    { "assert": "state.phase === 'won' && state.arrived === 21", "label": "festival: everyone at the square" },
+    { "assert": "state.timeLeft > 40", "label": "a clean route finishes well before 18:00 (room for human detours)" },
+    { "assert": "state.cheering === 21 && state.fireBlazing && state.camera === 'festival'", "label": "festival: all 21 cheer, the fire blazes up, the camera turns to the square" },
+    { "assert": "state.music === 'festival' && state.sfx.chime >= 5", "label": "chime per path, festival jingle" },
+    { "step": 150 },
+    { "screenshot": "festival" },
+    { "input": { "type": "camera", "mode": "overview" } },
+    { "step": 1 },
+    { "screenshot": "festival-overview" }
+  ]
+}

@@ -18,14 +18,11 @@ pnpm release            # = node scripts/release.mjs  [--max-js-kb 1500] [--max-
 ```
 1. Runs `vite build`. The template's `vite.config.js` sets `base: './'` (relative URLs), splits three.js into its own chunk, and lazy-loads Rapier as its own JS chunk plus a real `.wasm` file.
 2. Optimizes every `dist/**/*.glb` in place: dedup, weld, and meshopt (quantize + reorder + compress), typically 2–3× smaller. The runtime loader decodes these with `MeshoptDecoder`. Marker empties and collider extras are preserved; the script fails if the node set changes.
-3. Injects preload hints into `dist/index.html`: `modulepreload` for lazy JS chunks, `preload as=fetch crossorigin` for the `.wasm`, every GLB, every `sfx/*` clip and the manifest, and `preload as=image` for `images/*`. The browser then starts **every** download while parsing the HTML, instead of after three.js has loaded and the entry module has run. On the lab's live minigolf this cut the cold-load ready time from 3.46 s to 1.31 s. The new limit is the largest single file, the physics `.wasm`. The loader's `fetch()` reuses the preloaded responses, so nothing is downloaded twice. If a preload ever goes unused, Chrome logs a console warning.
+3. Injects preload hints into `dist/index.html`: `modulepreload` for lazy JS chunks, `preload as=fetch crossorigin` for the `.wasm`, every GLB, every `sfx/*` clip and `music/*` loop, and the manifest, and `preload as=image` for `images/*`. The browser then starts **every** download while parsing the HTML, instead of after three.js has loaded and the entry module has run. On the lab's live minigolf this cut the cold-load ready time from 3.46 s to 1.31 s. The new limit is the largest single file, the physics `.wasm`. The loader's `fetch()` reuses the preloaded responses, so nothing is downloaded twice. If a preload ever goes unused, Chrome logs a console warning.
 4. Writes `dist/asset-manifest.json` (file → bytes) so the loading screen can show byte-accurate progress.
 5. Prints a gzip size table, checks the budgets, and writes `dist/release-report.json` for the technical judge. Exit 1 means over budget.
 
-If the build is over budget, look at the biggest rows first:
-- textures → KTX2 or WebP, or smaller sizes
-- GLBs → fewer triangles
-- unused three addons → remove the imports
+If the build is over budget, hand it to the `optimize-web-game` skill rather than shrinking assets here. It applies the changes that don't alter the look first (compression, KTX2/WebP textures, unused three addons) and asks the user before any that do (fewer triangles, smaller textures).
 
 Never inline large assets as base64.
 
@@ -52,7 +49,7 @@ mkdir -p .github/workflows && cp <skill>/assets/pages.yml .github/workflows/page
 git add -A && git commit -m "Publish to GitHub Pages" && git push
 gh run watch "$(gh run list --workflow pages.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 ```
-- Commit `public/models/*.glb`. CI has no Blender, and the release build only optimizes the committed GLBs. Commit generated media too (`public/images/`, `public/sfx/`, `./assets/media.lock.json`): CI has no `RUNWARE_API_KEY`.
+- Commit `public/models/*.glb`. CI has no Blender, and the release build only optimizes the committed GLBs. Commit generated media too (`public/images/`, `public/sfx/`, `public/music/`, `./assets/media.lock.json`): CI has no `RUNWARE_API_KEY`.
 - Commit `pnpm-lock.yaml` (CI runs `pnpm install --frozen-lockfile`). The workflow reads the pnpm version from `"packageManager"` in `package.json`, which the template sets.
 - For a game in a sub-folder (monorepo), set `GAME_DIR` in the workflow.
 - Several games in one repo: build each one and assemble a site folder (`/<game>/` per game plus an index page) before `upload-pages-artifact`. The tomorrow-game-lab repo's own workflow is an example.

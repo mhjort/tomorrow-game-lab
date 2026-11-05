@@ -59,5 +59,15 @@
       "candidates": 3,
       "trimDb": 14
     }
+  },
+  "music": {
+    "course": {
+      "prompt": "relaxed sunny-afternoon video game background music for a cosy minigolf game, marimba and kalimba melody, soft acoustic guitar, brushed drums, warm round bass, light and unhurried, instrumental loop",
+      "bpm": 96,
+      "key": "F major",
+      "bars": 8,
+      "candidates": 2,
+      "seed": 7
+    }
   }
 }

@@ -1,24 +1,81 @@
 {
   "$comment": "Every judge returns exactly one JSON object of this shape (write it to .lab/runs/<run>/judges/<judge>.json).",
   "type": "object",
-  "required": ["judge", "score", "pass", "summary", "issues"],
+  "required": [
+    "judge",
+    "score",
+    "pass",
+    "summary",
+    "issues"
+  ],
   "properties": {
-    "judge": { "type": "string" },
-    "score": { "type": "number", "minimum": 0, "maximum": 10 },
-    "pass": { "type": "boolean", "description": "score >= the judge's pass threshold AND no blocker issues" },
-    "summary": { "type": "string", "description": "2-3 sentences" },
+    "judge": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "pass": {
+      "type": "boolean",
+      "description": "score >= the judge's pass threshold AND no blocker issues"
+    },
+    "summary": {
+      "type": "string",
+      "description": "2-3 sentences"
+    },
     "issues": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["severity", "title", "evidence", "fix"],
+        "required": [
+          "severity",
+          "title",
+          "evidence",
+          "fix"
+        ],
         "properties": {
-          "severity": { "enum": ["blocker", "major", "minor"] },
-          "title": { "type": "string" },
-          "evidence": { "type": "string", "description": "file/screenshot/step that shows it" },
-          "fix": { "type": "string", "description": "concrete, actionable change (file + what to change)" }
+          "severity": {
+            "enum": [
+              "blocker",
+              "major",
+              "minor"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "file/screenshot/step that shows it"
+          },
+          "fix": {
+            "type": "string",
+            "description": "concrete, actionable change (file + what to change)"
+          },
+          "element": {
+            "type": "string",
+            "description": "visual-fidelity: what the issue is about, one word: an element name from design/reference/inventory.md (e.g. plough, house) or one of palette, lighting, camera, world, polish. Panels group issues by it."
+          }
         }
       }
+    },
+    "criteria": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 10
+      },
+      "description": "per-criterion 0-10 scores from the rubric table (required by visual-fidelity), so a change between rounds can be traced to a criterion"
+    },
+    "keyart_bullets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "visual-fidelity only: the judge's description of the reference (method step 1), to see whether judges read the reference the same way"
     }
   }
 }

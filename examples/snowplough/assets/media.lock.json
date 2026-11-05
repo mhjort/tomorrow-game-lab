@@ -1,0 +1,370 @@
+{
+  "bump": {
+    "bytes": 3796,
+    "candidates": [
+      ".lab/media/bump/0.wav",
+      ".lab/media/bump/1.wav"
+    ],
+    "cost": 0.02,
+    "duration": 0.294989,
+    "file": "public/sfx/bump.mp3",
+    "hash": "090d1467b86f3ac9",
+    "kind": "sfx",
+    "model": "mirelo:1@1",
+    "picked": 0,
+    "post": "55b6576d37ba60c4",
+    "provider": "runware",
+    "seed": 318485517,
+    "seeds": [
+      318485517,
+      318485518
+    ],
+    "trim": [
+      0.215,
+      0.51
+    ],
+    "waveform": ".lab/media/bump.png"
+  },
+  "chime": {
+    "bytes": 8730,
+    "candidates": [
+      ".lab/media/chime/0.wav",
+      ".lab/media/chime/1.wav"
+    ],
+    "cost": 0.04,
+    "duration": 0.764989,
+    "file": "public/sfx/chime.mp3",
+    "hash": "6a9d16da83b0ab51",
+    "kind": "sfx",
+    "model": "mirelo:1@1",
+    "picked": 1,
+    "post": "a6d9ec7b5dd3d209",
+    "provider": "runware",
+    "seed": 798152616,
+    "seeds": [
+      798152615,
+      798152616
+    ],
+    "trim": [
+      0.445,
+      1.21
+    ],
+    "waveform": ".lab/media/chime.png"
+  },
+  "festival": {
+    "bytes": 117750,
+    "candidates": [
+      ".lab/media/festival/0.wav",
+      ".lab/media/festival/1.wav"
+    ],
+    "cost": 0.0036,
+    "duration": 6,
+    "file": "public/music/festival.mp3",
+    "hash": "c192f45f9de2e3f5",
+    "kind": "music",
+    "model": "runware:ace-step@v1.5-xl-turbo",
+    "picked": 0,
+    "post": "155921851c91cd01",
+    "provider": "runware",
+    "seed": 754910629,
+    "seeds": [
+      754910629,
+      754910628
+    ],
+    "trim": [
+      0.115,
+      6.115
+    ],
+    "waveform": ".lab/media/festival.png"
+  },
+  "gameplay": {
+    "bytes": 7240765,
+    "cost": 0.336,
+    "duration": 6.583333,
+    "file": "design/reference/gameplay.mp4",
+    "hash": "752b4a872f319820",
+    "kind": "videos",
+    "model": "minimax:h3@max",
+    "post": "f0c2e8eb2a3f7bb5",
+    "provider": "runware",
+    "seed": 11,
+    "seeds": [
+      11
+    ],
+    "sheet": ".lab/media/gameplay-max.png"
+  },
+  "house-a": {
+    "bytes": 2668240,
+    "candidates": [
+      ".lab/media/house-a/0.glb"
+    ],
+    "cost": 0.3,
+    "file": "assets/generated/house-a.glb",
+    "hash": "594beaf580c64400",
+    "kind": "models",
+    "model": "tripo:v3.1@0",
+    "picked": 0,
+    "post": "bb045ab46d4bebfa",
+    "provider": "runware",
+    "seed": 11133899,
+    "seeds": [
+      11133899
+    ],
+    "sheet": ".lab/media/house-a.png",
+    "size": [
+      0.868,
+      0.871,
+      1
+    ],
+    "tris": 6696
+  },
+  "house-a-ref": {
+    "bytes": 1253581,
+    "candidates": [
+      ".lab/media/house-a-ref/0.png",
+      ".lab/media/house-a-ref/1.png"
+    ],
+    "cost": 0.07448,
+    "file": "design/reference/props/house-a-ref.png",
+    "hash": "d9cb48dffb1d4086",
+    "kind": "images",
+    "model": "google:nano-banana@2.1",
+    "picked": 1,
+    "post": "648248576e923f7e",
+    "provider": "runware",
+    "seed": 1375075695,
+    "seeds": [
+      1375075696,
+      1375075695
+    ]
+  },
+  "house-b": {
+    "bytes": 2716244,
+    "candidates": [
+      ".lab/media/house-b/0.glb"
+    ],
+    "cost": 0.3,
+    "file": "assets/generated/house-b.glb",
+    "hash": "37f9c3fc29fe09ed",
+    "kind": "models",
+    "model": "tripo:v3.1@0",
+    "picked": 0,
+    "post": "bb045ab46d4bebfa",
+    "provider": "runware",
+    "seed": 1264213,
+    "seeds": [
+      1264213
+    ],
+    "sheet": ".lab/media/house-b.png",
+    "size": [
+      0.898,
+      0.865,
+      1
+    ],
+    "tris": 6669
+  },
+  "house-b-ref": {
+    "bytes": 1150387,
+    "candidates": [
+      ".lab/media/house-b-ref/0.png",
+      ".lab/media/house-b-ref/1.png"
+    ],
+    "cost": 0.07447,
+    "file": "design/reference/props/house-b-ref.png",
+    "hash": "d3296ae6b21cfb9f",
+    "kind": "images",
+    "model": "google:nano-banana@2.1",
+    "picked": 0,
+    "post": "648248576e923f7e",
+    "provider": "runware",
+    "seed": 1939036627,
+    "seeds": [
+      1939036627,
+      1939036628
+    ]
+  },
+  "icon": {
+    "bytes": 9701,
+    "candidates": [
+      ".lab/media/icon/0.png",
+      ".lab/media/icon/1.png"
+    ],
+    "cost": 0.04757,
+    "file": "public/images/icon.png",
+    "hash": "23b578c03e37b099",
+    "kind": "images",
+    "model": "openai:gpt-image@2.5-flare",
+    "picked": 1,
+    "post": "7f1bcaae103a24fa",
+    "provider": "runware",
+    "seed": null,
+    "seeds": [
+      null,
+      null
+    ]
+  },
+  "plough": {
+    "bytes": 2533192,
+    "candidates": [
+      ".lab/media/plough/0.glb"
+    ],
+    "cost": 0.3,
+    "file": "assets/generated/plough.glb",
+    "hash": "b0d87aa01c7238c8",
+    "kind": "models",
+    "model": "tripo:v3.1@0",
+    "picked": 0,
+    "post": "bb045ab46d4bebfa",
+    "provider": "runware",
+    "seed": 17374632,
+    "seeds": [
+      17374632
+    ],
+    "sheet": ".lab/media/plough.png",
+    "size": [
+      1,
+      0.625,
+      0.589
+    ],
+    "tris": 6996
+  },
+  "plough-ref": {
+    "bytes": 1061769,
+    "candidates": [
+      ".lab/media/plough-ref/0.png",
+      ".lab/media/plough-ref/1.png"
+    ],
+    "cost": 0.07445,
+    "file": "design/reference/props/plough-ref.png",
+    "hash": "2a61c2aae17ef680",
+    "kind": "images",
+    "model": "google:nano-banana@2.1",
+    "picked": 1,
+    "post": "648248576e923f7e",
+    "provider": "runware",
+    "seed": 65172707,
+    "seeds": [
+      65172708,
+      65172707
+    ]
+  },
+  "scrape": {
+    "bytes": 6268,
+    "candidates": [
+      ".lab/media/scrape/0.wav",
+      ".lab/media/scrape/1.wav"
+    ],
+    "cost": 0.02,
+    "duration": 0.6,
+    "file": "public/sfx/scrape.mp3",
+    "hash": "134462cb888922ac",
+    "kind": "sfx",
+    "model": "mirelo:1@1",
+    "picked": 1,
+    "post": "1b20bb7727699298",
+    "provider": "runware",
+    "seed": 668698022,
+    "seeds": [
+      668698021,
+      668698022
+    ],
+    "trim": [
+      0,
+      0.6
+    ],
+    "waveform": ".lab/media/scrape.png"
+  },
+  "splash": {
+    "bytes": 155170,
+    "candidates": [
+      ".lab/media/splash/0.webp",
+      ".lab/media/splash/1.webp"
+    ],
+    "cost": 0.07103,
+    "file": "public/images/splash.webp",
+    "hash": "ac06d22094b12adb",
+    "kind": "images",
+    "model": "google:nano-banana@2.1",
+    "picked": 1,
+    "post": "e15fefc53235a038",
+    "provider": "runware",
+    "seed": 377870448,
+    "seeds": [
+      377870447,
+      377870448
+    ]
+  },
+  "theme": {
+    "bytes": 333658,
+    "candidates": [
+      ".lab/media/theme/0.wav",
+      ".lab/media/theme/1.wav"
+    ],
+    "cost": 0.00735,
+    "duration": 16.8421,
+    "file": "public/music/theme.mp3",
+    "hash": "da72e428fe404e13",
+    "kind": "music",
+    "loop": [
+      9.52,
+      26.3621
+    ],
+    "model": "runware:ace-step@v1.5-xl-turbo",
+    "picked": 0,
+    "post": "00323f2db11bc31f",
+    "provider": "runware",
+    "seam": 0.871,
+    "seed": 1336850635,
+    "seeds": [
+      1336850635,
+      1336850634
+    ],
+    "tempo": 114,
+    "waveform": ".lab/media/theme.png"
+  },
+  "villager": {
+    "bytes": 1751508,
+    "candidates": [
+      ".lab/media/villager/0.glb"
+    ],
+    "cost": 0.3,
+    "file": "assets/generated/villager.glb",
+    "hash": "e66489603c930154",
+    "kind": "models",
+    "model": "tripo:v3.1@0",
+    "picked": 0,
+    "post": "bb045ab46d4bebfa",
+    "provider": "runware",
+    "seed": 9052449,
+    "seeds": [
+      9052449
+    ],
+    "sheet": ".lab/media/villager.png",
+    "size": [
+      0.352,
+      0.843,
+      1
+    ],
+    "tris": 5092
+  },
+  "villager-ref": {
+    "bytes": 982061,
+    "candidates": [
+      ".lab/media/villager-ref/0.png",
+      ".lab/media/villager-ref/1.png"
+    ],
+    "cost": 0.07444,
+    "file": "design/reference/props/villager-ref.png",
+    "hash": "37ad89314e464d3c",
+    "kind": "images",
+    "model": "google:nano-banana@2.1",
+    "picked": 0,
+    "post": "648248576e923f7e",
+    "provider": "runware",
+    "seed": 361081418,
+    "seeds": [
+      361081418,
+      361081417
+    ]
+  }
+}

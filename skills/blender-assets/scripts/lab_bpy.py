@@ -214,6 +214,76 @@ def join(objs, name):
     return o
 
 
+_EXPORT_IMAGE_FORMAT = "AUTO"
+_EXPORT_OPTS = {}  # extra glTF exporter options set by helpers (lab_rig: skins + one animation per NLA track)
+_FORWARD_YAW = {"-Y": 0.0, "+X": -90.0, "+Y": 180.0, "-X": 90.0}
+
+
+def import_glb(path, name, forward="-Y", height=None, length=None, max_tris=None, max_texture=1024, pbr=False):
+    """Import a generated GLB (generate-media `models`, in assets/generated/) as ONE game-ready object:
+    joined meshes, front turned to -Y (three.js +Z), uniformly scaled to `height` or `length` (meters, Blender Z
+    and Y extents), origin at bottom-center, decimated to `max_tris`, textures shrunk to `max_texture` px and
+    re-encoded as JPEG (no alpha), and (pbr=False) metallic/roughness/normal maps dropped for a flat toy look.
+    `forward` is the axis the model's front points along as imported ("+X", "-X", "+Y", "-Y"): read it from the
+    preview sheet's "front" tile (the camera there sits at -Y). Returns the object; tag colliders yourself."""
+    before = set(bpy.context.scene.objects)
+    bpy.ops.import_scene.gltf(filepath=os.path.abspath(path))
+    new = [o for o in bpy.context.scene.objects if o not in before]
+    meshes = [o for o in new if o.type == "MESH"]
+    if not meshes:
+        raise RuntimeError(f"import_glb: no meshes in {path}")
+    for o in meshes:  # keep world transforms, drop the importer's empties/armatures
+        mw = o.matrix_world.copy()
+        o.parent = None
+        o.matrix_world = mw
+    for o in new:
+        if o.type != "MESH":
+            bpy.data.objects.remove(o, do_unlink=True)
+    obj = join(meshes, name) if len(meshes) > 1 else meshes[0]
+    obj.name = name
+    select_only(obj)
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+    if max_tris:  # before measuring: decimation moves the outer vertices
+        n = triangle_count([obj])
+        if n > max_tris:
+            m = obj.modifiers.new("Decimate", "DECIMATE")
+            m.ratio = max_tris / n * 0.98
+            apply_all_modifiers(obj)
+    obj.data.transform(mathutils.Matrix.Rotation(math.radians(_FORWARD_YAW[forward]), 4, "Z"))  # mesh data: the importer's quaternion mode ignores rotation_euler
+    vs = [v.co for v in obj.data.vertices]  # not bound_box: it is stale until the depsgraph updates
+    lo = mathutils.Vector((min(v.x for v in vs), min(v.y for v in vs), min(v.z for v in vs)))
+    hi = mathutils.Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs)))
+    size = hi - lo
+    s = height / size.z if height else length / size.y if length else 1.0
+    obj.data.transform(mathutils.Matrix.Scale(s, 4) @ mathutils.Matrix.Translation(-mathutils.Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))))
+    obj.location = (0, 0, 0)
+    for slot in obj.material_slots:
+        nt = slot.material and slot.material.node_tree
+        if not nt:
+            continue
+        bsdf = next((n for n in nt.nodes if n.type == "BSDF_PRINCIPLED"), None)
+        if bsdf and not pbr:
+            for sock in ("Metallic", "Roughness", "Normal"):
+                for link in list(bsdf.inputs[sock].links):
+                    nt.links.remove(link)
+            bsdf.inputs["Metallic"].default_value = 0.0
+            bsdf.inputs["Roughness"].default_value = 0.8
+            for n in [n for n in nt.nodes if n.type in ("TEX_IMAGE", "NORMAL_MAP", "SEPARATE_COLOR") and not any(l.to_node == bsdf and l.to_socket.name == "Base Color" for out in n.outputs for l in out.links)]:
+                nt.nodes.remove(n)
+        for n in nt.nodes:
+            img = n.type == "TEX_IMAGE" and n.image
+            if not img:
+                continue
+            w, h = img.size
+            if max(w, h) > max_texture:
+                k = max_texture / max(w, h)
+                img.scale(max(1, round(w * k)), max(1, round(h * k)))
+    global _EXPORT_IMAGE_FORMAT
+    _EXPORT_IMAGE_FORMAT = "JPEG"  # generated textures carry no alpha; JPEG is ~5x smaller than PNG
+    print(f"[lab_bpy] imported {path} -> {name}: {triangle_count([obj])} tris, {tuple(round(v, 3) for v in obj.dimensions)} m")
+    return obj
+
+
 def tag_collider(obj, kind="trimesh", friction=0.6, restitution=0.2, sensor=False, collider_only=False):
     """Mark an object for the runtime's collidersFromGltf()."""
     obj["collider"] = kind
@@ -252,6 +322,8 @@ def export_glb(path):
         export_extras=True,
         export_cameras=False,
         export_lights=False,
+        export_image_format=_EXPORT_IMAGE_FORMAT,
+        **_EXPORT_OPTS,
     )
     print(f"[lab_bpy] exported {path} ({triangle_count()} tris)")
 

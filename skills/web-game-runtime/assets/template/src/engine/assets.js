@@ -4,6 +4,7 @@
 // Meshopt-compressed GLBs (release optimization) are decoded transparently.
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 const BASE = import.meta.env.BASE_URL;
 const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -70,11 +71,16 @@ export async function preloadModels(names, onProgress = () => {}) {
   );
 }
 
-/** A fresh clone of a (pre)loaded model's scene graph, shadows enabled. */
+/** A fresh clone of a (pre)loaded model's scene graph, shadows enabled. Rigged models are cloned with their own
+ * skeleton, and their clips are on `userData.animations` (play them with createAnimator from animation.js). */
 export async function loadModel(name) {
   if (!gltfs.has(name)) await preloadModels([name]);
   const gltf = await gltfs.get(name);
-  const scene = gltf.scene.clone(true);
+  let skinned = false;
+  gltf.scene.traverse((o) => (skinned ||= o.isSkinnedMesh));
+  // Object3D.clone() would share one skeleton between all copies (and bind them to the original's bones)
+  const scene = skinned ? SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
+  scene.userData.animations = gltf.animations;
   scene.traverse((o) => {
     if (o.isMesh) {
       o.castShadow = true;

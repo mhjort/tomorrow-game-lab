@@ -1,0 +1,23 @@
+{
+  "name": "drag-joystick",
+  "description": "Real pointer: a drag is a joystick around the press point (screen space, so the moving chase camera can't feed back). Up = drive, sideways = steer, a tiny drag does nothing, release stops input.",
+  "steps": [
+    { "step": 5 },
+    { "drag": { "from": [640, 500], "to": [646, 495] } },
+    { "assert": "state.phase === 'intro'", "label": "a click / tiny drag (dead zone) does not start driving" },
+    { "drag": { "from": [640, 500], "to": [640, 380], "hold": 90, "release": false } },
+    { "assert": "state.controls.throttle === 1 && state.controls.steer === 0 && state.plough.z < 23", "label": "drag up: full throttle, straight" },
+    { "step": 60 },
+    { "assert": "state.controls.throttle === 1 && Math.abs(state.plough.heading) < 0.01", "label": "held still: input does not drift as the camera follows" },
+    { "pointerUp": true },
+    { "step": 2 },
+    { "assert": "state.controls.throttle === 0 && state.controls.steer === 0", "label": "release: input stops" },
+    { "drag": { "from": [640, 500], "to": [600, 440], "hold": 30, "release": false } },
+    { "assert": "state.controls.steer < -0.5 && state.controls.throttle > 0.7", "label": "drag up-left: forward and left" },
+    { "eval": "window.__held = window.__game.getState().controls" },
+    { "step": 60 },
+    { "assert": "state.plough.heading < -0.5", "label": "the plough (and the chase camera) turned left a lot" },
+    { "eval": "JSON.stringify(window.__game.getState().controls) === JSON.stringify(window.__held) || (() => { throw new Error('controls drifted while the camera turned') })()" },
+    { "pointerUp": true }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "rules",
+  "description": "The rest of the rules and controls: windrows slow the plough more than fresh snow, a bump cuts speed to about a third, WASD drives like the arrows, C switches to the high camera, M mutes.",
+  "steps": [
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "until": "state.plough.z < 0", "max": 900 },
+    { "input": { "type": "teleport", "x": 1.9, "z": 25, "heading": 0 } },
+    { "step": 150 },
+    { "assert": "state.plough.load > 0.58 && state.plough.speed < 5.5", "label": "half the blade on the cleared lane, half in the windrow beside it: more load than half a blade of fresh snow (0.5)" },
+    { "input": { "type": "teleport", "x": 0, "z": 25, "heading": 0 } },
+    { "step": 90 },
+    { "input": { "type": "drive", "throttle": 1, "steer": 1 } },
+    { "until": "state.lastBump !== null", "max": 200 },
+    { "assert": "state.lastBump.before > 3 && Math.abs(state.lastBump.after / state.lastBump.before - 0.35) < 0.01", "label": "a bump cuts speed to about a third" },
+    { "input": { "type": "reset" } },
+    { "key": ["KeyW", "KeyD"], "steps": 60 },
+    { "assert": "state.phase === 'play' && state.plough.heading > 0.2 && state.plough.z < 25", "label": "W+D drives and turns right" },
+    { "key": "KeyC", "steps": 30 },
+    { "assert": "state.camera === 'high'", "label": "C: high camera" },
+    { "screenshot": "high-camera" },
+    { "key": "KeyC", "steps": 2 },
+    { "assert": "state.camera === 'chase'", "label": "C again: back to the chase camera" },
+    { "key": "KeyM", "steps": 2 },
+    { "assert": "state.muted === true && state.flash === 'Sound off'", "label": "M mutes" },
+    { "key": "KeyM", "steps": 2 },
+    { "assert": "state.muted === false", "label": "M again: sound on" }
+  ]
+}

@@ -4,6 +4,8 @@
   "steps": [
     { "step": 10 },
     { "assert": "Object.keys(state.sfx).length === 0", "label": "silent while aiming" },
+    { "assert": "state.music === 'course'", "label": "course music on from the start" },
+    { "assert": "state.musicTrack.loopStart === 0 && Math.abs(state.musicTrack.decoded - state.musicTrack.seconds) < 0.002", "label": "music decodes gapless: buffer is exactly the loop" },
     { "input": { "type": "shoot", "angle": 25, "power": 0.9 } },
     { "assert": "state.sfx.putt === 1", "label": "putt sound on the stroke" },
     { "until": "state.phase !== 'rolling'", "max": 1200 },

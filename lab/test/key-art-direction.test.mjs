@@ -16,6 +16,22 @@ test('extract-frames.sh: frames + contact sheet from the fixture video', { skip:
   assert.ok(existsSync(join(out, 'contact-sheet.png')));
 });
 
+test('crop-frame.sh: full-resolution crop of a video moment and of an image, upscaled', { skip: !has('ffmpeg') && 'ffmpeg missing' }, () => {
+  const dir = tmp('crop');
+  const size = (f) => run('ffprobe', ['-v', 'error', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', f]).stdout.trim().split(',').map(Number);
+  const [vw, vh] = size(VIDEO);
+  const v = run(join(SKILLS, 'key-art-direction/scripts/crop-frame.sh'), [VIDEO, join(dir, 'v.png'), '0.4', '0.4', '0.1', '0.1', '1.0']);
+  assert.equal(v.status, 0, v.stderr);
+  const [w, h] = size(join(dir, 'v.png'));
+  // a 10 % box is upscaled (at most 6x) towards a 1024 px long side, keeping its aspect
+  assert.ok(w > vw * 0.1 * 2 && Math.max(w, h) <= 1030, `crop ${w}x${h} of ${vw}x${vh}`);
+  assert.ok(Math.abs(w / h - vw / vh) < 0.05);
+  const i = run(join(SKILLS, 'key-art-direction/scripts/crop-frame.sh'), [IMAGE, join(dir, 'i.png'), '0.9', '0.9', '0.2', '0.2']);
+  assert.equal(i.status, 0, i.stderr); // a box past the edge is shifted inside
+  const bad = run(join(SKILLS, 'key-art-direction/scripts/crop-frame.sh'), [IMAGE, join(dir, 'b.png'), '40', '0', '0.2', '0.2']);
+  assert.notEqual(bad.status, 0);
+});
+
 test('palette.py: dominant colours of the fixture key art', { skip: !has('ffmpeg') && 'ffmpeg missing' }, () => {
   const out = join(tmp('palette'), 'palette.json');
   const r = run('python3', [join(SKILLS, 'key-art-direction/scripts/palette.py'), IMAGE, '-k', '5', '-o', out]);

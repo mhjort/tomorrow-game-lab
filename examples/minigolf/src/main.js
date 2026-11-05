@@ -14,6 +14,7 @@ import { createLoadingScreen, prewarm } from './engine/loading.js';
 const loading = createLoadingScreen({ title: 'Island Putt', image: 'images/splash.webp' });
 const audio = createAudio();
 const SFX = ['putt', 'rail', 'cup', 'water', 'holed']; // public/sfx/*.mp3, generated from design/media.json
+const MUSIC = 'course'; // public/music/course.mp3 (+ .json loop sidecar), a seamless loop from design/media.json
 
 const HOLES = [
   { model: 'hole1', name: 'First Putt', par: 2 },
@@ -35,6 +36,7 @@ const [{ renderer, backend }, physics, models] = await loading.parallel('Loading
   { weight: 0.3, run: () => createPhysics({ substeps: 4 }) },
   { weight: 0.3, run: (p) => loadModels([...HOLES.map((h) => h.model), 'ball'], p) },
   { weight: 0.05, run: (p) => audio.load(SFX, p) },
+  { weight: 0.05, run: (p) => audio.loadMusic([MUSIC], p) },
 ]);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(style.camera?.fov ?? 45, innerWidth / innerHeight, 0.05, 200);
@@ -386,6 +388,8 @@ function getState() {
     camera: g.camMode,
     scorecard: g.scorecard,
     sfx: { ...audio.counts }, // plays per sound (audible only outside ?test)
+    music: audio.music,
+    musicTrack: audio.trackInfo(MUSIC),
   };
 }
 
@@ -393,6 +397,7 @@ await loading.step('Compiling shaders', 0.3, (p) => prewarm(renderer, scene, cam
 loadHole(THREE.MathUtils.clamp((Number(params.get('hole')) || 1) - 1, 0, HOLES.length - 1)); // ?hole=N deep link for human review
 const loop = createLoop({ update, render, renderer });
 const hooks = installTestHooks({ backend, loop, getState, input: act });
+audio.playMusic(MUSIC, { volume: 0.7 }); // audible from the first click/key (browsers block autoplay)
 loop.start();
 loop.step(0);
 loading.done();

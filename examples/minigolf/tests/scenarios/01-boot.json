@@ -10,6 +10,6 @@
     { "screenshot": "aim" },
     { "input": { "type": "camera", "mode": "overview" } },
     { "step": 1 },
-    { "screenshot": "overview" }
+    { "screenshot": "overview", "compare": "design/reference/keyart.png" }
   ]
 }

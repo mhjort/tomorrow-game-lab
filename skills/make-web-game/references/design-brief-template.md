@@ -3,6 +3,19 @@
 ## Pitch
 One sentence: who you are, what you do, why it's fun.
 
+## Source video (video-first only; delete otherwise)
+`design/reference/gameplay.mp4` · model, seed, cost in `./assets/media.lock.json` · hero frame `design/reference/keyart.png` (= frame_NN)
+Gameplay read, one line each, citing frames:
+- **Avatar:** …
+- **Verb:** … → the world changes by …
+- **Camera rig:** …
+- **Goal & feedback:** …
+- **World pattern:** …
+- **Speeds:** … avatar lengths/s, one action takes … s
+Inventory: `design/reference/inventory.md` (one crop per element; the nouns above come from it).
+What the video shows that v1 cuts: …
+What v1 adds that the video doesn't show, and why: … (e.g. "a HUD clock: the fail state needs a timer"). Build gameplay needs from inventory items where possible.
+
 ## Core loop
 <verb> → <verb> → <feedback> → repeat. (e.g. aim → putt → watch roll → next shot)
 
@@ -31,6 +44,8 @@ One sentence: who you are, what you do, why it's fun.
 | event | sound (`public/sfx/<name>.mp3`) |
 |---|---|
 | e.g. jump | `jump`: short soft whoosh |
+
+Music (`public/music/<name>.mp3`, a seamless loop): one track per mood the game has (e.g. `play`, and maybe `menu`), with instruments, BPM and key from the art bible's mood: "`play`: unhurried marimba and brushed drums, 96 BPM, F major".
 
 Images: splash (loading-screen background, framed like the key art), icon (favicon). Anything else 2D: …
 

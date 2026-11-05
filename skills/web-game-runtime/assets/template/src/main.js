@@ -60,7 +60,6 @@ function getState() {
 }
 // ---------------------------------------------------------------- /GAME
 
-// Compile every material/pipeline (incl. shadows) before play. Pass ALL level roots, not just the first one.
 // Compile every material/pipeline (incl. shadows) before play: the scene plus every level/model root.
 await loading.step('Compiling shaders', 0.3, (p) => prewarm(renderer, scene, camera, [scene, ...Object.values(models)], p));
 

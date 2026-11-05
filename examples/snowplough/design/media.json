@@ -1,0 +1,140 @@
+{
+  "provider": "runware",
+  "videos": {
+    "gameplay": {
+      "model": "minimax:h3@max",
+      "prompt": "A tiny orange snowplough clears winding paths through a snowed-in toy village at dusk, pushing snow into soft heaps so little villagers can walk from their glowing houses to the lantern-lit square. Original cosy 3D driving game, low-poly flat-shaded toy look, warm window light against blue snow, soft long shadows, high three-quarter chase camera behind the plough. Real in-engine gameplay footage, one continuous take, no cuts, the player is clearly controlling the plough. Absolutely no text, no letters, no numbers, no HUD, no interface on screen.",
+      "width": 1344,
+      "height": 768,
+      "duration": 6,
+      "seed": 11
+    }
+  },
+  "images": {
+    "plough-ref": {
+      "prompt": "The small orange snowplough tractor from the reference images, alone, as a game asset concept: a boxy orange cab with large dark windows on all sides, red tail lights, a short black exhaust stack, big chunky black tyres, and in front a WIDE curved yellow-orange plough blade: a concave mouldboard, as tall as the front tyres, wider than the tractor, angled about 20 degrees to one side, low at ground level, mounted on two grey push arms. Three-quarter view from behind and above on the left, like a chase camera, whole vehicle visible, centred, filling most of the frame. Same low-poly flat-shaded toy style and colours as the reference. Plain pure white background, soft even light, no shadow on the ground, no snow, no other objects, no text.",
+      "reference": [
+        "design/reference/crops/plough.png",
+        "design/reference/keyart.png"
+      ],
+      "width": 1024,
+      "height": 1024,
+      "out": "png",
+      "dir": "design/reference/props",
+      "candidates": 2
+    },
+    "villager-ref": {
+      "prompt": "One of the little villagers from the reference image, alone, as a game character concept: a blocky toy figure built from boxes, like the figures in the reference: a big cube head with a flat block of brown hair on top, a plain boxy red coat with no details, square box arms with small peach blocky hands, straight grey box legs, dark box feet. No hat, no scarf, no buttons, no accessories. Standing in an A-pose: arms straight and held away from the body at about 45 degrees, legs slightly apart, feet flat, facing the camera, full body visible from head to feet, front view. Same matte flat-shaded toy style as the reference. Plain pure white background, soft even light, no shadow, no other objects, no text.",
+      "reference": [
+        "design/reference/crops/villagers.png",
+        "design/reference/crops/villager-front.png"
+      ],
+      "width": 1024,
+      "height": 1024,
+      "out": "png",
+      "dir": "design/reference/props",
+      "candidates": 2
+    },
+    "splash": {
+      "prompt": "Stylised low-poly 3D render of a small snowed-in toy village at dusk seen from high above a street: an orange snowplough in the foreground clearing a path, wooden houses with thick rounded snow caps on the roofs and warm glowing windows, snowy pine trees, lamp posts making warm pools of light on blue snow, a lantern-lit square with a small glowing fire pit in a ring of snowy stones in the distance, little blocky toy villagers in plain coats walking on the cleared street. Deep blue moonlit snow, warm gold window light, matte flat-shaded toy look, calm and cosy. Wide composition, no text, no logo, no interface. Match the palette and style of the reference image.",
+      "reference": [
+        "design/reference/keyart.png"
+      ],
+      "width": 1376,
+      "height": 768,
+      "out": "webp",
+      "candidates": 2
+    },
+    "icon": {
+      "prompt": "Game icon: a small chunky orange toy snowplough with a big yellow-orange blade, seen three-quarter from the front, pushing a little mound of white snow. Bold flat low-poly shapes, readable at 32 pixels, centred, filling most of the frame, transparent background, no text, no shadow outside the shapes.",
+      "transparent": true,
+      "width": 1024,
+      "height": 1024,
+      "resize": 64,
+      "out": "png",
+      "candidates": 2
+    },
+    "house-a-ref": {
+      "prompt": "A small wooden cabin from the reference image, alone, as a game asset concept: warm brown wooden walls with a darker red-brown timber frame, a steep gable roof under a very thick, soft, rounded layer of snow that overhangs the eaves and gables, a dark chimney with a cap of snow, warm glowing yellow windows with 2x2 panes in timber frames, a green door with a small green box beside it. A small dormer with one lit window on the front roof slope. Three-quarter front view from slightly above, the door side facing the camera, whole house visible, centred, filling most of the frame. Same low-poly flat-shaded toy style and colours as the reference. Plain pure white background, soft even light, no shadow on the ground, no ground snow, no fence, no people, no other objects, no text.",
+      "reference": [
+        "design/reference/crops/house.png",
+        "design/reference/keyart.png"
+      ],
+      "width": 1024,
+      "height": 1024,
+      "out": "png",
+      "dir": "design/reference/props",
+      "candidates": 2
+    },
+    "house-b-ref": {
+      "prompt": "A small wooden cabin from the reference image, alone, as a game asset concept: warm brown wooden walls with a darker red-brown timber frame, a steep gable roof under a very thick, soft, rounded layer of snow that overhangs the eaves and gables, a dark chimney with a cap of snow, warm glowing yellow windows with 2x2 panes in timber frames, a dark red door with a small green box beside it. A slightly smaller cabin with no dormer. Three-quarter front view from slightly above, the door side facing the camera, whole house visible, centred, filling most of the frame. Same low-poly flat-shaded toy style and colours as the reference. Plain pure white background, soft even light, no shadow on the ground, no ground snow, no fence, no people, no other objects, no text.",
+      "reference": [
+        "design/reference/crops/house.png",
+        "design/reference/keyart.png"
+      ],
+      "width": 1024,
+      "height": 1024,
+      "out": "png",
+      "dir": "design/reference/props",
+      "candidates": 2
+    }
+  },
+  "models": {
+    "plough": {
+      "image": "design/reference/props/plough-ref.png",
+      "faceLimit": 8000
+    },
+    "villager": {
+      "image": "design/reference/props/villager-ref.png",
+      "faceLimit": 6000
+    },
+    "house-a": {
+      "image": "design/reference/props/house-a-ref.png",
+      "faceLimit": 8000
+    },
+    "house-b": {
+      "image": "design/reference/props/house-b-ref.png",
+      "faceLimit": 8000
+    }
+  },
+  "music": {
+    "theme": {
+      "prompt": "cosy winter village video game background music, music box, pizzicato strings, soft sleigh bells, warm bass, playful and steady, instrumental loop",
+      "bpm": 112,
+      "key": "D major",
+      "bars": 8,
+      "candidates": 2
+    },
+    "festival": {
+      "prompt": "short joyful festive fanfare for a cosy winter village festival video game win screen, sleigh bells, glockenspiel, pizzicato strings and warm brass, bright and celebratory, instrumental",
+      "bpm": 120,
+      "key": "D major",
+      "loop": false,
+      "maxDuration": 6,
+      "duration": 30,
+      "candidates": 2
+    }
+  },
+  "sfx": {
+    "scrape": {
+      "prompt": "A metal snowplough blade scraping and pushing through deep fresh snow on a road: one short crunchy whoosh of packed snow, dry, close. No engine, no music, no voices, no ambience.",
+      "duration": 1,
+      "maxDuration": 0.6,
+      "gain": -3,
+      "candidates": 2
+    },
+    "bump": {
+      "prompt": "A small toy truck bumping softly into a snow-covered wooden fence: one muffled hollow thud with a puff of snow falling. The thud is the very first sound. No music, no voices.",
+      "duration": 1,
+      "maxDuration": 0.5,
+      "candidates": 2
+    },
+    "chime": {
+      "prompt": "A small brass hand bell rung once, bright and warm, short ring with a gentle decay, like a door bell on a cosy shop. The ring is the very first sound. No music, no voices, no ambience.",
+      "duration": 2,
+      "maxDuration": 1.2,
+      "gain": -4,
+      "candidates": 2
+    }
+  }
+}

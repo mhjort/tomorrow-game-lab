@@ -1,4 +1,32 @@
 {
+  "course": {
+    "bytes": 402771,
+    "candidates": [
+      ".lab/media/course/0.wav",
+      ".lab/media/course/1.wav"
+    ],
+    "cost": 0.0036,
+    "duration": 19.99,
+    "file": "public/music/course.mp3",
+    "hash": "13415ca3b7bfdb71",
+    "kind": "music",
+    "loop": [
+      7.27,
+      27.26
+    ],
+    "model": "runware:ace-step@v1.5-xl-turbo",
+    "picked": 0,
+    "post": "00323f2db11bc31f",
+    "provider": "runware",
+    "seam": 0.964,
+    "seed": 8,
+    "seeds": [
+      8,
+      7
+    ],
+    "tempo": 96.05,
+    "waveform": ".lab/media/course.png"
+  },
   "cup": {
     "bytes": 6304,
     "candidates": [

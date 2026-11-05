@@ -1,0 +1,20 @@
+{
+  "name": "walls",
+  "description": "Rule: houses, yards and the village edge are solid. Driving into a yard bumps (sound) and the plough never ends up inside a solid tile.",
+  "steps": [
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "step": 30 },
+    { "input": { "type": "drive", "throttle": 1, "steer": 1 } },
+    { "step": 240 },
+    { "assert": "state.bumps >= 1 && state.sfx.bump >= 1", "label": "hitting the yard fence bumps" },
+    { "assert": "Math.abs(state.plough.x) < 3 - 0.9", "label": "still inside the 6 m avenue (yards at |x| > 3)" },
+    { "input": { "type": "teleport", "x": 0, "z": -12, "heading": 0 } },
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "step": 120 },
+    { "assert": "Math.hypot(state.plough.x - state.square.x, state.plough.z - state.square.z) > 4.0", "label": "the fire pit's stone ring is solid" },
+    { "input": { "type": "teleport", "x": 0, "z": 23, "heading": 3.14159 } },
+    { "input": { "type": "drive", "throttle": 1, "steer": 0 } },
+    { "step": 120 },
+    { "assert": "state.bumps >= 2 && state.plough.z > 24.5 && state.plough.z < 27 - 0.9 + 0.01", "label": "driving south off the map: the edge stops it (bump), the body stays inside" }
+  ]
+}
