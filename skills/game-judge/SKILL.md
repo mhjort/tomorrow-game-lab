@@ -15,8 +15,8 @@ Requirements in the game project:
 
 ## 1. Playtest
 ```bash
-pnpm build && node <skill>/scripts/playtest.mjs            # serves dist/ with vite preview
-node <skill>/scripts/playtest.mjs --dev                        # or serve via vite dev (no build)
+pnpm build && node <skill>/scripts/playtest.ts            # serves dist/ with vite preview
+node <skill>/scripts/playtest.ts --dev                        # or serve via vite dev (no build)
 #   --backends webgpu,webgl2  --scenarios tests/scenarios  --perf 3  --require-webgpu  --parity-min 0.9  --headed
 ```
 Output goes to `.lab/runs/<ts>/`, with `.lab/runs/latest` linking to the newest run. It contains:
@@ -41,7 +41,7 @@ Exit codes: 0 = pass, 1 = a scenario failed or there was a console error, 2 = se
     { "drag": { "from": [640, 500], "to": [640, 650] } },  // real pointer drag (press, move, release)
     { "drag": { "from": [640, 500], "to": [600, 650], "hold": 60, "release": false } }, // keep it pressed for 60 ticks
     { "pointerUp": true },                                 // release a held drag
-    { "script": "bots/play-round.js", "args": {} },        // file: `async (game, args) => result`
+    { "script": "bots/play-round.ts", "args": {} },        // file: `async (game: GameHooks<State, Action>, args) => result`
     { "eval": "window.__game.getState().phase" }
   ] }
 ```
@@ -54,7 +54,7 @@ Exit codes: 0 = pass, 1 = a scenario failed or there was a console error, 2 = se
 ## 2. Judges (independent agents)
 First build the visual judge's evidence pack. It holds a same-height side-by-side image per `compare` pair, plus measured palettes and colour metrics, so the judge quotes numbers instead of guessing hex values:
 ```bash
-node <skill>/scripts/visual-pack.mjs .lab/runs/latest      # → <run>/visual-pack/pack.md (needs ffmpeg)
+node <skill>/scripts/visual-pack.ts .lab/runs/latest      # → <run>/visual-pack/pack.md (needs ffmpeg)
 ```
 Rubrics are in `judges/`:
 - `visual-fidelity.md`
@@ -81,7 +81,7 @@ Do **not** include your own opinion of the game or what you changed. Judges that
 
 ## 3. Aggregate
 ```bash
-node <skill>/scripts/aggregate.mjs .lab/runs/latest     # → verdict.md + verdict.json; exit 0 = PASS
+node <skill>/scripts/aggregate.ts .lab/runs/latest     # → verdict.md + verdict.json; exit 0 = PASS
 ```
 `verdict.md` contains:
 - a score table (a panel shows its median and every member's score) and the panel's per-criterion medians
@@ -94,7 +94,7 @@ When iterating:
 - **Measure before acting** on a colour or shape claim: sample the reference and the screenshot (the pack's palettes, or a crop of both). Never reverse an earlier fix on a judge's word alone. In the snowplough proof, "roofs read as cobalt plastic, should be white" was followed without measuring. The reference roof tops measured deep blue, and later judges complained the other way.
 - **Don't move the target.** Judges never read `art-bible.md` or notes, but the builder does. Write what you learn while iterating in `design/notes.md`, not into the art bible: a judge that read the art bible quoted the builder's fixes back as reference facts.
 - Keep the framing of `compare` shots fixed between rounds unless the fix is about the camera; otherwise rounds aren't comparable.
-- Re-run the playtest and `visual-pack.mjs`, then only the judges whose inputs changed (e.g. the visual panel only after a `style.json` tweak).
+- Re-run the playtest and `visual-pack.ts`, then only the judges whose inputs changed (e.g. the visual panel only after a `style.json` tweak).
 - Stop after 3 rounds and report what is left, with the scores of judges run on the final build (not an earlier one).
 
 ## Thresholds

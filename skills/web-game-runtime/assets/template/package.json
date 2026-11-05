@@ -4,11 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "typecheck": "tsc",
+    "build": "tsc && vite build",
     "preview": "vite preview --port 4173 --strictPort",
-    "assets": "node scripts/build-assets.mjs",
-    "media": "node scripts/generate-media.mjs",
-    "release": "node scripts/release.mjs"
+    "assets": "node scripts/build-assets.ts",
+    "media": "node scripts/generate-media.ts",
+    "release": "node scripts/release.ts"
   },
   "dependencies": {
     "@dimforge/rapier3d": "^0.21.0",
@@ -18,8 +19,11 @@
     "@gltf-transform/core": "^4.5.1",
     "@gltf-transform/extensions": "^4.5.1",
     "@gltf-transform/functions": "^4.5.1",
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
     "meshoptimizer": "^1.3.0",
     "playwright-core": "^1.64.1",
+    "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vite-plugin-wasm": "^3.6.0"
   },

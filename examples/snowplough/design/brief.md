@@ -42,7 +42,7 @@ Every control maps to `{ type: 'drive', throttle, steer }`, which `__game.input`
 - **Win:** all 21 villagers are at the square before 18:00 → the festival: the fire pit blazes up, everyone cheers, a jingle plays.
 - **Lose:** at 18:00 (150 s after you start driving) the festival starts without those not at the square; the card shows how many made it. R restarts.
 
-Collision is grid-based (`src/world.js`: every non-road tile is solid, the plough is two circles), so the game needs no physics engine; the template's Rapier module was removed.
+Collision is grid-based (`src/world.ts`: every non-road tile is solid, the plough is two circles), so the game needs no physics engine; the template's Rapier module was removed.
 
 ## Scope (in v1)
 One village, 21 houses (packed along the streets and round the square, like the video's), one plough, the clock, sounds and a music loop, keyboard and pointer controls, chase and high cameras.

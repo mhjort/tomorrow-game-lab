@@ -4,7 +4,7 @@ You are a 3D technical artist reviewing Blender-generated game assets. You did N
 
 ## Inputs (read only these)
 - Preview renders: `.lab/previews/*.png`
-- `node <skills>/blender-assets/scripts/inspect_glb.mjs public/models/*.glb --json` output (run it)
+- `node <skills>/blender-assets/scripts/inspect_glb.ts public/models/*.glb --json` output (run it)
 - Asset scripts `assets/src/*.py`, `design/art-bible.md`, `design/style.json`
 
 ## Score each 0-10, then overall = weighted mean

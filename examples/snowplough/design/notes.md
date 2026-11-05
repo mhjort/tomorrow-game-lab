@@ -18,7 +18,7 @@ Pixel samples (k-means palettes), reference vs game:
 ## Visual judge scores
 Eight single-judge rounds scored 6.3–6.75. The same build re-judged three times scored 6.4, 6.6, 6.4 and 6.8, so those rounds were mostly noise. The issues every judge raised (roof snow, blade, the edge behind the square) were the real signal.
 
-## Palette, lighting and camera pass (measured with `visual-pack.mjs`)
+## Palette, lighting and camera pass (measured with `visual-pack.ts`)
 Play view (boot-play vs frame_02), metrics before → after: mean luma 0.475 → 0.281 (ref 0.31), saturation 0.31 → 0.50 (0.70), cool share 0.14 → 0.43 (0.76), cool hue 221° → 220° (211°). Overview vs keyart: cool share 0.46 → 0.52 (0.51).
 - The biggest single gain was roof and tree snow: near-white with emission read as neutral grey and filled a quarter of the frame. A light blue albedo with no emission lets the moon make lit slopes pale and shaded slopes deep blue.
 - Pools now mostly add light (emission 0.55, albedo lerp 0.55) instead of mixing peach into blue, which turned the streets muddy under a dim moon. The bloom threshold rose to 0.35 so pools still don't bloom.
@@ -55,7 +55,7 @@ Play view (boot-play vs frame_02), metrics before → after: mean luma 0.475 →
 
 ## Generated houses (panel 5.2 before)
 - Six procedural-roof rounds never escaped "thin flat slabs". Two image-to-3D cabins (Tripo, from crops/house.png + keyart.png references, $0.75 including the concept images) have the pillowy snow, chimney caps, dormer, doors and green boxes the crop shows.
-- A generated texture has no emission: under the moon its windows read dull green and the walls near-black. `src/houseGlow.js` builds an emissive map from the texture (window texels → palette amber, the rest at 0.3).
+- A generated texture has no emission: under the moon its windows read dull green and the walls near-black. `src/houseGlow.ts` builds an emissive map from the texture (window texels → palette amber, the rest at 0.3).
 - The village went from 19.7k to 105k triangles: 2.2 ms per frame, 60 fps. No reason to decimate; that is the optimize-web-game pass's call, with the user.
 
 ## Option A: plough, exposure, pools (panel 5.6 before)

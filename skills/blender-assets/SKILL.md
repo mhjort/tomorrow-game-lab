@@ -13,7 +13,7 @@ Files in this skill's `scripts/`:
 - `lab_bpy.py`: helper module. Copy it into `assets/src/` and don't edit the copy, so it can be refreshed later.
 - `lab_rig.py`: auto-rigging and procedural animation for characters (needs `lab_bpy`). Copy it next to `lab_bpy.py` when a game has characters.
 - `run_blender.sh <script.py> [args]`: runs a single script headless (`blender -b --factory-startup --python-exit-code 1`).
-- `inspect_glb.mjs <glb...>`: triangle count, size, materials and colliders. Budgets are opt-in flags (`--max-tris`, `--max-kb`) for the `optimize-web-game` pass. No dependencies.
+- `inspect_glb.ts <glb...>`: triangle count, size, materials and colliders. Budgets are opt-in flags (`--max-tris`, `--max-kb`) for the `optimize-web-game` pass. No dependencies.
 
 The web-game-runtime template already includes `pnpm assets` (its build-assets script):
 - It builds every `assets/src/*.py` except files starting with `_` or `lab_`, which are treated as helpers.
@@ -66,7 +66,7 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
 - `rig_biped` measures the hips, knees, ankles, toes, shoulders, elbows, wrists, hands and neck from the mesh. It builds the armature (`root`, `hips`, `chest`, `head`, `upper_arm/forearm/hand.L/R`, `thigh/shin/foot.L/R`; `.L` = the character's left = +X) and skins each vertex to its nearest bones. Bones never pull across the centre line, and it works on the non-manifold meshes that image-to-3D produces. Everything above the neck and inside the head's width is bound rigidly to `head`: on a big boxy head, the lower corners are nearer the shoulders than the head bone, and lifting the arms dragged the face into a V. The torso width comes from the gaps between face spans, so A-pose hands hanging beside the hem don't count as torso.
 - **Look at the pose sheet**: one row per clip (idle, walk, run, jump), 4 frames each. Knees and elbows must bend at the joints, and nothing may tear or stretch across the body. If a joint is off, fix that landmark: `R.rig_biped(body, landmarks={"hip.L": (0.08, 0, 0.3), "hip.R": (-0.08, 0, 0.3)})`.
 - `add_biped_clips(rig, clips=(...), stride_deg=28)` keys every bone in every clip, so clips never inherit each other's pose. The game moves the character; clips only bob in place.
-- In the game: `createAnimator(model)` from the runtime's `animation.js`, `play('walk')` from `update(dt)`, and `update(dt)` in the fixed step (see `web-game-runtime`).
+- In the game: `createAnimator(model)` from the runtime's `animation.ts`, `play('walk')` from `update(dt)`, and `update(dt)` in the fixed step (see `web-game-runtime`).
 
 ## Conventions (the runtime depends on these)
 - **Units:** meters. Blender is +Z up; the glTF export is +Y up, so Blender `(x, y, z)` becomes three.js `(x, z, -y)`. Put the origin where the game will place the object (usually bottom-center).
@@ -81,13 +81,13 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
 - **Markers:** add named empties such as `Spawn`, `Tee`, `Goal` or `Checkpoint1` instead of hard-coding positions in game code.
 - **Determinism:** seed all randomness with `random.Random(seed)`. Running the same script twice must produce the same file.
 - **Style:** never hard-code colours. Use `L.color("<palette role>", style)`, so changing `style.json` restyles everything.
-- **Fidelity first, no fixed budgets:** while building to a reference, model what the reference shows (rounded snow, real silhouettes) and don't trim it to fit a triangle count. Avoid only waste: subdivision or hidden faces that add nothing visible. `node <skill>/scripts/inspect_glb.mjs public/models/*.glb` reports counts and sizes; budgets are opt-in flags (`--max-tris`, `--max-kb`) used by the `optimize-web-game` pass, which asks the user before any compromise that changes the look. In the snowplough proof a 20k-per-file cap held the roofs to flat chamfered slabs through six judge rounds.
+- **Fidelity first, no fixed budgets:** while building to a reference, model what the reference shows (rounded snow, real silhouettes) and don't trim it to fit a triangle count. Avoid only waste: subdivision or hidden faces that add nothing visible. `node <skill>/scripts/inspect_glb.ts public/models/*.glb` reports counts and sizes; budgets are opt-in flags (`--max-tris`, `--max-kb`) used by the `optimize-web-game` pass, which asks the user before any compromise that changes the look. In the snowplough proof a 20k-per-file cap held the roofs to flat chamfered slabs through six judge rounds.
 - **One asset per script.** Shared building code goes in `assets/src/_<name>.py`, which the build skips.
 
 ## Review loop (always)
 1. `pnpm assets <name>`
 2. **Look at `.lab/previews/<name>.png`** and compare it with the key art and the art bible. Fix the silhouette, proportions and colours before writing any game code that uses the asset.
-3. Run `inspect_glb.mjs` and confirm the colliders list contains every gameplay surface.
+3. Run `inspect_glb.ts` and confirm the colliders list contains every gameplay surface.
 
 ## Gotchas
 - glTF imports use quaternion rotation, so setting `rotation_euler` on an imported object does nothing. And `bound_box` stays stale after `obj.data.transform()` until the depsgraph updates. `import_glb` works on mesh data and vertex bounds for these reasons.

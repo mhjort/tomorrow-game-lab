@@ -4,14 +4,25 @@
   "license": "Apache-2.0",
   "type": "module",
   "scripts": {
-    "validate": "node lab/validate-skills.mjs",
-    "test": "node lab/validate-skills.mjs && node --test lab/test/*.test.mjs",
-    "test:golden": "pnpm release:minigolf && node skills/game-judge/scripts/playtest.mjs --project examples/minigolf",
+    "typecheck": "tsc -p . && pnpm -r run typecheck",
+    "validate": "node lab/validate-skills.ts",
+    "test": "pnpm typecheck && node lab/validate-skills.ts && node --test lab/test/*.test.ts",
+    "test:golden": "pnpm release:minigolf && node skills/game-judge/scripts/playtest.ts --project examples/minigolf",
     "keyart": "skills/blender-assets/scripts/run_blender.sh lab/fixtures/keyart/build_keyart.py",
-    "eval": "node lab/eval/run-eval.mjs",
+    "eval": "node lab/eval/run-eval.ts",
     "release:minigolf": "pnpm --filter minigolf run release",
     "release:snowplough": "pnpm --filter snowplough run release",
-    "site": "pnpm release:minigolf && pnpm release:snowplough && node lab/build-site.mjs"
+    "site": "pnpm release:minigolf && pnpm release:snowplough && node lab/build-site.ts"
   },
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.16.1",
+  "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "@types/node": "^26.6.6",
+    "@types/three": "^0.187.0",
+    "meshoptimizer": "^1.3.0",
+    "playwright-core": "^1.64.1",
+    "typescript": "^7.0.2"
+  }
 }

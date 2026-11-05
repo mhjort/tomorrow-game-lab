@@ -3,7 +3,7 @@
   "description": "A waypoint putting bot plays all three holes and reaches the scorecard within a sane number of strokes.",
   "steps": [
     { "step": 10 },
-    { "script": "bots/play-round.js", "args": { "maxShots": 40 } },
+    { "script": "bots/play-round.ts", "args": { "maxShots": 40 } },
     { "assert": "state.phase === 'complete'", "label": "round completed by bot" },
     { "assert": "state.scorecard.length === 3 && state.scorecard.every(r => r.strokes >= 1 && r.strokes <= 6)", "label": "every hole within 6 strokes" },
     { "screenshot": "scorecard" }

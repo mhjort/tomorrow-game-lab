@@ -20,7 +20,7 @@ Entry point of the tomorrow-game-lab skills. It orchestrates these sibling skill
 If a sibling skill is not installed, tell the user: `pnpm dlx skills add <repo> --skill <name>`.
 
 ## Requirements
-Node ≥ 24 (26 LTS preferred), Google Chrome, Blender ≥ 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. Prefer the latest stable release of every tool and library. Check them first with `node <skill>/scripts/check-env.mjs`, not by listing system folders. Report anything missing before starting. `RUNWARE_API_KEY` is optional: without it, skip generated media (no sound, no music, no splash art, no generated video or 3D models).
+Node ≥ 24 (26 LTS preferred), Google Chrome, Blender ≥ 5.2 LTS (`blender` on PATH or `BLENDER=`), ffmpeg. Prefer the latest stable release of every tool and library. Check them first with `node <skill>/scripts/check-env.ts`, not by listing system folders. Report anything missing before starting. `RUNWARE_API_KEY` is optional: without it, skip generated media (no sound, no music, no splash art, no generated video or 3D models).
 
 ## Project layout (every skill assumes this)
 ```
@@ -31,7 +31,7 @@ assets/media.lock.json  what generate-media produced (model, seed, cost) — com
 public/models/     built GLBs (generated — rebuild with `pnpm assets`)
 public/images/, public/sfx/, public/music/  generated 2D art, sound effects, music loops (`pnpm media`) — committed
 src/               engine/ (from template) + game code
-tests/scenarios/   playtest scenarios (*.json) + bots/*.js
+tests/scenarios/   playtest scenarios (*.json) + bots/*.ts
 .lab/              previews/, runs/<timestamp>/ (generated, gitignored)
 ```
 
@@ -48,12 +48,13 @@ tests/scenarios/   playtest scenarios (*.json) + bots/*.js
 3. **Scaffold** — `web-game-runtime`: copy the template, `pnpm install`, run the boot playtest before writing game code. A green boot on both backends is the baseline.
 4. **Media** (if `RUNWARE_API_KEY` is set): `generate-media`. Write `design/media.json` with one sound per gameplay event in the brief, a music loop per mood in the brief, plus a splash image and an icon. Add a 3D model (reference image → `models` entry) for each character, vehicle or organic prop that a Blender script would turn into a blocky stand-in. Run `pnpm media`, review the candidates (images by eye, sounds by waveform, music by seam score, models by preview sheet), and pick.
    **Assets** — `blender-assets`: one script per asset, styled from `design/style.json`, colliders tagged for physics. Generated models get a short script too (`L.import_glb`: facing, real size), and characters are rigged and animated there (`lab_rig`). Build with `pnpm assets` (after `pnpm media`), then look at every preview PNG yourself before using an asset.
-5. **Implement** — replace the `GAME` section of `src/main.js`. Rules:
+5. **Implement** — replace the `GAME` section of `src/main.ts`. Rules:
    - All gameplay goes through `update(dt)` (fixed step). Rendering only reads state.
    - Every player action is a high-level action object, and `__game.input(action)` accepts the same objects, so tests exercise real game logic.
    - Use `createRng()` instead of `Math.random()`. No wall-clock time in gameplay.
+   - Everything is **strict TypeScript** (`.ts`, never `.js`): type `State` and `Action` (a discriminated union) in `main.ts`, no `any`, no `@ts-ignore`. Run `pnpm typecheck` after every change; fix the type, don't cast it away.
    - Controls follow the controls reference in the `web-game-runtime` skill: a drag is read in the frame captured at its start, the camera holds still during a gesture, and there is a dead zone and a cancel.
-6. **Scenarios** — write one `tests/scenarios/*.json` per brief rule, plus a bot (`tests/scenarios/bots/*.js`) that plays the whole game to its end state. At least one scenario per control scheme must drive **real** input (`drag`/`key` steps held across ticks) and assert that the result is right and doesn't drift. `input()` actions bypass the controls entirely. Include `screenshot` steps: an *overview* shot framed like the key art, plus the main play view.
+6. **Scenarios** — write one `tests/scenarios/*.json` per brief rule, plus a bot (`tests/scenarios/bots/*.ts`) that plays the whole game to its end state. At least one scenario per control scheme must drive **real** input (`drag`/`key` steps held across ticks) and assert that the result is right and doesn't drift. `input()` actions bypass the controls entirely. Include `screenshot` steps: an *overview* shot framed like the key art, plus the main play view.
 7. **Playtest** — `game-judge` playtest. Fix every failing assertion and console error before judging. Judges are expensive; a red playtest is cheap.
 8. **Judge** — build the `game-judge` visual pack, run the judges in parallel as independent subagents (visual fidelity as a panel of three), then aggregate.
 9. **Iterate** — apply `verdict.md` fixes in order (blockers → majors), rebuild assets if scripts changed, then re-run steps 7–8. Stop when the verdict is PASS or after **3 rounds**. The last round judges the final build: never report a score from before your last changes. If you stop below the bar, say so, list the open issues by severity, and offer to continue. A `major` issue raised in two rounds in a row is never "out of scope".
@@ -74,7 +75,7 @@ Whenever you finish a change the user can see or feel (a new game, a fix, a tuni
 Leave the server running and say so. This is not the full taste review (step 10). Don't add a list of questions to every hand-off. Skip the link only in unattended runs, or when the change has no visible effect (docs, CI).
 
 ## Definition of done
-- `pnpm build` succeeds, and the playtest passes on **webgpu and webgl2** with zero console errors.
+- `pnpm typecheck` is clean and `pnpm build` succeeds (it type-checks first), and the playtest passes on **webgpu and webgl2** with zero console errors.
 - The game boots through a loading screen with a progress bar. All downloads run in one parallel phase, then every level/material is prewarmed before play.
 - `pnpm release` succeeds (sizes are reported; budgets for a target device are the `optimize-web-game` pass).
 - Every judge passes (see `game-judge`). Remaining minor issues are listed in your final message.

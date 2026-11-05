@@ -37,7 +37,7 @@ Splash art, icons, sound effects, music, gameplay videos and generated 3D models
    export RUNWARE_API_KEY=...   # e.g. in ~/.zshrc; never commit it
    ```
 
-The `make-web-game` environment check (`scripts/check-env.mjs`) reports whether the key is set, without printing it.
+The `make-web-game` environment check (`scripts/check-env.ts`) reports whether the key is set, without printing it.
 
 ## Skills
 
@@ -48,20 +48,20 @@ The `make-web-game` environment check (`scripts/check-env.mjs`) reports whether 
 | [`web-game-runtime`](skills/web-game-runtime/SKILL.md) | Vite + three.js WebGPU/WebGL2 template, fixed-step loop, Rapier wrapper, skeletal animation, `window.__game` test hooks |
 | [`blender-assets`](skills/blender-assets/SKILL.md) | `lab_bpy` helper, Blender → GLB with collider tags, preview renders, GLB inspector, `import_glb` for generated models, `lab_rig` auto-rigging + animation clips |
 | [`generate-media`](skills/generate-media/SKILL.md) | `design/media.json` → Runware (Nano Banana 2.1 / GPT-Image-2.5 images, Mirelo SFX, ACE-Step music, MiniMax H3 Max video, Tripo image-to-3D) → candidate review (contact sheets, waveforms, 3D preview sheets) → trimmed, normalised `public/sfx/*.mp3`, seamless `public/music/*.mp3` loops, `public/images/*`, reference clips in `design/reference/` and raw GLBs in `assets/generated/` with a cost/seed lock file |
-| [`optimize-web-game`](skills/optimize-web-game/SKILL.md) | performance pass for a target device after the game matches its reference: measure, free wins first, ask before any visible compromise; `perf-compare.mjs` before/after report |
+| [`optimize-web-game`](skills/optimize-web-game/SKILL.md) | performance pass for a target device after the game matches its reference: measure, free wins first, ask before any visible compromise; `perf-compare.ts` before/after report |
 | [`publish-web-game`](skills/publish-web-game/SKILL.md) | `pnpm release` (minify, code-split, meshopt GLBs, gzip budgets) → GitHub Pages workflow → live-URL playtest |
 | [`game-judge`](skills/game-judge/SKILL.md) | Playwright playtest (scenarios, bots, screenshots, perf, SSIM backend parity) + 4 judge rubrics + aggregator |
 
 ## How verification works
 
 ```
-tests/scenarios/*.json ──► playtest.mjs ──► .lab/runs/<ts>/report.json + screenshots (webgpu, webgl2)
+tests/scenarios/*.json ──► playtest.ts ──► .lab/runs/<ts>/report.json + screenshots (webgpu, webgl2)
                                                    │
                      ┌──────────────┬──────────────┼──────────────┐
                 visual-fidelity  gameplay      technical     asset-quality      (parallel subagents,
                  vs key art      vs brief      errors/perf    previews + GLBs    each sees only its inputs)
                      └──────────────┴──────┬───────┴──────────────┘
-                                     aggregate.mjs ──► verdict.md (PASS / fix list) ──► iterate (≤3 rounds)
+                                     aggregate.ts ──► verdict.md (PASS / fix list) ──► iterate (≤3 rounds)
 ```
 
 The game exposes `window.__game` with these members:
@@ -78,18 +78,19 @@ examples/minigolf/      golden test game, built by following the skills (3 holes
 examples/snowplough/    video-first proof: "Little Plough", built from a generated gameplay video (generated
                         plough + rigged villager models, scripted village, deformable snow, music; no physics engine)
 lab/fixtures/keyart/    original key art fixtures (rendered by Blender: minigolf.png + minigolf.mp4)
-lab/validate-skills.mjs skill format + conventions + template/example drift check
+lab/validate-skills.ts  skill format + conventions + template/example drift check
 lab/test/               node:test suites for every script (frames, palette, Blender→GLB, playtest, aggregator)
 site/                   GitHub Pages landing page (deployed by .github/workflows/pages.yml)
-lab/build-site.mjs      assembles _site/: site/ + each example's release build at /<name>/
-lab/eval/run-eval.mjs   end-to-end agent eval (fresh workspace → install skills → claude -p → independent judges)
-lab/eval/permissions.mjs scoped allowlists for the unattended eval agents (no permission bypass)
+lab/build-site.ts       assembles _site/: site/ + each example's release build at /<name>/
+lab/eval/run-eval.ts    end-to-end agent eval (fresh workspace → install skills → claude -p → independent judges)
+lab/eval/permissions.ts scoped allowlists for the unattended eval agents (no permission bypass)
 ```
 
 | command | what |
 |---|---|
 | `pnpm install` | installs the minigolf workspace (three, rapier, vite, playwright-core) |
-| `pnpm test` | validator + all script tests, including both-backend playtest of minigolf (~15 s) |
+| `pnpm typecheck` | strict TypeScript check of `lab/`, skill scripts and both examples (`tsc`, no emit) |
+| `pnpm test` | typecheck + validator + all script tests, including both-backend playtest of minigolf (~15 s) |
 | `pnpm test:golden` | build minigolf and run its playtest (writes `examples/minigolf/.lab/runs/latest`) |
 | `pnpm keyart` | re-render the key-art fixtures in Blender |
 | `pnpm release:minigolf` | optimized release build of minigolf (`examples/minigolf/dist`) |

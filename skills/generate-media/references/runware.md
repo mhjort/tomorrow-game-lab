@@ -3,7 +3,7 @@
 ## API
 - `POST https://api.runware.ai/v1` with headers `Authorization: Bearer $RUNWARE_API_KEY` and `Content-Type: application/json`. The body is a **JSON array** of tasks, and the response is `{ data: [...], errors?: [...] }`.
 - Every task needs `taskType` and a `taskUUID` (UUID v4). Results echo the `taskUUID`.
-- Delivery: sync by default. A sync request that runs past 120 s continues as async; poll it with `{ "taskType": "getResponse", "taskUUID": "…" }`. `generate-media.mjs` does this automatically.
+- Delivery: sync by default. A sync request that runs past 120 s continues as async; poll it with `{ "taskType": "getResponse", "taskUUID": "…" }`. `generate-media.ts` does this automatically.
 - `includeCost: true` adds `cost` (USD) to each result. The lock file stores it.
 - Find models with `{ "taskType": "modelSearch", "taskUUID": "…", "search": "sfx", "category": "audio" | "checkpoint", "source": "official", "limit": 50 }`. It is free. Each result has `air`, `name`, and `capabilities` (`io:text-to-image`, `feat:transparency`, `io:text-to-audio`, …).
 

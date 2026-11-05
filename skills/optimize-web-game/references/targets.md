@@ -17,6 +17,6 @@ Agree one class with the user (step 1). These are starting points, not laws: the
 How to read each one:
 - Frame times, boot, download: `game-judge` playtest `report.json` (`backends.*.perf`, `scenarios[].bootMs`, `network.requests`).
 - Draw calls and triangles on screen: `renderer.info.render` in the game (expose it in `__game.getState()` behind `?test` if you need it in a scenario).
-- Sizes: `pnpm release` → `dist/release-report.json`. Per-GLB counts: `inspect_glb.mjs --max-tris N --max-kb N` with the agreed numbers.
+- Sizes: `pnpm release` → `dist/release-report.json`. Per-GLB counts: `inspect_glb.ts --max-tris N --max-kb N` with the agreed numbers.
 
 Headless Chrome on the dev machine is not the target device. Use it to compare before and after; when the user cares about a real phone, ask them to try the build on one (`publish-web-game` gives a URL).

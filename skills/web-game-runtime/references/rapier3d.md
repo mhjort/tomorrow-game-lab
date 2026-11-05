@@ -1,7 +1,7 @@
-# Rapier 3D cheat sheet (`@dimforge/rapier3d` 0.21, loaded lazily by engine/physics.js)
+# Rapier 3D cheat sheet (`@dimforge/rapier3d` 0.21, loaded lazily by engine/physics.ts)
 
 ```js
-const physics = await createPhysics({ substeps: 1 });      // engine/physics.js
+const physics = await createPhysics({ substeps: 1 });      // engine/physics.ts
 const { RAPIER, world } = physics;
 const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(x, y, z).setCcdEnabled(true));
 const col = world.createCollider(RAPIER.ColliderDesc.ball(r).setDensity(1000).setFriction(0.6).setRestitution(0.3), body);

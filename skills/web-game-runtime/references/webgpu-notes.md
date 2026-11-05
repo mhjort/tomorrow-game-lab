@@ -13,7 +13,7 @@
 ## Prewarm everything behind a loading screen (required)
 Shaders and pipelines compile lazily on first use, which causes hitches when a level, effect or material first appears.
 - `renderer.compileAsync(scene, camera)` only compiles what the camera can *see*. Objects outside the frustum, or not yet in the scene, are skipped.
-- `prewarm()` (engine/loading.js) handles this. For every root it turns frustum culling off, runs `compileAsync`, and renders warm-up frames so shadow pipelines compile too. Run it inside the loading screen, after lights exist, and pass **all** level roots plus anything spawned later.
+- `prewarm()` (engine/loading.ts) handles this. For every root it turns frustum culling off, runs `compileAsync`, and renders warm-up frames so shadow pipelines compile too. Run it inside the loading screen, after lights exist, and pass **all** level roots plus anything spawned later.
 
 ## Shadows refresh once per *animation frame*, not per render() (test-mode gotcha)
 `ShadowNode` renders a light's shadow map at most once per camera per node `frameId`, even when `shadow.needsUpdate = true`. `frameId` only advances on the renderer's internal requestAnimationFrame tick. Real play renders once per animation frame, so it's fine. Test-mode `step()` renders synchronously, possibly twice within one animation frame. A render right after a level swap then reuses the **previous level's shadow map**: ghost shadows on WebGPU and WebGL2, intermittent and timing-dependent. Parity SSIM can't catch it when both backends are stale.

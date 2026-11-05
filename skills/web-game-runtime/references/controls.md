@@ -9,7 +9,7 @@
 3. **A held-still input gives a held-still result.** Nothing should drift, accumulate or oscillate while the player's hand isn't moving. Integrate over time only for inputs that are meant to be rates (held arrow key = turn speed).
 4. **Dead zone + cancel.** Ignore tiny drags (about 16 px) so a click or a shaky press doesn't aim or fire. Dragging back to the start cancels the action, and the UI should show it (power bar back to 0).
 5. **Bounded sensitivity.** Give every input-to-output mapping an explicit, sane range: degrees per pixel, degrees per second, full power at about 1/3 of the screen. Clamp everything. Keys and pointer should reach the same set of outcomes.
-6. **Gestures always end.** Handle `pointercancel` and lost capture (the template's `input.js` does). A stuck "dragging" state freezes the controls.
+6. **Gestures always end.** Handle `pointercancel` and lost capture (the template's `input.ts` does). A stuck "dragging" state freezes the controls.
 7. **One owner per frame.** If two inputs can drive the same value (keys and drag), pick one while a gesture is active. Don't let them fight.
 8. **Camera never fights the player.** Follow cameras ease (lerp about 0.05–0.15 per tick), never rotate faster than the player could have caused, and never orbit on their own while the player is idle.
 

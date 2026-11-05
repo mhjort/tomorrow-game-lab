@@ -1,5 +1,5 @@
 # Publish the lab's example games to GitHub Pages: https://mhjort.github.io/tomorrow-game-lab/
-# Landing page from site/, each example's release build at /<name>/ (see lab/build-site.mjs).
+# Landing page from site/, each example's release build at /<name>/ (see lab/build-site.ts).
 # Based on skills/publish-web-game/assets/pages.yml (multi-game variant).
 name: Deploy examples to GitHub Pages
 
@@ -32,7 +32,7 @@ jobs:
       - name: Release build (minify, optimize GLBs, budgets)
         run: pnpm release:minigolf && pnpm release:snowplough
       - name: Assemble site
-        run: node lab/build-site.mjs
+        run: node lab/build-site.ts
       - uses: actions/upload-pages-artifact@v5
         with:
           path: _site

@@ -8,7 +8,7 @@ description: Generate 2D images (splash/key art, icons, sprites, UI, textures), 
 This skill covers what Blender scripts are bad at: painted 2D art, icons, **sound**, **music loops**, **gameplay videos** (fake "in-engine footage" that becomes the spec a game is built from), and **3D models of characters, vehicles and organic props** (image → GLB). Level geometry, colliders and simple geometric props stay as Blender scripts (`blender-assets`), and every generated GLB still goes through one (`L.import_glb`). It needs `RUNWARE_API_KEY` in the environment. If the key is missing, tell the user and skip this step; the game must still work without media.
 
 Files in this skill:
-- `scripts/generate-media.mjs`: the generator. No dependencies; uses ffmpeg/ffprobe and Blender when present.
+- `scripts/generate-media.ts`: the generator. No dependencies; uses ffmpeg/ffprobe and Blender when present.
 - `scripts/preview_glb.py`: Blender script that renders a generated GLB's preview sheet (run automatically). The web-game-runtime template ships an identical copy behind `pnpm media`.
 - `references/runware.md`: API fields, model list with prices, limits, and prompting tips. Read it before changing models.
 
@@ -52,7 +52,7 @@ pnpm media --pick splash=1 --pick putt=0
 - Loudness balance and annoyance are human judgements. Include a sound question in `make-web-game`'s human review. Don't ask separately.
 
 ## 3. Use it in the game (web-game-runtime engine)
-- **SFX:** call `createAudio()` (in `src/engine/audio.js`) and load with `audio.load(names, p)` **inside the one `loading.parallel` phase**. Play with `audio.play(name, { volume, rate })` from gameplay events in `update()`. Expose `sfx: { ...audio.counts }` in `getState()` and write a scenario that asserts each cue fires (sounds are silent in `?test`, but they are still counted).
+- **SFX:** call `createAudio()` (in `src/engine/audio.ts`) and load with `audio.load(names, p)` **inside the one `loading.parallel` phase**. Play with `audio.play(name, { volume, rate })` from gameplay events in `update()`. Expose `sfx: { ...audio.counts }` in `getState()` and write a scenario that asserts each cue fires (sounds are silent in `?test`, but they are still counted).
 - **Music:** `audio.loadMusic(['course'], p)` in the same `loading.parallel` phase, then `audio.playMusic('course')` once at boot or on a phase change (it starts on the first click or key; browsers block autoplay; switching tracks cross-fades). Put `music: audio.music` in `getState()` and assert it in a scenario. The mute key mutes music too.
 - **Splash:** `createLoadingScreen({ title, image: 'images/splash.webp' })`. **Favicon:** `<link rel="icon" type="image/png" href="/images/icon.png">` in `index.html`.
 - `pnpm release` preloads `sfx/*` and `images/*` and lists them in the asset manifest. Keep each image ≤ 150 KB (webp at about 1376 px is roughly 50 KB) each sfx ≤ 30 KB and each music loop ≤ 500 KB (a 20 s loop is about 400 KB).
@@ -82,7 +82,7 @@ Commit `design/media.json`, `./assets/media.lock.json`, `public/images/`, `publi
 - Mirelo is weak at tonal or musical cues: a "two-note chime" came back as a 60 ms click. Ask for physical sources instead ("a small brass bell struck once").
 - Mirelo is billed per started second (about $0.01/s, observed), not the $0.00025/s on its docs page. Use `duration: 1` for one-shots and pay for candidates instead of length.
 - Generated music runs off the asked tempo: ACE-Step played 112 BPM as 114 and 115, 96 as 96.05. A loop cut at the asked tempo drifts by a beat and stutters at the seam, so the script measures the real tempo first and cuts whole bars of it. ACE-Step costs about $0.004 per 60 s track (billed; its docs say $0.0009) and takes ~10 s, so ask for 2 candidates: seam scores of one prompt ranged from 0.47 to 0.96.
-- MP3 adds encoder padding, which breaks loops. The script encodes with LAME, whose header lets Chrome, Firefox and ffmpeg decode the exact loop (asserted in the minigolf playtest); `audio.js` also skips leading padding using the sidecar's sample count. Don't re-encode `public/music/*.mp3` with other tools.
+- MP3 adds encoder padding, which breaks loops. The script encodes with LAME, whose header lets Chrome, Firefox and ffmpeg decode the exact loop (asserted in the minigolf playtest); `audio.ts` also skips leading padding using the sidecar's sample count. Don't re-encode `public/music/*.mp3` with other tools.
 - ffmpeg usually has **no webp encoder**. So `resize` only works for png/jpg, and webp comes straight from the provider at the requested size.
 - `numberResults` > 1 gives each result a different seed. The lock records the picked seed.
 - The "in-engine gameplay footage" clause matters. Without it, models make cinematics: cuts, a camera that drifts in, a hero pose and nothing to play. With it, H3 Max held a chase camera and a consistent village, and showed the plough clearing a trail that villagers then walked on.

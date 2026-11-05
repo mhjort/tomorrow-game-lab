@@ -10,7 +10,7 @@ These are targets for the `optimize-web-game` pass, after the game matches its r
 | triangles on screen | < 500k | `renderer.info.render.triangles` |
 | boot to first frame | < 3 s on localhost | playtest `bootMs` |
 | JS bundle (gz) | < 1.5 MB (three + rapier ≈ 1 MB) | `npm run build` output |
-| GLB per asset | < 2 MB, total < 20 MB | `inspect_glb.mjs` |
+| GLB per asset | < 2 MB, total < 20 MB | `inspect_glb.ts` |
 | physics bodies | < 500 dynamic | — |
 
 ## Cheap wins

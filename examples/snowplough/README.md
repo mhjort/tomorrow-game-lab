@@ -4,9 +4,9 @@ Clear the snowed-in streets of a toy village so every villager can walk from the
 
 The lab's **video-first** proof. The art bible, camera, avatar and core verb come from a generated gameplay video (`design/reference/gameplay.mp4`, MiniMax H3 Max). Read `design/brief.md` for the gameplay read and the rules. The assets:
 - **plough:** generated (key-art frame → reference image → Tripo image-to-3D), imported, oriented and sized in Blender (`assets/src/plough.py`).
-- **villager:** generated from a full-resolution crop of the video (`design/reference/crops/`), in an A-pose, then auto-rigged and animated in Blender (`assets/src/villager.py`, `lab_rig`). The game recolours its texture into 5 outfits (`src/outfits.js`), like the crowd in the video.
+- **villager:** generated from a full-resolution crop of the video (`design/reference/crops/`), in an A-pose, then auto-rigged and animated in Blender (`assets/src/villager.py`, `lab_rig`). The game recolours its texture into 5 outfits (`src/outfits.ts`), like the crowd in the video.
 - **village:** a Blender script that builds houses, lamps, pines, fences and the square from `src/village.json`.
-- **snow:** a deformable heightfield in the game (`src/snow.js`), with warm lamp pools painted into its vertex colours.
+- **snow:** a deformable heightfield in the game (`src/snow.ts`), with warm lamp pools painted into its vertex colours.
 - **music, sounds, splash and icon:** `design/media.json`, locked in `assets/media.lock.json`.
 
 ```bash

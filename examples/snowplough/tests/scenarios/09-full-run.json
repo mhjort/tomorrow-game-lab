@@ -3,7 +3,7 @@
   "description": "A bot clears every street with real drive actions: every house connects, every villager walks to the square, the festival starts before 18:00.",
   "steps": [
     { "step": 10 },
-    { "script": "bots/clear-village.js", "args": { "log": true } },
+    { "script": "bots/clear-village.ts", "args": { "log": true } },
     { "assert": "state.reached === 21", "label": "all 21 doors connected" },
     { "assert": "state.phase === 'won' && state.arrived === 21", "label": "festival: everyone at the square" },
     { "assert": "state.timeLeft > 40", "label": "a clean route finishes well before 18:00 (room for human detours)" },
