@@ -66,8 +66,11 @@ test('release: optimized build plays on both backends and loads assets in parall
   }
 });
 
-test('site: landing page + /minigolf/ assembled for GitHub Pages', () => {
+test('site: landing page + every example assembled for GitHub Pages', { timeout: 180000 }, () => {
   assert.ok(existsSync(join(DIST, 'index.html')), 'run the release test first');
+  // the site lists every example; the release test above only builds minigolf
+  const rel = run('pnpm', ['--filter', 'snowplough', 'run', 'release'], { cwd: ROOT });
+  assert.equal(rel.status, 0, rel.stdout.slice(-2000) + rel.stderr.slice(-2000));
   const r = run(process.execPath, [join(ROOT, 'lab/build-site.ts')]);
   assert.equal(r.status, 0, r.stderr);
   const index = readFileSync(join(ROOT, '_site/index.html'), 'utf8');
@@ -75,6 +78,8 @@ test('site: landing page + /minigolf/ assembled for GitHub Pages', () => {
   assert.ok(existsSync(join(ROOT, '_site/minigolf.jpg')));
   assert.ok(existsSync(join(ROOT, '_site/minigolf/index.html')));
   assert.ok(existsSync(join(ROOT, '_site/minigolf/asset-manifest.json')));
+  assert.match(index, /href="\.\/snowplough\/"/);
+  assert.ok(existsSync(join(ROOT, '_site/snowplough/index.html')));
 });
 
 test('release --precompress: .br/.gz siblings decode to the originals and the game plays when served with Content-Encoding: br', { skip: process.env.SKIP_BROWSER && 'SKIP_BROWSER set', timeout: 300000 }, async () => {

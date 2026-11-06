@@ -19,7 +19,7 @@
 // skipped, so re-running is free. Commit the outputs and the lock file: CI has no API key.
 // Env: RUNWARE_API_KEY (required unless --dry-run), RUNWARE_API_URL (override, used by tests).
 import { createHash, randomUUID } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, extname, join, relative, resolve } from 'node:path';
@@ -514,14 +514,26 @@ const maxVolume = (f: string): number | null => {
 let blenderBin: string | null | undefined;
 const findBlender = () =>
   (blenderBin ??= [process.env.BLENDER, 'blender', '/Applications/Blender.app/Contents/MacOS/Blender'].find((b) => b && spawnSync(b, ['--version'], { stdio: 'ignore' }).status === 0) ?? null);
-/** Render a GLB's 2x2 axis-view sheet with preview_glb.py. Returns { tris, size } or null without Blender. */
-export function preview3d(glb: string, png: string): { tris: number; size: number[] } | null {
+/**
+ * Render a GLB's 2x2 axis-view sheet with preview_glb.py. Returns { tris, size } or null without Blender.
+ * Async on purpose: Blender can take a minute, and a blocked event loop leaves fetch's keep-alive sockets
+ * stale (the server closes them meanwhile), so the next API request would fail with "fetch failed".
+ */
+export async function preview3d(glb: string, png: string): Promise<{ tris: number; size: number[] } | null> {
   const b = findBlender();
   if (!b) return null;
   const script = join(dirname(fileURLToPath(import.meta.url)), 'preview_glb.py');
-  const r = spawnSync(b, ['-b', '--factory-startup', '--python-exit-code', '1', '-P', script, '--', glb, png], { encoding: 'utf8', maxBuffer: 1 << 26 });
-  const line = r.stdout?.split('\n').find((l) => l.startsWith('PREVIEW '));
-  if (r.status !== 0 || !line) throw new Error(`preview_glb.py ${glb} failed:\n${(r.stderr || r.stdout || '').slice(-1500)}`);
+  const r = await new Promise<{ status: number | null; stdout: string; stderr: string }>((done, fail) => {
+    const p = spawn(b, ['-b', '--factory-startup', '--python-exit-code', '1', '-P', script, '--', glb, png]);
+    let stdout = '';
+    let stderr = '';
+    p.stdout.on('data', (d: Buffer) => (stdout += d));
+    p.stderr.on('data', (d: Buffer) => (stderr += d));
+    p.on('error', fail);
+    p.on('close', (status) => done({ status, stdout, stderr }));
+  });
+  const line = r.stdout.split('\n').find((l) => l.startsWith('PREVIEW '));
+  if (r.status !== 0 || !line) throw new Error(`preview_glb.py ${glb} failed:\n${(r.stderr || r.stdout).slice(-1500)}`);
   return JSON.parse(line.slice(8)) as { tris: number; size: number[] };
 }
 
@@ -724,7 +736,7 @@ export function loudSpan(pcm: Float32Array, rate = 44100, trimDb = 18): [number,
 }
 
 /** Post-process a downloaded candidate into its public/ output. Returns info for the lock + log. */
-export function finalise(e: Entry, src: string, project: string): FinaliseInfo {
+export async function finalise(e: Entry, src: string, project: string): Promise<FinaliseInfo> {
   const dir = join(project, e.dir ?? OUT_DIR[e.kind]);
   mkdirSync(dir, { recursive: true });
   const out = join(dir, `${e.name}.${e.out}`);
@@ -735,7 +747,7 @@ export function finalise(e: Entry, src: string, project: string): FinaliseInfo {
   const info: FinaliseInfo = {};
   if (e.kind === 'models') {
     copyFileSync(src, out);
-    const p = preview3d(out, join(project, '.lab', 'media', `${e.name}.png`));
+    const p = await preview3d(out, join(project, '.lab', 'media', `${e.name}.png`));
     if (p) Object.assign(info, { tris: p.tris, size: p.size, sheet: relative(project, join(project, '.lab', 'media', `${e.name}.png`)) });
     else console.warn(`  ! Blender not found: no preview sheet for models.${e.name}`);
   } else if (e.kind === 'videos') {
@@ -818,7 +830,7 @@ export async function main(argv = process.argv.slice(2)): Promise<{ lock: Lock; 
     if (!e || !l?.candidates) throw new Error(`--pick ${p}: no pending candidates for "${name}" (generate first)`);
     const src = l.candidates[Number(idx)];
     if (!src || !existsSync(join(project, src))) throw new Error(`--pick ${p}: candidate ${idx} not found (have 0..${l.candidates.length - 1})`);
-    Object.assign(l, finalise(e, join(project, src), project), { picked: Number(idx), seed: l.seeds?.[Number(idx)], post: specHash(e, project).post });
+    Object.assign(l, await finalise(e, join(project, src), project), { picked: Number(idx), seed: l.seeds?.[Number(idx)], post: specHash(e, project).post });
     console.log(`✓ ${name}: picked candidate ${idx} → ${l.file}`);
     saveLock();
   }
@@ -839,7 +851,7 @@ export async function main(argv = process.argv.slice(2)): Promise<{ lock: Lock; 
       }
       const pickedFile = l.picked !== undefined ? l.candidates?.[l.picked] : undefined;
       if (have(pickedFile)) {
-        Object.assign(l, finalise(e, join(project, pickedFile), project), { post });
+        Object.assign(l, await finalise(e, join(project, pickedFile), project), { post });
         console.log(`↻ ${label}: re-processed cached candidate ${l.picked} → ${l.file} (no request)`);
         saveLock();
         continue;
@@ -880,7 +892,7 @@ export async function main(argv = process.argv.slice(2)): Promise<{ lock: Lock; 
       const f = join(candDir, `${i}.${rawExt}`);
       await download(r.url, f);
       candidates.push(relative(project, f));
-      if (results.length > 1 && e.kind === 'models') preview3d(f, f.replace(/\.\w+$/, '.png'));
+      if (results.length > 1 && e.kind === 'models') await preview3d(f, f.replace(/\.\w+$/, '.png'));
       else if (hasFfmpeg() && results.length > 1 && e.kind !== 'images') (e.kind === 'sfx' || e.kind === 'music' ? waveform : contactSheet)(f, f.replace(/\.\w+$/, '.png'));
     }
     const cost = results.reduce((s, r) => s + (r.cost ?? 0), 0) || (Number.isNaN(est) ? 0 : est);
@@ -889,7 +901,7 @@ export async function main(argv = process.argv.slice(2)): Promise<{ lock: Lock; 
     lock[e.name] = l2;
     const [only1] = candidates;
     if (only1 !== undefined && candidates.length === 1) {
-      Object.assign(l2, finalise(e, join(project, only1), project), { picked: 0, seed: results[0]?.seed });
+      Object.assign(l2, await finalise(e, join(project, only1), project), { picked: 0, seed: results[0]?.seed });
       console.log(`✓ ${label} → ${l2.file} (${((l2.bytes ?? 0) / 1024).toFixed(1)} KB${l2.duration ? `, ${l2.duration.toFixed(2)} s` : ''}${l2.seam !== undefined ? `, loop seam ${l2.seam}, ${l2.tempo} BPM` : ''})${l2.waveform ? ` waveform: ${l2.waveform}` : ''}${l2.tris ? `, ${l2.tris} tris, ${(l2.size ?? []).join('×')} m as delivered` : ''}${l2.sheet ? ` sheet: ${l2.sheet}` : ''}`);
     } else console.log(`… ${label}: review ${candidates.join(' ')}\n  then: --pick ${e.name}=<i>`);
     saveLock();
