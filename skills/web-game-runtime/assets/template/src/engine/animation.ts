@@ -1,4 +1,5 @@
-// Skeletal animation for rigged models (blender-assets lab_rig: idle / walk / run / jump clips).
+// Skeletal animation for rigged models (blender-assets lab_rig: idle / walk / run / jump, hang / swing / climb /
+// pull clips).
 // Advance it from the game's fixed-step update(dt), never from render(): then ?test runs and screenshots are
 // deterministic. `counts` (plays per clip) goes into getState() so scenarios can assert that a clip started.
 import * as THREE from 'three/webgpu';
@@ -16,6 +17,11 @@ export interface Animator {
   readonly current: string | null;
   /** Cross-fade to a clip. Calling it again with the playing clip is a no-op (call it every tick freely). */
   play(name: string, opts?: PlayOptions): THREE.AnimationAction;
+  /**
+   * Hold a clip at a pose instead of playing it in time: u = 0..1 of its length (lab_rig's `swing`, `pull`).
+   * Drive u from game state (a pendulum's angle), every tick. Switching to it cross-fades like play().
+   */
+  scrub(name: string, u: number): void;
   update(dt: number): void;
 }
 
@@ -47,6 +53,11 @@ export function createAnimator(model: THREE.Object3D, { fade = 0.2 }: { fade?: n
       current = name;
       counts[name] = (counts[name] ?? 0) + 1;
       return next;
+    },
+    scrub(name, u) {
+      const a = this.play(name);
+      a.paused = true;
+      a.time = Math.min(Math.max(u, 0), 1) * a.getClip().duration;
     },
     update(dt) {
       mixer.update(dt);

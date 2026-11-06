@@ -61,7 +61,7 @@ tests/scenarios/*.json ──► playtest.ts ──► .lab/runs/<ts>/report.jso
                 visual-fidelity  gameplay      technical     asset-quality      (parallel subagents,
                  vs key art      vs brief      errors/perf    previews + GLBs    each sees only its inputs)
                      └──────────────┴──────┬───────┴──────────────┘
-                                     aggregate.ts ──► verdict.md (PASS / fix list) ──► iterate (≤3 rounds)
+                                     aggregate.ts ──► verdict.md (PASS / fix list) ──► iterate (≤6 rounds)
 ```
 
 The game exposes `window.__game` with these members:

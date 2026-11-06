@@ -66,6 +66,7 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
 - `rig_biped` measures the hips, knees, ankles, toes, shoulders, elbows, wrists, hands and neck from the mesh. It builds the armature (`root`, `hips`, `chest`, `head`, `upper_arm/forearm/hand.L/R`, `thigh/shin/foot.L/R`; `.L` = the character's left = +X) and skins each vertex to its nearest bones. Bones never pull across the centre line, and it works on the non-manifold meshes that image-to-3D produces. Everything above the neck and inside the head's width is bound rigidly to `head`: on a big boxy head, the lower corners are nearer the shoulders than the head bone, and lifting the arms dragged the face into a V. The torso width comes from the gaps between face spans, so A-pose hands hanging beside the hem don't count as torso.
 - **Look at the pose sheet**: one row per clip (idle, walk, run, jump), 4 frames each. Knees and elbows must bend at the joints, and nothing may tear or stretch across the body. If a joint is off, fix that landmark: `R.rig_biped(body, landmarks={"hip.L": (0.08, 0, 0.3), "hip.R": (-0.08, 0, 0.3)})`.
 - `add_biped_clips(rig, clips=(...), stride_deg=28)` keys every bone in every clip, so clips never inherit each other's pose. The game moves the character; clips only bob in place.
+- `add_hang_clips(rig)` adds `hang` (loop), `swing` (scrub it: u=0 legs kicked forward, 1 tucked back), `climb` (hand over hand) and `pull` (both hands on a line overhead) for rope swings, ladders, bell ropes and monkey bars. The game pins the midpoint of the hand bones to the grip point each frame and drives `swing`/`pull` with `animator.scrub(name, u)` from the pendulum's angle.
 - In the game: `createAnimator(model)` from the runtime's `animation.ts`, `play('walk')` from `update(dt)`, and `update(dt)` in the fixed step (see `web-game-runtime`).
 
 ## Conventions (the runtime depends on these)
@@ -87,16 +88,29 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
 ## Review loop (always)
 1. `pnpm assets <name>`
 2. **Look at `.lab/previews/<name>.png`** and compare it with the key art and the art bible. Fix the silhouette, proportions and colours before writing any game code that uses the asset.
-3. Run `inspect_glb.ts` and confirm the colliders list contains every gameplay surface.
+3. `L.finish` fails the build on **z-fighting**: faces of different materials that lie in the same plane, face the
+   same way and overlap ("Z-FIGHT Tower_stoneLit / Tower_stoneWarm: 23 m2 … near (x, y, z)"). Fix the geometry:
+   move one surface by ≥ 1 cm, or end the hidden part inside the solid it meets. `check_coplanar=False` is only for
+   intended decals.
+4. Run `inspect_glb.ts` and confirm the colliders list contains every gameplay surface.
 
 ## Gotchas
 - glTF imports use quaternion rotation, so setting `rotation_euler` on an imported object does nothing. And `bound_box` stays stale after `obj.data.transform()` until the depsgraph updates. `import_glb` works on mesh data and vertex bounds for these reasons.
+- Auto-rig arms: only vertices near the arm count, since in a T/A-pose the hand is the arm's lowest point. Scarf ends or a cape hanging at the sides are also "outside the torso", and once dragged a girl's shoulders to her waist. The head's width is measured only above the arms: a big-headed character's T-pose arms are at neck height, and a row through them bound the whole arm rigidly to the head (the arms never moved).
 - Auto-rig landmarks are read from height bands made of the **faces** that overlap each band, not the vertices inside it. On a coarse mesh a band can fall between vertex rings and see only a nose, which put a test figure's neck mid-head. The leg-gap test uses 1% of the height: toy characters' legs nearly touch, and at 2.5% the crotch landed at the ankles.
 - Decimate **before** setting the origin: decimation moves outer vertices, and a model grounded first ended up 2 cm under the floor.
 - `--factory-startup` gives an empty, predictable scene. Don't depend on user preferences or add-ons.
 - Target the latest Blender LTS (5.2). The EEVEE engine id is `BLENDER_EEVEE` (Blender 4.x called it `BLENDER_EEVEE_NEXT`). New materials and worlds already have node trees, so do not set `use_nodes`: it is deprecated and will be removed in 6.0.
 - Preview backdrop: `setup_lighting` lights the scene with `style.ambient` but shows the camera `style.background` (a Light Path "Is Camera Ray" mix in the world). Blender 5.2's EEVEE honours this; 4.x silently showed the ambient colour. So set `background` in `style.json` explicitly.
-- Booleans: use the EXACT solver (the `boolean_cut` default), and cut a single mesh before joining it with others.
+- Stacked boxes z-fight wherever two tops (or two bottoms) share a height: a shaft whose top was flush with the
+  plinth top (both z = 0) striped the bell tower's floor in the game. A block resting **on** another is fine (their
+  contact faces face opposite ways and are hidden); a block passing **through** a slab must end inside it, not flush
+  with its underside. The `finish()` check catches both.
+- Booleans: use the EXACT solver (the `boolean_cut` default), and cut a single mesh before joining it with others. A cutter built with bmesh must have outward normals (`bmesh.ops.recalc_face_normals`): an inside-out cutter makes the cut a silent no-op (the bell tower's arches were simply missing). The cut also appends an empty material slot to the target, so find slots by name (`obj.data.materials.find("stoneShade")`), not by index.
+- `poly.center` and `poly.normal` are object-local. `L.box` keeps its origin at the box's middle, so compare face centres with world heights via `obj.matrix_world @ poly.center`.
+- Shade the insides of openings (arch soffits, pier sides) with a darker palette role per face (append a second material slot, then for each `poly` set `poly.material_index` where the world-space face centre is inside the opening and the normal points across it). One flat material reads as evenly lit, and the judges asked for the reference's shade side in every round.
+- **A node with both a mesh and child nodes** (a bell whose clapper is its child) gets its mesh moved into a new unnamed child by the release build's meshopt quantization, and `pnpm release` stops with "optimization changed the node set". Make the parent an empty (the pivot) and parent the mesh and the other children to it.
+- Don't give materials metalness unless the game has an environment map: without one, a metallic bronze bell rendered near-black.
 - glTF splits vertices along hard edges. The runtime welds them again before building trimesh colliders, so flat shading is safe.
 - To render key art or marketing stills, write a separate script that calls `L.setup_camera`, `L.setup_lighting` and `L.configure_render` without exporting.
 - `L.apply_transform` keeps each object's own origin (location is not applied). To rotate a group of parts about a shared point (a house turned to face its street), multiply each part's `matrix_world` by the group transform; setting `rotation_euler` turns every part about its own centre.

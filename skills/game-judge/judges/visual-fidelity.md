@@ -29,6 +29,10 @@ Pass threshold: **7.0**. Any black/missing render, broken materials, or an unrea
 2. **Inventory check:** for each element in `inventory.md`, find it in the screenshots and compare it to its crop ("villagers: crop shows cube heads and plain coats in 4 colours; game has one big-headed figure in a hat and scarf"). Then list what the game shows that the reference doesn't. Each one is an issue unless the additions list in `pack.md` names it. A main character or the goal object looking different from the reference is `major`.
 3. Compare each pair in the visual pack. Quote colours **only from `pack.md`'s measurements** ("coolHue 220° vs reference 208°; game coolShare 0.18 vs 0.42"). If a region is not measured, describe it in words; do not invent hex values.
 4. Every issue names its `element`: an element from `inventory.md` (e.g. `plough`, `house`) or one of `palette`, `lighting`, `camera`, `world`, `polish`.
-5. Every issue's `fix` must point to a lever: a `design/style.json` key, a Blender asset script in `assets/src/`, or a file in `src/`.
+5. **Z-fighting sweep:** open every screenshot at full size and look at each large flat surface (floors, ledges,
+   roofs, ground). Thin parallel stripes, or two colours interleaved in a comb or staircase pattern on what should
+   be one face, are z-fighting: a `major` polish issue (element `polish`), whatever else the shot gets right. A
+   bell tower's floor flickered like this through five judge rounds before a player spotted it.
+6. Every issue's `fix` must point to a lever: a `design/style.json` key, a Blender asset script in `assets/src/`, or a file in `src/`.
 
 Return JSON only, matching `judges/_output-schema.json`, with `"judge": "visual-fidelity"`, plus `criteria` (your six scores: `palette`, `lighting`, `shape`, `inventory`, `composition`, `polish`) and `keyart_bullets`.

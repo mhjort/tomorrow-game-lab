@@ -102,7 +102,8 @@ class Course:
 
     def block(self, name, x, y, sx, sy):
         z = self.height(x, y)
-        o = slab(name, x - sx / 2, y - sy / 2, x + sx / 2, y + sy / 2, z + RAIL_H, thickness=RAIL_H + TURF_T, mat=self.m_rail)
+        # its foot ends inside the turf: flush with the turf's underside the two faces z-fought
+        o = slab(name, x - sx / 2, y - sy / 2, x + sx / 2, y + sy / 2, z + RAIL_H, thickness=RAIL_H + TURF_T / 2, mat=self.m_rail)
         L.tag_collider(o, "trimesh", friction=0.3, restitution=0.75)
         return o
 

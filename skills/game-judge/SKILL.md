@@ -45,7 +45,7 @@ Exit codes: 0 = pass, 1 = a scenario failed or there was a console error, 2 = se
     { "eval": "window.__game.getState().phase" }
   ] }
 ```
-- `state` in expressions is `__game.getState()`.
+- `state` in expressions is `__game.getState()`; `result` is what the last `script` or `eval` step returned, so a bot can run an A/B check ("climbing speeds the swing up, compared with not climbing") and an `assert` can test it: `{ "assert": "result.climbed > result.held" }`.
 - Write one scenario per brief rule. `input` steps skip the real controls, so also write **at least one real-input scenario per control scheme**: a held `drag`/`key`, asserts while it is held (no drift), then the release (see the controls reference in the `web-game-runtime` skill). Include a full-game bot and a boot scenario that takes an **overview** screenshot framed like the key art.
 - Give every screenshot that is framed like a reference frame a `compare` path (the overview → `keyart.png`, chase shots → the matching video frame). The visual judge compares only these pairs for palette and composition. Other shots (debug cameras, modal cards, the win screen) are context for polish only.
 - Take a screenshot right after each *natural* level transition (won/finished → next level), not only after `loadLevel` hooks. Backend-specific bugs hide there.
@@ -95,7 +95,7 @@ When iterating:
 - **Don't move the target.** Judges never read `art-bible.md` or notes, but the builder does. Write what you learn while iterating in `design/notes.md`, not into the art bible: a judge that read the art bible quoted the builder's fixes back as reference facts.
 - Keep the framing of `compare` shots fixed between rounds unless the fix is about the camera; otherwise rounds aren't comparable.
 - Re-run the playtest and `visual-pack.ts`, then only the judges whose inputs changed (e.g. the visual panel only after a `style.json` tweak).
-- Stop after 3 rounds and report what is left, with the scores of judges run on the final build (not an earlier one).
+- Stop after 6 rounds and report what is left, with the scores of judges run on the final build (not an earlier one).
 
 ## Thresholds
 | judge | passes at |

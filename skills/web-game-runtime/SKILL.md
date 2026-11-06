@@ -29,7 +29,7 @@ Before you write any game code, check the starter scene boots on both backends w
 | `loop.ts` | `createLoop({ update, render, renderer, hz })` fixed step (always pass `renderer`); auto-runs unless `?test`; `step(n)` for tests; frame stats |
 | `physics.ts` | `createPhysics({ gravity, hz, substeps })` → `{ RAPIER, world, step, sync, bind, onSensor, collidersFromGltf }` |
 | `assets.ts` | `loadModels(names, onProgress)`: all GLBs fetched **in parallel** with byte progress (uses `asset-manifest.json` in release builds), meshopt-aware; `await loadModel(name)` returns a clone (rigged models: own skeleton, clips in `userData.animations`); for many instances, `preloadModels([name], p)` in the download phase, then clone |
-| `animation.ts` | `createAnimator(model)` → `play(name, { loop, timeScale })` (cross-fades; repeat calls are no-ops), `update(dt)` **in the fixed-step `update`**, `current`, `counts` (for `getState()`) |
+| `animation.ts` | `createAnimator(model)` → `play(name, { loop, timeScale })` (cross-fades; repeat calls are no-ops), `scrub(name, u)` (hold a clip at 0..1 of its length, driven by game state: a pendulum's angle), `update(dt)` **in the fixed-step `update`**, `current`, `counts` (for `getState()`) |
 | `style.ts` | `style` (design/style.json), `applyStyle(scene, renderer)` → `{ sun, hemi, refreshShadows, setTheme }` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)`; per-level looks: `"themes": { name: partial style }` in style.json, `setTheme(name)` (uniforms only, no recompiles), `themeStyle(name)` |
 | `input.ts` | `createInput(canvas)` → held `keys`, pointer `drag`, `on('dragstart' \| 'dragend', fn)` (`pointercancel` ends a drag as `{dx:0, dy:0, cancelled}`) |
 | `audio.ts` | `createAudio({ volume, musicVolume })` → `load(names, onProgress)` (`public/sfx/<name>.mp3`, parallel, decoded up front), `play(name, { volume, rate })`, `setMuted` (music too), `counts` (plays per sound, also in `?test` where nothing is audible); music: `loadMusic(names, p)` (`public/music/<name>.mp3` + loop `.json`), `playMusic(name, { volume })` (seamless loop, cross-fades, waits for the first gesture), `stopMusic()`, `music` (current name, for `getState()`), `trackInfo(name)` (bpm, loop) |
@@ -66,8 +66,14 @@ Boot order in `main.ts`:
 - Controls: read a drag in the frame captured on `dragstart`, never against a camera that the drag itself moves (that is a feedback loop, and the view spins). Hold the camera still during the gesture. Add a dead zone. Test with **real** held `drag`/`key` playtest steps, not only `input()` actions. See `references/controls.md`.
 - After any change the user can see or feel, end with a checked `pnpm dev` link, the controls and what to try (the `make-web-game` skill's hand-off rule). Don't make the user ask where to test.
 - Use a DOM overlay (`#hud`) for the HUD; it is cheap and readable in screenshots. Show the controls on screen. Time HUD flashes in game ticks, not `setTimeout`, or stepped screenshots catch them half-faded; hide them under end cards.
-- No physics needed (grid or circle collisions)? Delete `src/engine/physics.ts` and the `@dimforge/rapier3d` dependency.
+- No physics needed (grid or circle collisions, a pendulum)? Run the boot playtest first (the starter scene uses physics), then delete `src/engine/physics.ts` and the `@dimforge/rapier3d` dependency. Keep `vite.config.ts` and `vite-plugin-wasm` as scaffolded: the plugin is harmless without `.wasm`, and the lab's validator wants examples' config identical to the template's.
 - Play sounds from gameplay events in `update()` (deterministic), never from `render()`. Put `sfx: { ...audio.counts }` and `music: audio.music` in `getState()` so scenarios can assert on cues. Give players a mute key.
+- three's GLTFLoader strips `.` from node names: lab_rig's bone `hand.L` is `handL` in the game. `getObjectByName('hand.L')` silently returns undefined (a ringer's hands were never pinned to her rope), so look nodes up through a helper that throws when a name is missing.
+- HUD fades: drive `style.opacity` from tick counters, not CSS `transition`. Transitions don't advance in stepped `?test` runs, so a title card stayed on top of every screenshot.
+- Planes added in code (painted cards, decals, shadow blobs, water) must sit ≥ 1 cm off any surface they lie on, or
+  use `material.polygonOffset`. The Blender check (`blender-assets`) only sees the GLB; coplanar planes from code
+  z-fight the same way.
+- The loading bar uses `palette.accent` from `style.json`; give the palette an `accent` role.
 - Keep all code in `import * as THREE from 'three/webgpu'`. Use addons from `three/addons/...`. Never mix in `three` (the WebGL-only build).
 
 ## TypeScript

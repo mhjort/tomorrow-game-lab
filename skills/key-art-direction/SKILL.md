@@ -15,7 +15,7 @@ Scripts (in this skill's `scripts/` dir): `extract-frames.sh`, `crop-frame.sh` (
    ```bash
    bash <skill>/scripts/extract-frames.sh design/reference/clip.mp4 design/reference/frames 12
    ```
-   Look at `contact-sheet.png` first, then at 2–4 individual frames. For gameplay footage, also note:
+   Frames are numbered in time order and `times.txt` gives each one's time, so the brief can cite "frame_08, t=8.8 s" and `crop-frame.sh` can grab the same moment at full resolution. Look at `contact-sheet.png` first, then at 2–4 individual frames. For gameplay footage, also note:
    - camera behaviour (follow, fixed, orbit)
    - HUD layout
    - motion: speed, how snappy it feels, any squash and stretch
@@ -32,7 +32,8 @@ Scripts (in this skill's `scripts/` dir): `extract-frames.sh`, `crop-frame.sh` (
    - **Variety**: how many there are and how they differ. One model for a crowd that varies in the video is a deviation, and the brief must list it.
    - **Confidence**: `clear`, or `unclear` plus what you can see ("green blob on a stalk, maybe a sapling"). Try another moment before giving up. Don't build a rule or a generated asset on an `unclear` item without saying so in the brief.
    The brief, the generated-asset prompts and the visual judge all read this file.
-4. **Palette.** Run `python3 <skill>/scripts/palette.py <image> -k 8 -o design/reference/palette.json` on the main image, or on 2–3 representative frames. k-means only finds the *dominant* colours. Small accents (flags, pickups, UI) get averaged away, so pick those by eye and add them.
+4. **Palette.** Run `python3 <skill>/scripts/palette.py <image> -k 8 -o design/reference/palette.json` on the main image, or on 2–3 representative frames. k-means only finds the *dominant* colours. Small accents (flags, pickups, UI) get averaged away, so pick those by eye and add them. Soft gradients get averaged too: the bell-tower rainbow's bands came out as `#e1ac80`/`#7ab5d0` (each band blended with the sky) and rendered as a faint pastel smear. Pick gradient stops by eye from a crop.
+   **Scale and camera, measured:** pick one thing of known size (the tower's width, a door), count its pixels in two frames and get px/m for each (bell tower: 65.6 px/m in the play frame, 52 in the opening frame). Then size every element and place the camera from those numbers (visible width = px width ÷ px/m → distance from the FOV). A different px/m between frames means the camera dollies; copy that move.
 5. **Study the image yourself** and describe it before you write anything. Cover:
    - Palette roles: what is ground, what is the play surface, what is an accent or hazard. Accent colours must be reserved for gameplay-relevant objects.
    - Light: sun elevation and azimuth, warm or cool, how hard the shadows are, the ambient colour.
