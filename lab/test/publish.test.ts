@@ -25,7 +25,13 @@ test('release: minigolf builds minified + code-split, GLBs meshopt-optimized, wi
   const html = readFileSync(join(DIST, 'index.html'), 'utf8');
   assert.match(html, /<link rel="preload" as="fetch" crossorigin href="\.\/sfx\/putt\.mp3">/);
   assert.match(html, /<link rel="preload" as="image" href="\.\/images\/splash\.webp">/);
-  for (const name of ['hole1', 'hole2', 'hole3', 'ball']) {
+  // level streaming (design/levels.json): only the first hole's assets are preloaded with the HTML
+  for (const f of ['models/hole1.glb', 'models/ball.glb', 'music/course.mp3']) assert.ok(html.includes(`href="./${f}"`), `${f} preloaded`);
+  for (const f of ['models/hole2.glb', 'models/hole4.glb', 'music/snow.mp3', 'music/city.mp3']) {
+    assert.ok(manifest[f] > 0, `${f} shipped`);
+    assert.ok(!html.includes(f), `${f} is lazy: no preload hint`);
+  }
+  for (const name of ['hole1', 'hole2', 'hole3', 'hole4', 'ball']) {
     const info = inspectGlb(join(DIST, 'models', `${name}.glb`));
     assert.ok(info.extensions.includes('EXT_meshopt_compression'), `${name} meshopt-compressed`);
   }
@@ -51,14 +57,15 @@ test('release: optimized build plays on both backends and loads assets in parall
     assert.ok(b.network.maxParallel >= 3, `max parallel requests ${b.network.maxParallel}`);
     const wasm = b.network.requests.find((n) => n.file.endsWith('.wasm'));
     const glbs = b.network.requests.filter((n) => n.file.endsWith('.glb'));
-    assert.ok(wasm && glbs.length === 4, 'wasm + 4 GLBs requested');
+    assert.ok(wasm && glbs.some((g) => g.file === 'hole1.glb') && glbs.some((g) => g.file === 'ball.glb'), 'wasm + ball + hole 1 requested');
+    assert.ok(!glbs.some((g) => g.file === 'hole3.glb' || g.file === 'hole4.glb'), 'later holes are not loaded during boot');
     assert.ok(glbs.some((g) => g.start < wasm.end && g.end > wasm.start), 'models download while the physics WASM downloads');
     // preload hints: models + wasm start with the HTML, not after three.js has loaded and the entry module ran
     const three = b.network.requests.find((n) => /^three-.*\.js$/.test(n.file));
     assert.ok(three, 'three.js chunk requested');
-    assert.ok(glbs.every((g) => g.start < three.end) && wasm.start < three.end, 'assets start before three.js finishes');
-    const sfx = b.network.requests.filter((n) => n.file.endsWith('.mp3'));
-    assert.equal(sfx.length, 6, 'every sound effect + the music loop requested');
+    assert.ok(glbs.filter((g) => g.file !== 'hole2.glb').every((g) => g.start < three.end) && wasm.start < three.end, 'assets start before three.js finishes');
+    const sfx = b.network.requests.filter((n) => n.file.endsWith('.mp3') && n.file !== 'snow.mp3'); // hole 2's track may already be prefetching
+    assert.equal(sfx.length, 6, "every sound effect + hole 1's music loop requested");
     assert.ok(sfx.every((x) => x.start < three.end), 'sound effects and music preload with the HTML');
     assert.ok(b.network.requests.some((n) => n.file === 'course.json'), 'music loop sidecar fetched');
     const dups = b.network.requests.filter((x, i, a) => a.findIndex((y) => y.file === x.file) !== i);
@@ -88,7 +95,10 @@ test('release --precompress: .br/.gz siblings decode to the originals and the ga
   const r = run(process.execPath, ['scripts/release.ts', '--precompress'], { cwd: GAME });
   assert.equal(r.status, 0, r.stdout.slice(-1500) + r.stderr.slice(-1500));
   const report = JSON.parse(readFileSync(join(DIST, 'release-report.json'), 'utf8'));
-  assert.ok(report.totals.totalBrotliMb < report.totals.totalGzipMb * 0.85, 'brotli at least 15% smaller than gzip');
+  // compare on compressible files only: MP3s (one loop per themed hole) are stored as-is and would swamp the ratio
+  const packed = (report.files as { file: string; bytes: number; gzip: number; brotli: number }[]).filter((f) => f.gzip < f.bytes);
+  const sum = (k: 'gzip' | 'brotli') => packed.reduce((s, f) => s + f[k], 0);
+  assert.ok(sum('brotli') < sum('gzip') * 0.85, 'brotli at least 15% smaller than gzip on compressible files');
   const wasm = readdirSync(join(DIST, 'assets')).find((f) => f.endsWith('.wasm'));
   for (const f of [`assets/${wasm}`, 'models/hole1.glb']) {
     const orig = readFileSync(join(DIST, f));

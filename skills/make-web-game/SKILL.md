@@ -76,7 +76,7 @@ Leave the server running and say so. This is not the full taste review (step 10)
 
 ## Definition of done
 - `pnpm typecheck` is clean and `pnpm build` succeeds (it type-checks first), and the playtest passes on **webgpu and webgl2** with zero console errors.
-- The game boots through a loading screen with a progress bar. All downloads run in one parallel phase, then every level/material is prewarmed before play.
+- The game boots through a loading screen with a progress bar. All downloads run in one parallel phase, then everything on screen is prewarmed before play. Multi-level games load and prewarm only the first level up front and stream the rest during play (`levels.ts` in the `web-game-runtime` skill), so the player starts sooner.
 - `pnpm release` succeeds (sizes are reported; budgets for a target device are the `optimize-web-game` pass).
 - Every judge passes (see `game-judge`). Remaining minor issues are listed in your final message.
 - A full-game bot reaches the end state. The README or final message explains the controls.

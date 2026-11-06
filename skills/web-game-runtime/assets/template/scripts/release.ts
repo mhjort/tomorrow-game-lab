@@ -83,13 +83,18 @@ if (glbs.length && !argv.includes('--no-glb-opt')) {
 // 3. preload hints: the browser starts EVERY download while parsing index.html, instead of waiting for the
 //    entry module (which waits for three.js) to run the loader. Lazy chunks -> modulepreload; .wasm, models and
 //    sfx -> preload as fetch (crossorigin so the loader's fetch() reuses the response); images -> as image.
+//    Lazily loaded levels (web-game-runtime levels.ts): assets that only levels after the first use, per
+//    design/levels.json { "levels": [{ "models": [], "sfx": [], "music": [] }, ...] }, get NO hint, so they
+//    don't compete with the first level's bandwidth; the game fetches them in the background during play.
 if (!argv.includes('--no-preload')) {
   const htmlPath = join(dist, 'index.html');
   let page = readFileSync(htmlPath, 'utf8');
   const rel = (f: string) => `./${relative(dist, f)}`;
+  const lazy = lazyLevelAssets();
   // images/ (generate-media) are CSS/<img> loads -> as=image without crossorigin; sfx/ are fetched like models.
   const hints = walk(dist)
     .filter((f) => (/\.(js|wasm|glb|mp3|ogg)$/.test(f) || /^images\/.*\.(webp|png|jpg)$/.test(relative(dist, f))) && !page.includes(relative(dist, f)))
+    .filter((f) => !lazy.has(relative(dist, f)))
     .map((f) =>
       f.endsWith('.js')
         ? `<link rel="modulepreload" crossorigin href="${rel(f)}">`
@@ -103,6 +108,20 @@ if (!argv.includes('--no-preload')) {
     writeFileSync(htmlPath, page);
     console.log(`preload hints: ${hints.length} (lazy chunks, wasm, models, sfx, images)`);
   }
+}
+
+/** dist-relative paths used only by levels after the first in design/levels.json (empty if there is no such file). */
+function lazyLevelAssets(): Set<string> {
+  const file = join(project, 'design', 'levels.json');
+  if (!existsSync(file)) return new Set();
+  type Level = { models?: string[]; sfx?: string[]; music?: string[] };
+  const { levels = [] } = JSON.parse(readFileSync(file, 'utf8')) as { levels?: Level[] };
+  const paths = (l: Level | undefined): string[] =>
+    l ? [...(l.models ?? []).map((n) => `models/${n}.glb`), ...(l.sfx ?? []).map((n) => `sfx/${n}.mp3`), ...(l.music ?? []).map((n) => `music/${n}.mp3`)] : [];
+  const first = new Set(paths(levels[0]));
+  const lazy = new Set(levels.slice(1).flatMap(paths).filter((p) => !first.has(p)));
+  if (lazy.size) console.log(`lazy level assets (no preload hint): ${[...lazy].join(', ')}`);
+  return lazy;
 }
 
 // 4. manifest + size report

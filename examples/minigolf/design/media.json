@@ -68,6 +68,30 @@
       "bars": 8,
       "candidates": 2,
       "seed": 7
+    },
+    "snow": {
+      "prompt": "cosy wintry video game background music for a relaxed minigolf course in the snow, glockenspiel and celesta melody, soft pizzicato strings, sleigh bells, warm felt piano, gentle and sparkly, instrumental loop",
+      "bpm": 88,
+      "key": "D major",
+      "bars": 8,
+      "candidates": 2,
+      "seed": 8
+    },
+    "desert": {
+      "prompt": "laid-back sunny desert video game background music for a relaxed minigolf course, twangy western guitar melody, hand percussion and shaker, warm upright bass, light ocarina accents, unhurried and playful, instrumental loop",
+      "bpm": 92,
+      "key": "A minor",
+      "bars": 8,
+      "candidates": 2,
+      "seed": 9
+    },
+    "city": {
+      "prompt": "chill evening city video game background music for a relaxed rooftop minigolf course, mellow electric piano, soft funky bass, lo-fi brushed beat, light vibraphone melody, cool and friendly, instrumental loop",
+      "bpm": 90,
+      "key": "Bb major",
+      "bars": 8,
+      "candidates": 2,
+      "seed": 10
     }
   }
 }

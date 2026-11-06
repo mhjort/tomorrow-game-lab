@@ -30,22 +30,25 @@ Before you write any game code, check the starter scene boots on both backends w
 | `physics.ts` | `createPhysics({ gravity, hz, substeps })` → `{ RAPIER, world, step, sync, bind, onSensor, collidersFromGltf }` |
 | `assets.ts` | `loadModels(names, onProgress)`: all GLBs fetched **in parallel** with byte progress (uses `asset-manifest.json` in release builds), meshopt-aware; `await loadModel(name)` returns a clone (rigged models: own skeleton, clips in `userData.animations`); for many instances, `preloadModels([name], p)` in the download phase, then clone |
 | `animation.ts` | `createAnimator(model)` → `play(name, { loop, timeScale })` (cross-fades; repeat calls are no-ops), `update(dt)` **in the fixed-step `update`**, `current`, `counts` (for `getState()`) |
-| `style.ts` | `style` (design/style.json), `applyStyle(scene, renderer)` → `{ sun, hemi, refreshShadows }` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)` |
+| `style.ts` | `style` (design/style.json), `applyStyle(scene, renderer)` → `{ sun, hemi, refreshShadows, setTheme }` (background, fog, hemi + sun w/ shadows, tone mapping), `paletteColor(role)`; per-level looks: `"themes": { name: partial style }` in style.json, `setTheme(name)` (uniforms only, no recompiles), `themeStyle(name)` |
 | `input.ts` | `createInput(canvas)` → held `keys`, pointer `drag`, `on('dragstart' \| 'dragend', fn)` (`pointercancel` ends a drag as `{dx:0, dy:0, cancelled}`) |
 | `audio.ts` | `createAudio({ volume, musicVolume })` → `load(names, onProgress)` (`public/sfx/<name>.mp3`, parallel, decoded up front), `play(name, { volume, rate })`, `setMuted` (music too), `counts` (plays per sound, also in `?test` where nothing is audible); music: `loadMusic(names, p)` (`public/music/<name>.mp3` + loop `.json`), `playMusic(name, { volume })` (seamless loop, cross-fades, waits for the first gesture), `stopMusic()`, `music` (current name, for `getState()`), `trackInfo(name)` (bpm, loop) |
-| `loading.ts` | `createLoadingScreen({ title, image })` → `parallel(label, [{ weight, run(progress) }])`, `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)` |
+| `loading.ts` | `createLoadingScreen({ title, image })` → `parallel(label, [{ weight, run(progress) }])`, `step(label, weight, fn(progress))`, `done()`; `prewarm(renderer, scene, camera, roots, onProgress)`; `compileInBackground(renderer, scene, camera, root)` (off-screen, during play) |
+| `levels.ts` | level streaming: `createLevels([{ models, sfx, music }], { audio })` → `download(i, p)`, `attach(renderer, scene, camera)`, `prewarm(i, p)` (behind the loading screen), `load(i, p)` (download + background compile), `prefetch(i)`, `isReady(i)`, `models(i)`, `statuses()` |
 | `testHooks.ts` | `installTestHooks({ backend, loop, getState, input })`, `createRng(seed)` |
 
 Boot order in `main.ts`:
 1. `createLoadingScreen()`; it is shown first
-2. **One parallel download phase:** `loading.parallel('Loading…', [createRenderer, createPhysics, loadModels(ALL_MODELS, p), audio.load(SFX, p), …])`. Every download (models, Rapier `.wasm`, audio, textures) starts at once. Never `await` one download before starting the next.
-3. scene and camera, then `applyStyle` (lights must exist before prewarm)
+2. **One parallel download phase:** `loading.parallel('Loading…', [createRenderer, createPhysics, loadModels(SHARED_MODELS, p), audio.load(SFX, p), levels.download(first, p), …])`. Every download (models, Rapier `.wasm`, audio, textures) starts at once. Never `await` one download before starting the next. Shared assets plus **only the first level**; with a single level, load everything here.
+3. scene and camera, then `applyStyle` (lights must exist before prewarm), `levels.attach(renderer, scene, camera)`
 4. build game objects from the loaded models
-5. **prewarm all levels/materials** (`loading.step('Compiling shaders', …, p => prewarm(..., allLevelRoots, p))`)
-6. build the first level (`collidersFromGltf`), then `installTestHooks`
+5. **prewarm** the shared objects and the first level (`loading.step('Compiling shaders', …, p => levels.prewarm(first, p))`, or `prewarm(..., roots, p)`)
+6. build the first level (`collidersFromGltf`), `levels.prefetch(first + 1)`, then `installTestHooks`
 7. `createLoop({ update, render, renderer })`, `loop.start()`, `loop.step(0)`, `loading.done()`, then `hooks.ready = true`
 
 **Every game must have the loading screen and prewarm.** Lazy shader/pipeline compilation causes hitches the first time a level, effect or material appears.
+
+**Multi-level games stream levels** (`levels.ts`, example: `examples/minigolf`): list each level's GLBs, sfx and music in `design/levels.json` (`{ "levels": [{ "models": [], "music": [], ...game fields }] }`, imported by `main.ts`). Play starts once level 1 is ready. Whenever a level starts, `prefetch` the next one: it downloads and compiles off-screen while the player plays. On a level change, swap in instantly if `isReady(i)`; otherwise show a small "Loading…" card (`load(i, p)`), keep the old level on screen, and swap in `update()` once it is ready. Expose `levels: levels.statuses()` in `getState()`. Bots must `await` (e.g. 50 ms) while the game is loading; a synchronous `step` loop starves the download. `pnpm release` reads `design/levels.json` and doesn't add preload hints for later-level assets.
 
 ## The `window.__game` contract (the playtests rely on it)
 - `ready` is set after the first frame renders. `backend` is `'webgpu'` or `'webgl2'`.
@@ -58,7 +61,7 @@ Boot order in `main.ts`:
 - Gameplay state changes happen only in `update(dt)`. `render()` syncs meshes and draws.
 - Use `createRng()` for randomness. Never use `Date.now()` or `performance.now()` in gameplay.
 - Load levels from GLB plus named marker empties (Spawn, Goal…). Read them with `root.getObjectByName('Spawn').getWorldPosition(v)`.
-- To change level, call `physics.removeBody(levelBody)`; it removes the colliders and sensor handlers too. Remove the old scene root, add the new one, then call `refreshShadows()` (from `applyStyle`). Prewarm must include every level, so the swap doesn't hitch.
+- To change level, call `physics.removeBody(levelBody)`; it removes the colliders and sensor handlers too. Remove the old scene root, add the new one, `setTheme()` if levels have their own look, then call `refreshShadows()` (from `applyStyle`). Every level must be compiled before it is shown: the first by `prewarm`, the rest by `levels.load`/`prefetch`.
 - Support a `?level=N` deep link (read with `params` from `renderer.ts`), so people reviewing the game can jump straight to a level.
 - Controls: read a drag in the frame captured on `dragstart`, never against a camera that the drag itself moves (that is a feedback loop, and the view spins). Hold the camera still during the gesture. Add a dead zone. Test with **real** held `drag`/`key` playtest steps, not only `input()` actions. See `references/controls.md`.
 - After any change the user can see or feel, end with a checked `pnpm dev` link, the controls and what to try (the `make-web-game` skill's hand-off rule). Don't make the user ask where to test.

@@ -66,4 +66,5 @@ This must pass on both backends with no `http 404` errors. A 404 almost always m
 - **Gzip vs brotli:** Pages serves gzip, not brotli, so the budgets are gzip sizes. With `--precompress`, `release-report.json` also lists brotli totals.
 - **Caching:** Pages caches for about 10 minutes. Vite's hashed file names make new deploys safe. Only `index.html` and `asset-manifest.json` keep stable names.
 - **Rapier build:** use `@dimforge/rapier3d` (real `.wasm`, about 1.1 MB gzip, streaming compile), not `-compat` (base64, about 1.6 MB gzip plus decode time).
-- **Shaders:** the release build doesn't change shader compilation. The loading screen's prewarm step still has to cover every level.
+- **Shaders:** the release build doesn't change shader compilation. The loading screen's prewarm step still has to cover the first level, and streamed levels still compile before they are shown.
+- **Streamed levels:** if `design/levels.json` exists, assets that only later levels use get no preload hint, so they don't compete with level 1. The game fetches them during play.

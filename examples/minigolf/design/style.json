@@ -13,11 +13,157 @@
     "sky": "#f1cfa8"
   },
   "background": "#f1cfa8",
-  "fog": { "color": "#f1cfa8", "near": 18, "far": 60 },
-  "sun": { "color": "#ffe2b8", "intensity": 3.2, "elevation": 32, "azimuth": 60, "shadows": true },
-  "ambient": { "color": "#cfe0ff", "ground": "#4a6b3a", "intensity": 1.1 },
-  "materials": { "roughness": 0.85, "metalness": 0.0 },
-  "camera": { "fov": 45 },
+  "fog": {
+    "color": "#f1cfa8",
+    "near": 18,
+    "far": 60
+  },
+  "sun": {
+    "color": "#ffe2b8",
+    "intensity": 3.2,
+    "elevation": 32,
+    "azimuth": 60,
+    "shadows": true
+  },
+  "ambient": {
+    "color": "#cfe0ff",
+    "ground": "#4a6b3a",
+    "intensity": 1.1
+  },
+  "materials": {
+    "roughness": 0.85,
+    "metalness": 0.0
+  },
+  "camera": {
+    "fov": 45
+  },
   "toneMapping": "AgX",
-  "exposure": 1.1
+  "exposure": 1.1,
+  "themes": {
+    "beach": {
+      "palette": {
+        "grass": "#ecd29b",
+        "turf": "#5fb87a",
+        "rail": "#fbf6ea",
+        "accent": "#ff6f59",
+        "water": "#2ec4c6",
+        "rock": "#b9a68c",
+        "leaf": "#3e9a54",
+        "wood": "#a5794b",
+        "sky": "#bfe6f2",
+        "canopy": "#ffd25a"
+      },
+      "background": "#bfe6f2",
+      "fog": {
+        "color": "#bfe6f2",
+        "near": 18,
+        "far": 60
+      },
+      "sun": {
+        "color": "#fff1d6",
+        "intensity": 3.4,
+        "elevation": 48,
+        "azimuth": 55
+      },
+      "ambient": {
+        "color": "#d6f0ff",
+        "ground": "#b59a6a",
+        "intensity": 1.15
+      }
+    },
+    "snow": {
+      "palette": {
+        "grass": "#eef3f8",
+        "turf": "#6fae93",
+        "rail": "#c8463d",
+        "accent": "#2f7fd8",
+        "water": "#b9e2f2",
+        "rock": "#7f8c99",
+        "leaf": "#2d5c4f",
+        "wood": "#5b3a24",
+        "sky": "#d3e3f2",
+        "snow": "#ffffff",
+        "carrot": "#f08a24"
+      },
+      "background": "#d3e3f2",
+      "fog": {
+        "color": "#d3e3f2",
+        "near": 18,
+        "far": 60
+      },
+      "sun": {
+        "color": "#fff6ee",
+        "intensity": 2.8,
+        "elevation": 26,
+        "azimuth": 70
+      },
+      "ambient": {
+        "color": "#d9e8ff",
+        "ground": "#9aaab8",
+        "intensity": 1.25
+      }
+    },
+    "desert": {
+      "palette": {
+        "grass": "#e3b877",
+        "turf": "#93b05a",
+        "rail": "#b9552f",
+        "accent": "#20a39e",
+        "water": "#3fb6c6",
+        "rock": "#c46d3d",
+        "leaf": "#5e9450",
+        "wood": "#8a5a35",
+        "sky": "#f7d8a8"
+      },
+      "background": "#f7d8a8",
+      "fog": {
+        "color": "#f7d8a8",
+        "near": 18,
+        "far": 60
+      },
+      "sun": {
+        "color": "#ffe6bf",
+        "intensity": 3.6,
+        "elevation": 55,
+        "azimuth": 40
+      },
+      "ambient": {
+        "color": "#ffe9cc",
+        "ground": "#a8703f",
+        "intensity": 1.0
+      }
+    },
+    "city": {
+      "palette": {
+        "grass": "#8b929c",
+        "turf": "#43b26a",
+        "rail": "#f2c14e",
+        "accent": "#ef476f",
+        "water": "#4a8fe0",
+        "rock": "#5b6474",
+        "leaf": "#3f8a54",
+        "wood": "#6b4a33",
+        "sky": "#aab6dc",
+        "glass": "#ffd27a",
+        "concrete": "#c9ccd2"
+      },
+      "background": "#aab6dc",
+      "fog": {
+        "color": "#aab6dc",
+        "near": 18,
+        "far": 60
+      },
+      "sun": {
+        "color": "#ffc996",
+        "intensity": 2.9,
+        "elevation": 22,
+        "azimuth": 75
+      },
+      "ambient": {
+        "color": "#c4ccf0",
+        "ground": "#5d6270",
+        "intensity": 1.2
+      }
+    }
+  }
 }

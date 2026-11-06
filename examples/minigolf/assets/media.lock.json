@@ -1,4 +1,32 @@
 {
+  "city": {
+    "bytes": 390701,
+    "candidates": [
+      ".lab/media/city/0.wav",
+      ".lab/media/city/1.wav"
+    ],
+    "cost": 0.0036,
+    "duration": 21.32,
+    "file": "public/music/city.mp3",
+    "hash": "475a506bd78d9d1c",
+    "kind": "music",
+    "loop": [
+      10,
+      31.32
+    ],
+    "model": "runware:ace-step@v1.5-xl-turbo",
+    "picked": 0,
+    "post": "00323f2db11bc31f",
+    "provider": "runware",
+    "seam": 0.791,
+    "seed": 11,
+    "seeds": [
+      11,
+      10
+    ],
+    "tempo": 90.06,
+    "waveform": ".lab/media/city.png"
+  },
   "course": {
     "bytes": 402771,
     "candidates": [
@@ -50,6 +78,34 @@
       1.46
     ],
     "waveform": ".lab/media/cup.png"
+  },
+  "desert": {
+    "bytes": 420236,
+    "candidates": [
+      ".lab/media/desert/0.wav",
+      ".lab/media/desert/1.wav"
+    ],
+    "cost": 0.00735,
+    "duration": 20.8674,
+    "file": "public/music/desert.mp3",
+    "hash": "4ef95523d4724206",
+    "kind": "music",
+    "loop": [
+      8.34,
+      29.2074
+    ],
+    "model": "runware:ace-step@v1.5-xl-turbo",
+    "picked": 0,
+    "post": "00323f2db11bc31f",
+    "provider": "runware",
+    "seam": 0.717,
+    "seed": 9,
+    "seeds": [
+      9,
+      10
+    ],
+    "tempo": 92.01,
+    "waveform": ".lab/media/desert.png"
   },
   "holed": {
     "bytes": 5439,
@@ -150,6 +206,34 @@
       0.695
     ],
     "waveform": ".lab/media/rail.png"
+  },
+  "snow": {
+    "bytes": 420195,
+    "candidates": [
+      ".lab/media/snow/0.wav",
+      ".lab/media/snow/1.wav"
+    ],
+    "cost": 0.0036,
+    "duration": 21.8887,
+    "file": "public/music/snow.mp3",
+    "hash": "c4558fceecc3d950",
+    "kind": "music",
+    "loop": [
+      8.9,
+      30.7887
+    ],
+    "model": "runware:ace-step@v1.5-xl-turbo",
+    "picked": 0,
+    "post": "00323f2db11bc31f",
+    "provider": "runware",
+    "seam": 0.564,
+    "seed": 8,
+    "seeds": [
+      8,
+      9
+    ],
+    "tempo": 87.72,
+    "waveform": ".lab/media/snow.png"
   },
   "splash": {
     "bytes": 47000,

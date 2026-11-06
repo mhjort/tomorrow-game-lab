@@ -1,4 +1,4 @@
-// DOM HUD: hole info, power bar, flash messages, final scorecard.
+// DOM HUD: hole info, power bar, flash messages, next-hole loading card, final scorecard.
 import { style } from './engine/style.ts';
 
 export interface HudState {
@@ -20,6 +20,8 @@ export interface Hud {
   update(s: HudState): void;
   power(p: number): void;
   flash(text: string): void;
+  /** Next-hole loading card with progress 0..1 (only shown when the player outruns the background prefetch); null hides it. */
+  loading(progress: number | null): void;
   scorecard(rows: readonly ScoreRow[]): void;
   hideScorecard(): void;
 }
@@ -35,6 +37,10 @@ export function createHud(root: HTMLElement): Hud {
       <div id="h-power" style="height:100%;width:0;background:${accent}"></div>
     </div>
     <div id="h-flash" style="position:absolute;top:28%;width:100%;text-align:center;font-size:44px;font-weight:800;opacity:0;transition:opacity .4s"></div>
+    <div id="h-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:none;background:#000a;padding:14px 22px;border-radius:12px;text-align:center;font-size:15px">
+      <div>Loading next island…</div>
+      <div style="margin-top:8px;width:200px;height:8px;border-radius:4px;background:#fff3;overflow:hidden"><div id="h-loading-bar" style="height:100%;width:0;background:${accent}"></div></div>
+    </div>
     <div id="h-card" style="position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#0007"></div>
     <div style="position:absolute;bottom:44px;width:100%;text-align:center;font-size:13px;opacity:.85">
       drag back to putt · ←/→ aim, hold Space for power · C camera · R restart hole · M sound
@@ -59,6 +65,10 @@ export function createHud(root: HTMLElement): Hud {
       el.style.opacity = '1';
       clearTimeout(flashTimer);
       flashTimer = setTimeout(() => (el.style.opacity = '0'), 1400);
+    },
+    loading(progress) {
+      $('h-loading').style.display = progress === null ? 'none' : 'block';
+      if (progress !== null) $('h-loading-bar').style.width = `${Math.round(progress * 100)}%`;
     },
     scorecard(rows) {
       const total = rows.reduce((s, r) => s + r.strokes, 0);

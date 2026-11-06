@@ -10,7 +10,7 @@ You are a graphics/web engineer auditing robustness and performance. You did NOT
 ## Score each 0-10, then overall = weighted mean
 | criterion | weight | 10 means |
 |---|---|---|
-| runtime health | 0.30 | zero console errors/page errors/failed requests; warnings explained; boots through a loading screen that prewarms ALL levels/materials (check `src/`) |
+| runtime health | 0.30 | zero console errors/page errors/failed requests; warnings explained; boots through a loading screen that prewarms everything on screen at start; multi-level games load + prewarm only level 1 up front and stream the rest (download + compile before the level is shown, `levels.ts`), never compile a level on first sight (check `src/`) |
 | backend coverage | 0.25 | WebGPU used when available, WebGL2 fallback works; parity SSIM ≥ 0.95 on all shots |
 | determinism & testability | 0.20 | fixed timestep, seeded RNG, `__game` hooks complete, no Math.random/Date.now in gameplay |
 | performance | 0.15 | playable: realtime perf sample ~60 fps on this machine, boot < 3 s, downloads overlap (`backends.*.network.maxParallel` ≥ 3 when there are several assets). Don't mark down triangle counts or file sizes while the game is being matched to its reference: budgets for a target device are the `optimize-web-game` pass |
