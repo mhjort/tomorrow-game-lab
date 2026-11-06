@@ -69,10 +69,15 @@ if (glbs.length && !argv.includes('--no-glb-opt')) {
     const doc = await io.read(f);
     const names = (d: import('@gltf-transform/core').Document) => d.getRoot().listNodes().map((n) => n.getName()).sort().join('|');
     const namesBefore = names(doc);
+    // quantization moves the mesh of a node that also has child nodes into a new unnamed child (so the dequantize
+    // scale doesn't scale the children): a mesh looked up by its node's name would no longer be there
+    const splits = doc.getRoot().listNodes().filter((n) => n.getMesh() && n.listChildren().length).map((n) => n.getName());
     // keepLeaves: marker empties (Spawn, Tee, Goal...) are leaf nodes without meshes — never prune them
     await doc.transform(dedup(), weld(), prune({ keepLeaves: true, keepExtras: true }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
     if (names(doc) !== namesBefore) {
       console.error(`${relative(dist, f)}: optimization changed the node set (markers/colliders would break)`);
+      if (splits.length)
+        console.error(`  nodes with both a mesh and child nodes: ${splits.join(', ')}. Meshopt quantization moves such a mesh into a new unnamed child.\n  Fix the asset script: make the parent an empty (the pivot) and parent the mesh and the other children to it.`);
       process.exit(1);
     }
     await io.write(f, doc);
@@ -91,7 +96,9 @@ if (!argv.includes('--no-preload')) {
   let page = readFileSync(htmlPath, 'utf8');
   const rel = (f: string) => `./${relative(dist, f)}`;
   const lazy = lazyLevelAssets();
-  // images/ (generate-media) are CSS/<img> loads -> as=image without crossorigin; sfx/ are fetched like models.
+  // images/: the loading screen's splash.* is a CSS background (no CORS) -> as=image without crossorigin; every other
+  // image is assumed to be a three.js texture, and TextureLoader requests in CORS mode, so its preload needs
+  // crossorigin or the browser downloads it twice. sfx/ are fetched like models.
   const hints = walk(dist)
     .filter((f) => (/\.(js|wasm|glb|mp3|ogg)$/.test(f) || /^images\/.*\.(webp|png|jpg)$/.test(relative(dist, f))) && !page.includes(relative(dist, f)))
     .filter((f) => !lazy.has(relative(dist, f)))
@@ -99,7 +106,7 @@ if (!argv.includes('--no-preload')) {
       f.endsWith('.js')
         ? `<link rel="modulepreload" crossorigin href="${rel(f)}">`
         : relative(dist, f).startsWith('images/')
-          ? `<link rel="preload" as="image" href="${rel(f)}">`
+          ? `<link rel="preload" as="image"${/^images\/splash\./.test(relative(dist, f)) ? '' : ' crossorigin'} href="${rel(f)}">`
           : `<link rel="preload" as="fetch" crossorigin href="${rel(f)}">`,
     );
   hints.push('<link rel="preload" as="fetch" crossorigin href="./asset-manifest.json">'); // written below

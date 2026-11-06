@@ -56,6 +56,29 @@ L.finish(__file__, style, {"pitch_deg": 35})
   assert.ok(Math.abs(ty - 0.25) < 1e-4 && Math.abs(tz) < 1e-4, `crate translation ${crate.translation}`);
 });
 
+test('lab_bpy.finish fails on z-fighting: coplanar overlapping faces of two materials', { skip: !hasBlender() && 'blender missing', timeout: 120000 }, () => {
+  const proj = tmp('zfight');
+  mkdirSync(join(proj, 'assets/src'), { recursive: true });
+  copyFileSync(join(SKILLS, 'blender-assets/scripts/lab_bpy.py'), join(proj, 'assets/src/lab_bpy.py'));
+  const script = (shaftTop: number): string => `import os, sys; sys.path.insert(0, os.path.dirname(__file__))
+import lab_bpy as L
+L.reset_scene()
+a, b, c = L.material("A", (0.8, 0.8, 0.7, 1)), L.material("B", (0.8, 0.6, 0.5, 1)), L.material("C", (0.2, 0.3, 0.2, 1))
+L.box("Plinth", (3, 3, 0.3), (0, 0, -0.15), b)              # top at z = 0
+L.box("Shaft", (2, 2, 2), (0, 0, ${shaftTop} - 1), a)          # top at z = ${shaftTop}
+L.box("Crate", (0.5, 0.5, 0.5), (1.2, 1.2, 0.25), c)        # resting on the plinth: hidden contact, not a fight
+L.finish(__file__, None, {})
+`;
+  writeFileSync(join(proj, 'assets/src/bad.py'), script(0));
+  writeFileSync(join(proj, 'assets/src/good.py'), script(-0.3));
+  const bad = run(join(SKILLS, 'blender-assets/scripts/run_blender.sh'), ['assets/src/bad.py', '--no-preview'], { cwd: proj });
+  assert.notEqual(bad.status, 0, 'flush tops must fail the build');
+  assert.match(bad.stdout + bad.stderr, /Z-FIGHT Plinth\[B\] \/ Shaft\[A\]: 4\.0000 m2/);
+  assert.doesNotMatch(bad.stdout + bad.stderr, /Crate/);
+  const good = run(join(SKILLS, 'blender-assets/scripts/run_blender.sh'), ['assets/src/good.py', '--no-preview'], { cwd: proj });
+  assert.equal(good.status, 0, good.stdout.slice(-2000) + good.stderr.slice(-2000));
+});
+
 test('lab_bpy.import_glb: generated GLB -> facing, scale, bottom-centre origin, tri + texture budget', { skip: !hasBlender() && 'blender missing', timeout: 180000 }, () => {
   const proj = tmp('import-glb');
   mkdirSync(join(proj, 'assets/src'), { recursive: true });

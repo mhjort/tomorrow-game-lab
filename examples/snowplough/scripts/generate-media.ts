@@ -412,6 +412,12 @@ export function normalise(kind: string, name: string, raw: RawEntry, provider = 
     if (e.transparent && e.out === 'jpg') throw new Error(`images.${name}: transparent images need png or webp`);
     e.reference = list(e.reference);
     if (!!e.width !== !!e.height) throw new Error(`images.${name}: give width and height together`);
+    // checked here, before any request: the provider rejects these after earlier entries were already paid for
+    if (typeof e.width === 'number' && typeof e.height === 'number' && /^openai:gpt-image/.test(String(e.model))) {
+      const px = e.width * e.height;
+      if (px < 655360 || px > 8294400 || e.width % 16 || e.height % 16)
+        throw new Error(`images.${name}: ${e.model} needs width and height in steps of 16 and 655,360–8,294,400 pixels in all (${e.width}×${e.height} = ${px}); e.g. 1280×640 for a 2:1 card`);
+    }
   } else if (kind === 'sfx') {
     e.model ??= DEFAULT_MODELS.sfx;
     e.duration ??= 2;

@@ -216,9 +216,10 @@ async function openGame(browser: Browser, url: string, backend: string, extra = 
   return { page, errors, warnings, ready: true, reported, bootMs: Date.now() - t0, network: [...network] };
 }
 
-function evalAssert(expr: string, state: unknown): { ok: boolean; error?: string } {
+/** `state` is __game.getState(); `result` is what the last script/eval/input step returned (A/B checks in a bot). */
+function evalAssert(expr: string, state: unknown, result?: unknown): { ok: boolean; error?: string } {
   try {
-    return { ok: Boolean(new Function('state', `return (${expr});`)(state)) };
+    return { ok: Boolean(new Function('state', 'result', `return (${expr});`)(state, result)) };
   } catch (e) {
     return { ok: false, error: message(e) };
   }
@@ -249,6 +250,7 @@ async function runScenario(browser: Browser, url: string, backend: string, scena
     return res;
   }
   const page = g.page;
+  let lastResult: unknown;
   for (const [i, s] of scenario.steps.entries()) {
     const rec: StepRecord = { i, ...s };
     try {
@@ -275,7 +277,7 @@ async function runScenario(browser: Browser, url: string, backend: string, scena
         }
       } else if (s.assert !== undefined) {
         const state = await page.evaluate(() => window.__game.getState());
-        const r = evalAssert(s.assert, state);
+        const r = evalAssert(s.assert, state, lastResult);
         rec.ok = r.ok;
         if (!r.ok) {
           rec.failed = r.error ?? `assertion false: ${s.assert}`;
@@ -321,6 +323,7 @@ async function runScenario(browser: Browser, url: string, backend: string, scena
       rec.failed = message(e);
       res.pass = false;
     }
+    if ((s.script !== undefined || s.eval !== undefined) && rec.result !== undefined) lastResult = rec.result;
     rec.stateAfter = await page.evaluate(() => window.__game.getState()).catch(() => null);
     res.steps.push(rec);
   }

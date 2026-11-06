@@ -319,6 +319,117 @@ def triangle_count(objs=None):
         o.evaluated_get(dg).to_mesh_clear()
     return n
 
+
+# ---------------------------------------------------------------- z-fighting check
+
+def _clip(poly, a, b):
+    """Sutherland-Hodgman: keep the part of convex `poly` left of the directed edge a->b (2D)."""
+    out = []
+    side = lambda p: (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+    for i, p in enumerate(poly):
+        q = poly[(i + 1) % len(poly)]
+        sp, sq = side(p), side(q)
+        if sp >= 0:
+            out.append(p)
+        if (sp >= 0) != (sq >= 0):
+            t = sp / (sp - sq)
+            out.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+    return out
+
+
+def _tri_overlap(t1, t2):
+    """Overlap polygon of two counter-clockwise 2D triangles (empty list if none)."""
+    poly = list(t1)
+    for i in range(3):
+        if not poly:
+            break
+        poly = _clip(poly, t2[i], t2[(i + 1) % 3])
+    return poly
+
+
+def _area(poly):
+    return 0.5 * sum(p[0] * q[1] - q[0] * p[1] for p, q in zip(poly, poly[1:] + poly[:1]))
+
+
+def _inside(p, tri):
+    return all((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]) >= -1e-9 for a, b in zip(tri, tri[1:] + tri[:1]))
+
+
+def find_coplanar_overlaps(objs=None, dist=1e-3, min_area=1e-4):
+    """Pairs of faces that lie in the same plane, face the same way and overlap: they z-fight in the game
+    (stripes that crawl as the camera moves). A shaft top flush with the plinth top on the bell tower's floor
+    flickered for five judge rounds before a player saw it. Overlaps covered by an opposite-facing coplanar face
+    (one solid resting on another: their contact faces are hidden) and overlaps of one material (they shade to the
+    same pixels) are ignored. Returns [(objA, objB, area, (x,y,z))]."""
+    objs = objs or [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.get("collider_only") and not o.get("sensor")]
+    dg = bpy.context.evaluated_depsgraph_get()
+    buckets = {}  # (rounded normal, plane-distance cell) -> [(obj name, 3D verts, d)]
+    for o in objs:
+        ev = o.evaluated_get(dg)
+        me = ev.to_mesh()
+        me.calc_loop_triangles()
+        mw = o.matrix_world
+        mats = [m.name if m else "" for m in me.materials]
+        for lt in me.loop_triangles:
+            vs = [mw @ me.vertices[i].co for i in lt.vertices]
+            mat = mats[lt.material_index] if lt.material_index < len(mats) else ""
+            n = (vs[1] - vs[0]).cross(vs[2] - vs[0])
+            if n.length < 1e-9:
+                continue
+            n.normalize()
+            d = n.dot(vs[0])
+            key = (round(n.x, 2) + 0.0, round(n.y, 2) + 0.0, round(n.z, 2) + 0.0, math.floor(d / (2 * dist)))
+            buckets.setdefault(key, []).append((f"{o.name}[{mat}]", vs, n, d))
+        ev.to_mesh_clear()
+
+    def frame(n):
+        u = n.orthogonal().normalized()
+        return u, n.cross(u)
+
+    def proj(vs, u, v):
+        pts = [(p.dot(u), p.dot(v)) for p in vs]
+        return pts if _area(pts) > 0 else pts[::-1]
+
+    found = {}
+    for (nx, ny, nz, cell), tris in buckets.items():
+        near = [t for c in (cell, cell + 1) for t in buckets.get((nx, ny, nz, c), [])]
+        if len(near) < 2:
+            continue
+        u, v = frame(tris[0][2])
+        d0 = tris[0][3]
+        opp = [proj(vs, u, v) for c in (-cell - 2, -cell - 1, -cell) for _, vs, _, d2 in buckets.get((-nx + 0.0, -ny + 0.0, -nz + 0.0, c), []) if abs(d2 + d0) < dist]
+        own = len(tris)
+        # sweep along u: only triangles whose u-ranges overlap are compared (big flat floors have thousands)
+        items = sorted(((min(p[0] for p in t), max(p[0] for p in t), i, name, t, d, vs) for i, (name, vs, _, d) in enumerate(near) for t in [proj(vs, u, v)]))
+        active = []
+        for lo, hi, i, na, ta, da, va in items:
+            active = [x for x in active if x[1] > lo + 1e-6]
+            for _, _, j, nb, tb, db, _ in active:
+                if (i >= own and j >= own) or abs(da - db) >= dist or na.split("[")[-1] == nb.split("[")[-1]:
+                    continue  # next cell's own pair, or the same material (identical pixels: no visible fight)
+                ov = _tri_overlap(ta, tb)
+                if len(ov) < 3 or abs(_area(ov)) < min_area:
+                    continue
+                c2 = (sum(p[0] for p in ov) / len(ov), sum(p[1] for p in ov) / len(ov))
+                if any(_inside(c2, t) for t in opp):
+                    continue  # hidden contact between two solids
+                k = tuple(sorted((na, nb)))
+                a, at = found.get(k, (0.0, None))
+                found[k] = (a + abs(_area(ov)), at or tuple(round(x, 3) for x in (sum(va, mathutils.Vector()) / 3)))
+            active.append((lo, hi, i, na, ta, da, va))
+    return [(k[0], k[1], a, at) for k, (a, at) in sorted(found.items(), key=lambda kv: -kv[1][0])]
+
+
+def check_zfighting(objs=None, fail=True):
+    """Print every z-fighting overlap; raise (fails the asset build) unless fail=False."""
+    hits = find_coplanar_overlaps(objs)
+    for a, b, area, at in hits:
+        print(f"[lab_bpy] Z-FIGHT {a} / {b}: {area:.4f} m2 of coplanar same-facing faces near {at}", file=sys.stderr)
+    if hits and fail:
+        raise RuntimeError(f"[lab_bpy] {len(hits)} z-fighting face overlaps (see above): move one surface by >= 1 cm "
+                           "or remove the hidden one; pass check_coplanar=False to finish() only for intended decals")
+    return hits
+
 # ---------------------------------------------------------------- export / preview
 
 def export_glb(path):
@@ -423,11 +534,12 @@ def render_preview(path, style=None, size=(768, 768), yaw_deg=35, pitch_deg=30):
     print(f"[lab_bpy] preview {path}")
 
 
-def finish(script_file, style=None, preview_kwargs=None):
+def finish(script_file, style=None, preview_kwargs=None, check_coplanar=True):
     """Standard ending for an asset script run from the game project root:
-    exports public/models/<script-stem>.glb and renders .lab/previews/<script-stem>.png
-    (skip the preview with `-- --no-preview`)."""
+    checks for z-fighting (coplanar overlapping faces; fails the build), exports public/models/<script-stem>.glb
+    and renders .lab/previews/<script-stem>.png (skip the preview with `-- --no-preview`)."""
     name = os.path.splitext(os.path.basename(script_file))[0]
+    check_zfighting(fail=check_coplanar)
     export_glb(os.path.join("public", "models", f"{name}.glb"))
     if "--no-preview" not in args():
         render_preview(os.path.join(".lab", "previews", f"{name}.png"), style, **(preview_kwargs or {}))

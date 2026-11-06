@@ -6,6 +6,7 @@ Copy next to lab_bpy.py (assets/src/lab_rig.py; the build skips lab_* helpers) a
     body = L.import_glb("assets/generated/villager.glb", "Villager", forward="-Y", height=1.1, max_tris=6000)
     rig = R.rig_biped(body)                  # landmarks measured from the mesh; pass overrides if a sheet looks off
     R.add_biped_clips(rig)                   # idle, walk, run, jump (in place, loopable)
+    R.add_hang_clips(rig)                    # optional: hang, swing, climb, pull (rope / ladder / bell-rope)
     R.render_pose_sheet(rig, ".lab/previews/villager-poses.png")
     L.finish(__file__)                       # GLB with skin + one glTF animation per clip
 
@@ -88,7 +89,11 @@ def biped_landmarks(obj):
         hand_tip = sum(tip, Vector()) / len(tip)
         # the arm's line: through the middle of its outer part and the hand (the inner part merges with the
         # coat/torso, so its centroid drags the shoulder down). Works for T-pose (flat) and A-pose (sloped).
-        mid = [v for v in arm if reach * 0.45 < sign * v.x < reach * 0.75] or tip
+        # Only vertices of the arm count: scarf ends, a flared coat or a cape hanging at the sides are also
+        # "outside the torso" and dragged the line far down (a T-posed girl's shoulders came out at her waist).
+        # In a T- or A-pose the hand is the arm's lowest point, so drop what hangs well below the hand.
+        on_arm = lambda v: v.z >= hand_tip.z - 0.15 * H  # noqa: E731
+        mid = [v for v in arm if reach * 0.45 < sign * v.x < reach * 0.75 and on_arm(v)] or tip
         mid_c = sum(mid, Vector()) / len(mid)
         d = hand_tip - mid_c
         sx = sign * torso_hw * 0.75
@@ -122,7 +127,11 @@ def biped_landmarks(obj):
     out["neck"] = Vector((0, 0, min(neck, shoulder_z + 0.05 * H) if neck < shoulder_z else neck))
     out["head_top"] = Vector((0, 0, H))
     # the head's half-width (centre cluster of the rows above the neck): rig_biped binds everything inside it rigidly
-    above = [inner_extent(i) for i in range(int(out["neck"].z / H * bins) + 1, bins) if rows[i]]
+    # Only rows above the arms: on a big-headed character in a T-pose the arms are at neck height, and a row
+    # through them would make the "head" as wide as the arm span (the arms then get bound rigidly to the head).
+    arm_top = max(out["hand.L"].z, out["hand.R"].z, shoulder_z) + 0.05 * H
+    head_from = max(out["neck"].z, arm_top)
+    above = [inner_extent(i) for i in range(int(head_from / H * bins) + 1, bins) if rows[i]]
     out["head_side"] = Vector((max(above) if above else 0.1 * H, 0, out["neck"].z))
     return out
 
@@ -309,6 +318,71 @@ def add_biped_clips(arm, clips=("idle", "walk", "run", "jump"), stride_deg=28):
         up = {**base(arm_swing=-60, elbow=5), "thigh.L": [(X, 5)], "thigh.R": [(X, 5)], "hips": [(X, 5)]}
         tuck = {**base(arm_swing=-30, elbow=40), "thigh.L": [(X, -50)], "thigh.R": [(X, -35)], "shin.L": [(X, 80)], "shin.R": [(X, 60)]}
         made.append(_clip(arm, "jump", [(0, base()), (0.15, crouch), (0.3, up), (0.5, tuck), (0.7, crouch), (0.8, base())]))
+    print(f"[lab_rig] clips: {[a.name for a in made]}")
+    return made
+
+
+def _arm_up_deg(arm, side, above=80.0):
+    """Degrees (about armature Y) that raise an upper arm from its rest angle to `above` degrees over horizontal."""
+    b = arm.data.bones[f"upper_arm.{side}"]
+    d = (b.tail_local - b.head_local).normalized()
+    rest = math.degrees(math.asin(max(-1.0, min(1.0, d.z))))
+    return -(above - rest) if side == "L" else above - rest
+
+
+def add_hang_clips(arm, clips=("hang", "swing", "climb", "pull")):
+    """Clips for a character holding a rope, bar or ledge above its head (rope swings, ladders, monkey bars, bell
+    ropes). The game pins the midpoint of the hand bones to the grip point every frame and moves/rotates the root.
+      hang  (2 s loop)  arms overhead, legs dangling, a slow sway
+      swing (1 s, scrub it: `animator.scrub('swing', u)`) u=0 legs kicked forward (front of a swing), u=0.5 hanging
+            straight, u=1 legs tucked back (back of a swing). Map the pendulum's angle to u; don't play it in time.
+      climb (0.8 s loop) hand over hand, knees lifting in turn
+      pull  (1 s, scrub or loop) standing, both hands up on a line: u=0 arms up, u=0.5 pulled down with a dip
+    Forward is the character's -Y (the lab convention), so "forward" = the direction it faces."""
+    X, Y = (1, 0, 0), (0, 1, 0)
+    up = {"L": _arm_up_deg(arm, "L"), "R": _arm_up_deg(arm, "R")}
+    down = {"L": _arm_down_deg(arm, "L"), "R": _arm_down_deg(arm, "R")}
+    H = json.loads(arm["landmarks"])["head_top"][2]
+
+    def arms_up(reach_l=0.0, reach_r=0.0, elbow=8.0, fwd=8.0):
+        # raise about Y, bring slightly forward about X; reach_* lifts one hand higher (degrees)
+        return {
+            "upper_arm.L": [(Y, up["L"] - reach_l), (X, -fwd)],
+            "upper_arm.R": [(Y, up["R"] + reach_r), (X, -fwd)],
+            "forearm.L": [(X, -elbow)],
+            "forearm.R": [(X, -elbow)],
+        }
+
+    def legs(thigh, shin, spread=0.0):
+        return {"thigh.L": [(X, thigh + spread)], "thigh.R": [(X, thigh - spread)], "shin.L": [(X, shin)], "shin.R": [(X, shin)]}
+
+    made = []
+    if "hang" in clips:
+        keys = []
+        for i in range(5):
+            s = math.sin(i / 4 * 2 * math.pi)
+            keys.append((i / 4 * 2.0, {**arms_up(), **legs(-6 - 6 * s, 14 + 8 * s), "hips": [(X, 3 * s)], "head": [(X, -4)]}))
+        made.append(_clip(arm, "hang", keys))
+    if "swing" in clips:
+        fwd = {**arms_up(elbow=4), **legs(-55, 12), "hips": [(X, -12)], "chest": [(X, 6)], "head": [(X, 6)]}
+        mid = {**arms_up(), **legs(-30, 40), "hips": [(X, -4)]}  # hanging still, the knees come up a little: no stiff plumb line
+        back = {**arms_up(elbow=14, fwd=2), **legs(18, 75), "hips": [(X, 10)], "chest": [(X, -6)], "head": [(X, -8)]}
+        made.append(_clip(arm, "swing", [(0, fwd), (0.5, mid), (1.0, back)]))
+    if "climb" in clips:
+        keys = []
+        for i in range(5):
+            s = math.sin(i / 4 * 2 * math.pi)
+            p = {**arms_up(reach_l=18 * s, reach_r=-18 * s, elbow=18 - 10 * s), "hips": [(X, -4)]}
+            p.update({"thigh.L": [(X, -20 - 35 * max(0.0, s))], "thigh.R": [(X, -20 - 35 * max(0.0, -s))],
+                      "shin.L": [(X, 30 + 50 * max(0.0, s))], "shin.R": [(X, 30 + 50 * max(0.0, -s))]})
+            keys.append((i / 4 * 0.8, p))
+        made.append(_clip(arm, "climb", keys))
+    if "pull" in clips:
+        high = {**arms_up(elbow=6, fwd=20), "head": [(X, -10)]}
+        low = {"upper_arm.L": [(Y, up["L"] * 0.35 + down["L"] * 0.0), (X, -55)], "upper_arm.R": [(Y, up["R"] * 0.35), (X, -55)],
+               "forearm.L": [(X, -50)], "forearm.R": [(X, -50)], "hips": [(X, -12)], "chest": [(X, -10)],
+               **legs(-25, 45), "root_z": -0.06 * H}
+        made.append(_clip(arm, "pull", [(0, high), (0.5, low), (1.0, high)]))
     print(f"[lab_rig] clips: {[a.name for a in made]}")
     return made
 

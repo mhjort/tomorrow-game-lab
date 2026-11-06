@@ -2,7 +2,7 @@
 
 The video is the spec. **The game must look like the video and keep its mechanic.** Use this when:
 - the user gave only words and `RUNWARE_API_KEY` is set: generate the video (default for new games), or
-- the user gave a gameplay video: skip step 1.
+- the user gave a gameplay video: skip step 1. A given clip may be low-res (the fal showcase clips are 640×360) and longer than ours: crops come out as 6× upscales of 25 px figures, so mark `unclear` honestly and measure sizes from big things (see key-art-direction "Scale and camera"). It may also show a look the lab can't script (painterly, hand-drawn): see "Painterly references" below.
 
 With no key and no video, use the normal art-direction path (art bible written from the prompt).
 
@@ -41,6 +41,21 @@ Same workflow as always (scaffold, media, assets, implement, playtest, judge). A
 - Music: the clip's soundtrack is stripped, so write the music from the art bible's mood and the Speeds line (a fast verb wants a faster BPM). One loop for play is enough for v1.
 - The boot scenario's overview screenshot copies the hero frame's camera. Add a play screenshot mid-action that matches another keyframe.
 - The final hand-off names the source video, so the user can compare: "built from `design/reference/gameplay.mp4`".
+
+## Painterly references (hand-painted, watercolour, gouache)
+Blender scripts alone come out as clean CG. The bell-tower proof (an exercise game rebuilt from fal showcase clip #15, not kept in the repo) built a painted 2.5D look from parts the lab has:
+- **Gameplay geometry stays Blender** (tower, bells, beam: things that move, glow or need exact sizes), coloured from `style.json`. Faces inside openings get the reference's shade role per face, and the stone gets a world-space noise wash in a TSL `colorNode` (`src/scenery.ts paintStone`), so flat faces read as painted.
+- **Everything soft is a generated painted card** (gpt-image, `transparent: true`, the crop + key art as references): hills, clouds, foliage. One card each, reused flipped, scaled and tinted (tint the foreground darker). Cards are unlit `MeshBasicNodeMaterial` with `toneMapped = false`, so they keep their painted colours. A far layer (sky, hills, clouds) follows the camera at ~0.85 for parallax.
+- **The sky is a shader**: a gradient plus effects driven by uniforms (the rainbow bands' reveal, a ring pulse), not a texture: it is the gameplay feedback.
+- **Light it for shade, not brightness:** a raking sun and ambient ≈ 1.9 (not 2.9) kept the rose-brown shade side that all three visual judges asked for.
+
+## Lessons from the bell-tower proof
+- **Bots find tuning bugs first.** With linear damping only, the pump-with-the-swing bot drove the pendulum into its 62° stop; quadratic air drag made a perfect pump saturate at 27° (the video shows ±20–25°) and a coasting swing decay within a few swings. Measure the video's amplitudes and periods (a 4 fps strip of the play section), then tune until the bot's trace matches.
+- **A/B assertions:** "climbing speeds the swing up" only shows against a control run (drag hides it in one run). A bot can return `{ held, climbed }`, and an `assert` can test `result.climbed > result.held * 1.1` (game-judge `result`).
+- **Readability beats a literal size:** the clip's ringer is 25 px tall; at that size she was a speck. Scale her to what the clearest frame shows (0.8 of a bell's height), make her trademark (a long red scarf) a procedural ribbon that streams, and list both in the brief's additions.
+- **Once the palette matches, shape decides the score.** Rounds 1–4 moved palette and light; the visual median sat at 6.7–6.8 while shape stayed at 5.5–6 ("a flat slab with an arch cut in"). What moved it to 7.0: pilasters projecting from each pier with two-step capitals and bases, a moulded ring around each arch, bells re-profiled from the crop (domed shoulder, concave waist, a lip ~1.6x the shoulder), and a foliage mound at the tower's foot. Read the shape criterion's trend, not only the total.
+- **Painted cards must stay inside the outline they sit on,** or judges call them floating, every round. And darkening a card with `tint` saturates it: a foot mound of tinted orange cards measured `#c86017`, a colour not in the reference. Use a second card in another hue (ochre/rust) instead of tinting one darker.
+- **A judge's fix can overshoot:** "the rainbow is too curved" turned into near-flat stripes, which the next panel flagged 3/3. Compare against the reference after each fix, not against the last verdict.
 
 ## Lessons from the snowplough proof (`examples/snowplough`)
 - **Invented details come from words, not the video.** The first build had a big-headed villager in a scarf and pompom hat, and a decorated festival tree. The video has blocky cube-headed figures in plain coats, and a fire pit with a sapling. Both came from text: the villager prompt asked for "a winter coat, scarf and knit hat", and the image model drew the text because the villager was 15 px in the reference frame. The tree came from a misread contact sheet. The judges compared mood and palette, so neither was caught. The fix is the inventory crops, prompts that trace to them, an Additions list in the brief, and the visual judge's inventory check.
