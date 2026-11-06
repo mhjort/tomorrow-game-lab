@@ -1,5 +1,7 @@
 // Simple putting bot: aims at per-hole waypoints, then the cup; power from the game's rolling model
 // (distance ≈ v² / (2·0.9 m/s²), max speed 5 m/s, +energy to climb hole 3's 0.16 m ramp).
+// Holes stream in (engine/levels.ts): while the game shows phase 'loading' the bot yields to the page so the
+// background download/compile can finish (a synchronous step loop would starve it).
 // The file is one arrow-function expression evaluated in the page; the type-only imports are erased first.
 import type { GameHooks } from '../../../src/engine/testHooks.ts';
 import type { State, Action } from '../../../src/main.ts';
@@ -12,12 +14,17 @@ async (game: GameHooks<State, Action>, { maxShots = 40 }: { maxShots?: number } 
     if (s.hole === 2 && s.ball.z > -2.6) return [0, -3.1]; // dogleg corner
     if (s.hole === 2 && s.ball.x < 1.15) return [1.0, -3.5, 1.4]; // through the gap beside the bumper (+1.4 m carry)
     if (s.hole === 3 && s.ball.z > -2.1) return [s.ball.x > 0 ? 0.62 : -0.62, -2.6]; // around the guard
+    if (s.hole === 4 && s.ball.z > 1.0) return [0.35, 0.2]; // through the right gap past block A
+    if (s.hole === 4 && s.ball.z > -1.0 && s.ball.z < -0.3 && s.ball.x > -0.2) return [-0.45, s.ball.z]; // too close to block B: step left
+    if (s.hole === 4 && s.ball.z > -1.0) return [-0.4, -1.6]; // through the left gap past block B
     return [s.cup.x, s.cup.z];
   };
+  let waits = 0; // 50 ms yields spent waiting for holes to stream in (capped at 20 s)
   const shots: { hole: number; target: Waypoint; power: number }[] = [];
   for (let i = 0; i < maxShots; i++) {
     const s = game.getState();
     if (s.phase === 'complete') break;
+    if (s.phase === 'loading' && waits++ < 400) { await new Promise((r) => setTimeout(r, 50)); game.step(1); i--; continue; }
     if (s.phase !== 'aim') { game.step(10); continue; }
     const t = waypoint(s);
     const toCup = t[0] === s.cup.x && t[1] === s.cup.z;
@@ -29,5 +36,5 @@ async (game: GameHooks<State, Action>, { maxShots = 40 }: { maxShots?: number } 
     for (let k = 0; k < 150 && game.getState().phase === 'rolling'; k++) game.step(10);
     game.step(70);
   }
-  return { phase: game.getState().phase, shots };
+  return { phase: game.getState().phase, shots, waits };
 };

@@ -1,4 +1,4 @@
-"""Hole 3 — 'The Climb' (par 3): flat run-up, ramp, raised green with a guard block."""
+"""Hole 3 — 'Mesa Climb' (par 3, desert): flat run-up, ramp, raised green with a guard block."""
 import os, sys; sys.path.insert(0, os.path.dirname(__file__))  # noqa: E401
 import lab_bpy as L
 from _course import Course
@@ -15,7 +15,7 @@ def height(x, y):
 
 
 L.reset_scene()
-style = L.load_style()
+style = L.load_style(theme="desert")
 c = Course("hole3", style, height)
 c.turf_rect(-0.6, -3.0, 0.6, RAMP_Y0)
 c.turf_rect(-0.6, RAMP_Y0, 0.6, RAMP_Y1)
@@ -27,5 +27,5 @@ c.block("Guard", 0.0, 2.4, 0.6, 0.15)
 c.cup(0.0, 3.2)
 c.tee(0.0, -2.4)
 c.finish_turf()
-c.island(0.0, 0.4, 5.0, seed=33, pond=(-2.6, -1.0, 0.8))
+c.island(0.0, 0.4, 5.0, "desert", seed=33, pond=(-2.6, -1.0, 0.8))
 L.finish(__file__, style, {"yaw_deg": 30, "pitch_deg": 38})

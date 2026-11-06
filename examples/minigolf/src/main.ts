@@ -1,4 +1,6 @@
-// Island Putt — 3D minigolf. Golden test game for tomorrow-game-lab (see design/brief.md).
+// Island Putt — 3D minigolf on four themed floating islands. Golden test game for tomorrow-game-lab (see design/brief.md).
+// Level streaming (engine/levels.ts): only the first hole is downloaded and prewarmed behind the loading screen;
+// the next hole downloads and compiles in the background while you play this one.
 import * as THREE from 'three/webgpu';
 import { createRenderer, fitToWindow, params } from './engine/renderer.ts';
 import { applyStyle, paletteColor, style } from './engine/style.ts';
@@ -10,19 +12,22 @@ import { loadModels } from './engine/assets.ts';
 import { createAudio } from './engine/audio.ts';
 import { createHud, type HudState, type ScoreRow } from './hud.ts';
 import type { RigidBody } from '@dimforge/rapier3d';
-import { createLoadingScreen, prewarm } from './engine/loading.ts';
+import { createLoadingScreen } from './engine/loading.ts';
+import { createLevels, type LevelAssets } from './engine/levels.ts';
+import levelsJson from '../design/levels.json';
 
 const loading = createLoadingScreen({ title: 'Island Putt', image: 'images/splash.webp' });
 const audio = createAudio();
-const SFX = ['putt', 'rail', 'cup', 'water', 'holed']; // public/sfx/*.mp3, generated from design/media.json
-const MUSIC = 'course'; // public/music/course.mp3 (+ .json loop sidecar), a seamless loop from design/media.json
+const SFX = ['putt', 'rail', 'cup', 'water', 'holed']; // public/sfx/*.mp3, generated from design/media.json; every hole uses them
 
-interface HoleDef {
-  model: string;
+/** A hole in design/levels.json: its GLB (models[0]) and music loop (music[0], public/music/) load with the level. */
+interface HoleDef extends LevelAssets {
   name: string;
+  /** style.json theme: sky, fog and light for this island */
+  theme: string;
   par: number;
 }
-type Phase = 'aim' | 'rolling' | 'holed' | 'complete';
+type Phase = 'aim' | 'rolling' | 'holed' | 'loading' | 'complete';
 type CamMode = 'follow' | 'overview';
 
 /** Everything __game.input() (and the bots) can do. */
@@ -35,11 +40,10 @@ export type Action =
 /** What __game.getState() returns (scenarios assert on it). */
 export type State = ReturnType<typeof getState>;
 
-const HOLES: readonly HoleDef[] = [
-  { model: 'hole1', name: 'First Putt', par: 2 },
-  { model: 'hole2', name: 'Dogleg', par: 3 },
-  { model: 'hole3', name: 'The Climb', par: 3 },
-];
+const HOLES: readonly HoleDef[] = levelsJson.levels;
+const levels = createLevels(HOLES, { audio });
+/** ?hole=N deep link (human review): that hole is the one loaded behind the loading screen. */
+const FIRST = THREE.MathUtils.clamp((Number(params.get('hole')) || 1) - 1, 0, HOLES.length - 1);
 const BALL_R = 0.05;
 const CUP_R = 0.09;
 const MAX_SPEED = 5; // m/s at power 1
@@ -49,27 +53,29 @@ const STOP_TICKS = 15;
 const HOLED_DELAY = 60;
 const RAIL_DV = 0.35; // m/s horizontal velocity change in one tick that counts as a rail hit (rolling drag is ~0.015)
 
-// Download phase: renderer init, Rapier WASM chunk, every GLB and every sound in parallel, one progress bar.
-const [{ renderer, backend }, physics, models] = await loading.parallel('Loading course…', [
+// Download phase: renderer init, Rapier WASM chunk, the ball, the shared sounds and ONLY the first hole's
+// GLB + music, in parallel, one progress bar. The other holes stream in during play.
+const [{ renderer, backend }, physics, shared] = await loading.parallel('Loading course…', [
   { weight: 0.1, run: () => createRenderer() },
   { weight: 0.3, run: () => createPhysics({ substeps: 4 }) },
-  { weight: 0.3, run: (p) => loadModels([...HOLES.map((h) => h.model), 'ball'], p) },
+  { weight: 0.05, run: (p) => loadModels(['ball'], p) },
   { weight: 0.05, run: (p) => audio.load(SFX, p) },
-  { weight: 0.05, run: (p) => audio.loadMusic([MUSIC], p) },
+  { weight: 0.3, run: (p) => levels.download(FIRST, p) },
 ]);
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(style.camera?.fov ?? 45, innerWidth / innerHeight, 0.05, 200);
 fitToWindow(renderer, camera);
-const { refreshShadows } = applyStyle(scene, renderer, { shadowArea: 8 });
+const { refreshShadows, setTheme } = applyStyle(scene, renderer, { shadowArea: 8 });
+levels.attach(renderer, scene, camera);
 const { RAPIER, world } = physics;
 const input = createInput(renderer.domElement);
 const hudRoot = document.getElementById('hud');
 if (!hudRoot) throw new Error('index.html is missing #hud');
 const hud = createHud(hudRoot);
 
-/** A model loaded above (throws if a name is misspelled). */
-function model(name: string): THREE.Object3D {
-  const m = models[name];
+/** A model from a loaded set (throws if a name is misspelled). */
+function model(set: Record<string, THREE.Object3D>, name: string): THREE.Object3D {
+  const m = set[name];
   if (!m) throw new Error(`model "${name}" was not loaded`);
   return m;
 }
@@ -86,7 +92,7 @@ function holeDef(i: number): HoleDef {
 }
 
 // ---------------------------------------------------------------- ball
-const ballMesh = model('ball');
+const ballMesh = model(shared, 'ball');
 scene.add(ballMesh);
 const ballBody = world.createRigidBody(
   RAPIER.RigidBodyDesc.dynamic().setCcdEnabled(true).setLinearDamping(0.05).setAngularDamping(0.2).setCanSleep(false),
@@ -124,6 +130,8 @@ const g: {
   holeRoot: THREE.Object3D | null;
   holeBody: RigidBody | null;
   flag: THREE.Object3D | null;
+  /** hole index being loaded while phase is 'loading' */
+  pending: number;
   camMode: CamMode;
   tick: number;
   lastRailTick: number;
@@ -143,20 +151,44 @@ const g: {
   holeRoot: null,
   holeBody: null,
   flag: null,
+  pending: -1,
   camMode: 'follow',
   tick: 0,
   lastRailTick: -99,
 };
 
+/** Go to hole i: instantly when it is ready (prefetched), else behind a "Loading…" card until it is. */
 function loadHole(i: number): void {
+  if (levels.isReady(i)) {
+    buildHole(i);
+    return;
+  }
+  g.phase = 'loading';
+  g.pending = i;
+  hud.loading(0);
+  levels.load(i, (p) => hud.loading(p)).catch((e: unknown) => {
+    console.error(`hole ${i + 1} failed to load`, e);
+    hud.flash('Loading failed');
+  });
+  // update() swaps the hole in on the first tick after it is ready, so the swap happens in gameplay time
+}
+
+function buildHole(i: number): void {
   if (g.holeRoot) scene.remove(g.holeRoot);
   if (g.holeBody) physics.removeBody(g.holeBody);
   g.hole = i;
   g.strokes = 0;
-  const root = model(holeDef(i).model);
+  g.pending = -1;
+  hud.loading(null);
+  const def = holeDef(i);
+  const root = model(levels.models(i), def.models?.[0] ?? '');
   g.holeRoot = root;
   scene.add(root);
+  setTheme(def.theme);
   refreshShadows();
+  const track = def.music?.[0];
+  if (track) audio.playMusic(track, { volume: 0.7 }); // cross-fades; audible from the first click/key (no autoplay)
+  levels.prefetch(i + 1); // get the next island ready while this one is played
   g.holeBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
   const colliders = physics.collidersFromGltf(root, { body: g.holeBody });
   const cupSensor = colliders['CupSensor'];
@@ -322,6 +354,7 @@ function update(dt: number): void {
     }
   }
 
+  if (g.phase === 'loading' && levels.isReady(g.pending)) buildHole(g.pending);
   if (g.phase === 'rolling') applyRollingResistance(dt);
   const v0 = ballBody.linvel();
   physics.step();
@@ -449,6 +482,8 @@ function getState() {
   return {
     ...hudState(),
     phase: g.phase,
+    theme: holeDef(g.hole).theme,
+    levels: levels.statuses(), // per hole: idle | downloading | downloaded | compiling | ready | failed
     ball: { x: p.x, y: p.y, z: p.z, speed: Math.hypot(v.x, v.y, v.z) },
     tee: { x: g.tee.x, y: g.tee.y, z: g.tee.z },
     cup: { x: g.cup.x, y: g.cup.y, z: g.cup.z },
@@ -457,15 +492,15 @@ function getState() {
     scorecard: g.scorecard,
     sfx: { ...audio.counts }, // plays per sound (audible only outside ?test)
     music: audio.music,
-    musicTrack: audio.trackInfo(MUSIC),
+    musicTrack: audio.music ? audio.trackInfo(audio.music) : undefined,
   };
 }
 
-await loading.step('Compiling shaders', 0.3, (p) => prewarm(renderer, scene, camera, HOLES.map((h) => model(h.model)), p));
-loadHole(THREE.MathUtils.clamp((Number(params.get('hole')) || 1) - 1, 0, HOLES.length - 1)); // ?hole=N deep link for human review
+// Prewarm only the first hole (incl. the shadow pass); the rest compile in the background when prefetched.
+await loading.step('Compiling shaders', 0.3, (p) => levels.prewarm(FIRST, p));
+buildHole(FIRST);
 const loop = createLoop({ update, render, renderer });
 const hooks = installTestHooks({ backend, loop, getState, input: act });
-audio.playMusic(MUSIC, { volume: 0.7 }); // audible from the first click/key (browsers block autoplay)
 loop.start();
 loop.step(0);
 loading.done();

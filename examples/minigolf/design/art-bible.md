@@ -16,6 +16,15 @@ Late-afternoon, toy-like, calm. A floating grass island with a single bright cou
 | rock / wood / leaf | #946f44 / #7a4f2b / #3f7a46 | props |
 | sky    | #f1cfa8 | warm peach background + fog |
 
+The table is the **base** style (loading screen, key art). Each hole is a themed island: `style.json` → `themes.<name>` overrides the palette, sky/fog and sun per island, keeping the same roles (`grass` = island ground, `turf` lighter than the ground, `accent` reserved for the flag and trim):
+
+| theme | ground | course | props | sky / light |
+|---|---|---|---|---|
+| beach | sand | green turf, white rails, coral flag | palms, umbrellas + towels, lagoon | pale cyan, high warm sun |
+| snow | snow white | frosty turf, red rails, blue flag | snowy pines, snowmen, ice pond, capped rocks | cool grey-blue, low sun |
+| desert | sand | dry turf, terracotta rails, teal flag | saguaros, sandstone mesas, oasis palm | warm peach, high sun |
+| city | concrete | astro-turf, yellow rails, pink flag | lit towers on the rim, street lamps, planter trees, benches, fountain | dusk lavender, low orange sun |
+
 ## Lighting
 Single warm sun, low (≈32° elevation), from the side so rails cast long readable shadows. Cool sky fill. No bloom, no vignette.
 

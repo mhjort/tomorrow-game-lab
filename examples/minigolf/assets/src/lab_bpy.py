@@ -44,8 +44,19 @@ DEFAULT_STYLE = {
 }
 
 
-def load_style(path=None):
-    """Load design/style.json (searched upward from cwd if path is None), merged over defaults."""
+def _merge(style, over):
+    for k, v in over.items():
+        if isinstance(v, dict) and isinstance(style.get(k), dict):
+            style[k].update(v)
+        else:
+            style[k] = v
+
+
+def load_style(path=None, theme=None):
+    """Load design/style.json (searched upward from cwd if path is None), merged over defaults.
+
+    theme: a key of style.json "themes" (per-level looks); its partial style is merged over the base, the same way
+    the runtime's setTheme() does, so a level's palette, background and sun match in Blender and in the game."""
     style = json.loads(json.dumps(DEFAULT_STYLE))
     if path is None:
         d = os.getcwd()
@@ -61,11 +72,12 @@ def load_style(path=None):
     if path and os.path.exists(path):
         with open(path) as f:
             user = json.load(f)
-        for k, v in user.items():
-            if isinstance(v, dict) and isinstance(style.get(k), dict):
-                style[k].update(v)
-            else:
-                style[k] = v
+        _merge(style, user)
+    if theme is not None:
+        themes = style.get("themes", {})
+        if theme not in themes:
+            raise KeyError(f"style.json has no theme {theme!r} (have {sorted(themes)})")
+        _merge(style, themes[theme])
     return style
 
 

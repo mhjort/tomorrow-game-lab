@@ -1,0 +1,48 @@
+{
+  "levels": [
+    {
+      "name": "Beach Break",
+      "theme": "beach",
+      "par": 2,
+      "models": [
+        "hole1"
+      ],
+      "music": [
+        "course"
+      ]
+    },
+    {
+      "name": "Snowdrift Dogleg",
+      "theme": "snow",
+      "par": 3,
+      "models": [
+        "hole2"
+      ],
+      "music": [
+        "snow"
+      ]
+    },
+    {
+      "name": "Mesa Climb",
+      "theme": "desert",
+      "par": 3,
+      "models": [
+        "hole3"
+      ],
+      "music": [
+        "desert"
+      ]
+    },
+    {
+      "name": "Downtown Chicane",
+      "theme": "city",
+      "par": 3,
+      "models": [
+        "hole4"
+      ],
+      "music": [
+        "city"
+      ]
+    }
+  ]
+}

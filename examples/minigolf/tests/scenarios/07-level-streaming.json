@@ -1,0 +1,22 @@
+{
+  "name": "level-streaming",
+  "description": "Only hole 1 is loaded before play; hole 2 streams in the background while hole 1 is played; a jump to a hole that is not loaded yet shows the loading phase, then plays with that island's theme and music.",
+  "steps": [
+    { "assert": "state.levels[0] === 'ready' && state.levels[2] === 'idle' && state.levels[3] === 'idle'", "label": "boot loads only hole 1 (+ starts prefetching hole 2)" },
+    { "assert": "state.theme === 'beach' && state.music === 'course'", "label": "hole 1 is the beach island" },
+    { "until": "state.levels[1] === 'ready'", "max": 600, "every": 5 },
+    { "assert": "state.levels[2] === 'idle'", "label": "prefetch looks one hole ahead only" },
+    { "input": { "type": "loadHole", "hole": 2 } },
+    { "assert": "state.hole === 2 && state.phase === 'aim' && state.theme === 'snow' && state.music === 'snow'", "label": "prefetched hole swaps in instantly" },
+    { "input": { "type": "loadHole", "hole": 4 } },
+    { "assert": "state.phase === 'loading' && state.hole === 2", "label": "hole 4 not loaded yet: loading card, old hole stays" },
+    { "until": "state.hole === 4 && state.phase === 'aim'", "max": 600, "every": 5 },
+    { "assert": "state.theme === 'city' && state.music === 'city' && state.levels[3] === 'ready'", "label": "city island with its own music" },
+    { "assert": "Math.hypot(state.ball.x - state.tee.x, state.ball.z - state.tee.z) < 0.05", "label": "ball on hole 4's tee" },
+    { "step": 2 },
+    { "screenshot": "city" },
+    { "input": { "type": "camera", "mode": "overview" } },
+    { "step": 1 },
+    { "screenshot": "city-overview" }
+  ]
+}

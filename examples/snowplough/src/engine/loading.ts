@@ -144,3 +144,31 @@ export async function prewarm(
     onProgress((i + 1) / roots.length);
   }
 }
+
+/**
+ * Background prewarm for a level that is NOT on screen yet (levels.ts uses it while the player plays another level):
+ * compiles `root`'s materials with `scene`'s lights and fog without adding it to the scene or drawing anything.
+ * three's compileAsync time-slices the work and yields to the game loop between items. Shadow-depth pipelines
+ * are not covered (they compile on the first shadow pass); levels that reuse material setups share them anyway.
+ */
+export async function compileInBackground(
+  renderer: THREE.WebGPURenderer,
+  scene: THREE.Scene,
+  camera: THREE.Camera,
+  root: THREE.Object3D,
+  onProgress: Progress = () => {},
+): Promise<void> {
+  const culled: THREE.Object3D[] = [];
+  root.traverse((o) => {
+    if (o.frustumCulled) {
+      culled.push(o);
+      o.frustumCulled = false;
+    }
+  });
+  try {
+    await renderer.compileAsync(root, camera, scene, (e) => onProgress(e.total ? e.loaded / e.total : 1));
+  } finally {
+    for (const o of culled) o.frustumCulled = true;
+  }
+  onProgress(1);
+}
