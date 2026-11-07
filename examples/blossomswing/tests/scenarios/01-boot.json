@@ -1,0 +1,15 @@
+{
+  "name": "boot",
+  "description": "boots through the loading screen on both backends: title over the hilltop, then the swing framed like the key art with two rows in bloom and petals blowing",
+  "steps": [
+    { "step": 2 },
+    { "assert": "state.phase === 'title'", "label": "title first" },
+    { "screenshot": "title" },
+    { "input": { "type": "start" } },
+    { "assert": "state.phase === 'swing' && state.music === 'play'", "label": "start plays music" },
+    { "script": "bots/swinger.ts", "args": { "stop": "rows", "n": 2, "max": 2400 } },
+    { "assert": "state.rows === 2", "label": "two rows bloomed" },
+    { "step": 150 },
+    { "screenshot": "overview", "compare": "design/reference/keyart.png" }
+  ]
+}

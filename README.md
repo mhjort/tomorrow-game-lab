@@ -2,7 +2,7 @@
 
 [![Test](https://github.com/mhjort/tomorrow-game-lab/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/mhjort/tomorrow-game-lab/actions/workflows/test.yml)
 
-**▶ Play the examples: [Island Putt (3D minigolf)](https://mhjort.github.io/tomorrow-game-lab/minigolf/) · [Little Plough (snowplough, built from a gameplay video)](https://mhjort.github.io/tomorrow-game-lab/snowplough/)** · [all examples](https://mhjort.github.io/tomorrow-game-lab/)
+**▶ Play the examples: [Island Putt (3D minigolf)](https://mhjort.github.io/tomorrow-game-lab/minigolf/) · [Little Plough (snowplough, built from a gameplay video)](https://mhjort.github.io/tomorrow-game-lab/snowplough/) · [Blossom Swing (swing timing, built from a gameplay video)](https://mhjort.github.io/tomorrow-game-lab/blossomswing/)** · [all examples](https://mhjort.github.io/tomorrow-game-lab/)
 
 Lightweight agent skills for building **web games** from a prompt or from key art. There are seven skills, one stack, and no engine zoo.
 
@@ -61,7 +61,7 @@ tests/scenarios/*.json ──► playtest.ts ──► .lab/runs/<ts>/report.jso
                 visual-fidelity  gameplay      technical     asset-quality      (parallel subagents,
                  vs key art      vs brief      errors/perf    previews + GLBs    each sees only its inputs)
                      └──────────────┴──────┬───────┴──────────────┘
-                                     aggregate.ts ──► verdict.md (PASS / fix list) ──► iterate (≤6 rounds)
+                                     aggregate.ts ──► verdict.md (PASS / fix list) ──► iterate (≤10 rounds)
 ```
 
 The game exposes `window.__game` with these members:
@@ -77,6 +77,8 @@ skills/                 the product (what `pnpm dlx skills add` installs)
 examples/minigolf/      golden test game, built by following the skills (3 holes, Rapier, Blender assets)
 examples/snowplough/    video-first proof: "Little Plough", built from a generated gameplay video (generated
                         plough + rigged villager models, scripted village, deformable snow, music; no physics engine)
+examples/blossomswing/  video-first: "Blossom Swing", a swing-timing game (generated child rigged with seated clips,
+                        scripted hill, tree and instanced orchard; judged over 10 rounds to pass the visual bar)
 lab/fixtures/keyart/    original key art fixtures (rendered by Blender: minigolf.png + minigolf.mp4)
 lab/validate-skills.ts  skill format + conventions + template/example drift check
 lab/test/               node:test suites for every script (frames, palette, Blender→GLB, playtest, aggregator)
@@ -89,16 +91,17 @@ lab/eval/permissions.ts scoped allowlists for the unattended eval agents (no per
 | command | what |
 |---|---|
 | `pnpm install` | installs the minigolf workspace (three, rapier, vite, playwright-core) |
-| `pnpm typecheck` | strict TypeScript check of `lab/`, skill scripts and both examples (`tsc`, no emit) |
+| `pnpm typecheck` | strict TypeScript check of `lab/`, skill scripts and every example (`tsc`, no emit) |
 | `pnpm test` | typecheck + validator + all script tests, including both-backend playtest of minigolf (~15 s) |
 | `pnpm test:golden` | build minigolf and run its playtest (writes `examples/minigolf/.lab/runs/latest`) |
 | `pnpm keyart` | re-render the key-art fixtures in Blender |
 | `pnpm release:minigolf` | optimized release build of minigolf (`examples/minigolf/dist`) |
 | `pnpm --filter minigolf release --precompress` | same, plus `.br`/`.gz` siblings for brotli-capable hosts (not GitHub Pages) |
-| `pnpm site` | release builds + assemble the Pages site in `_site/` (landing page + `/minigolf/` + `/snowplough/`) |
+| `pnpm site` | release builds + assemble the Pages site in `_site/` (landing page + `/minigolf/` + `/snowplough/` + `/blossomswing/`) |
 | `pnpm eval --input image\|video\|both [--model opus] [--budget 25]` | expensive agent E2E eval; results → `lab/eval/results/`, `lab/eval/history.md` |
 | `cd examples/minigolf && pnpm assets && pnpm dev` | rebuild minigolf GLBs, play it |
 | `cd examples/snowplough && pnpm assets && pnpm dev` | rebuild the snowplough GLBs (village, imported plough, rigged villager), play it |
+| `cd examples/blossomswing && pnpm assets && pnpm dev` | rebuild the Blossom Swing GLBs (world, orchard, rigged child), play it |
 
 **Development loop:**
 1. Change a skill.

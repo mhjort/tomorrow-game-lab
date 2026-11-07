@@ -148,8 +148,11 @@ export function additions(project: string): string[] | null {
   const out: string[] = [];
   for (let j = i + 1; j < lines.length; j++) {
     const line = lines[j] ?? '';
-    if (!(/^\s*[-*] /.test(line) || (!out.length && !line.trim()))) break;
-    if (line.trim()) out.push(line.trim());
+    if (/^\s*[-*] /.test(line)) out.push(line.trim());
+    // a bullet wrapped onto indented lines: fold it back into its bullet (stopping there quoted half the list)
+    else if (out.length && /^\s+\S/.test(line)) out[out.length - 1] += ` ${line.trim()}`;
+    else if (!out.length && !line.trim()) continue;
+    else break;
   }
   return out;
 }

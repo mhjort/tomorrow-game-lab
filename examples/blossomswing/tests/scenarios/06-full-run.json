@@ -1,0 +1,14 @@
+{
+  "name": "full-run",
+  "description": "a bot plays from the title to the landing with real game actions, within the feel targets",
+  "steps": [
+    { "step": 5 },
+    { "script": "bots/swinger.ts", "args": { "stop": "landed", "max": 6000 } },
+    { "assert": "state.phase === 'landed' && state.rows === 5 && state.bloomed === state.trees", "label": "landed after the whole valley bloomed" },
+    { "assert": "result.bloomTicks > 60 * 12 && result.bloomTicks < 60 * 40", "label": "perfect timing blooms the valley in 12-40 s" },
+    { "assert": "state.leap.distance > 6", "label": "a good leap (6 m+)" },
+    { "assert": "state.sfx.gust === state.gusts", "label": "one gust sound per gust" },
+    { "step": 120 },
+    { "screenshot": "end-card" }
+  ]
+}

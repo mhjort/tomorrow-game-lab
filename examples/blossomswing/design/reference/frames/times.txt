@@ -1,0 +1,12 @@
+frame_01.png 0.000
+frame_02.png 0.549
+frame_03.png 1.097
+frame_04.png 1.646
+frame_05.png 2.194
+frame_06.png 2.743
+frame_07.png 3.292
+frame_08.png 3.840
+frame_09.png 4.389
+frame_10.png 4.938
+frame_11.png 5.486
+frame_12.png 6.035

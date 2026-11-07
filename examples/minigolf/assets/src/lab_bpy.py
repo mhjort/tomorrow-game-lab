@@ -520,15 +520,19 @@ def configure_render(path, size=(768, 768), engine="BLENDER_EEVEE", samples=32):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 
 
-def render_preview(path, style=None, size=(768, 768), yaw_deg=35, pitch_deg=30):
-    """Render a 3/4 preview PNG of all visible meshes. Call AFTER export_glb (adds lights/camera)."""
+def render_preview(path, style=None, size=(768, 768), yaw_deg=35, pitch_deg=30, target=None, distance=None, fov_deg=40):
+    """Render a 3/4 preview PNG of all visible meshes. Call AFTER export_glb (adds lights/camera).
+    A big level or landscape framed whole is a few pixels per prop: pass `target` (x, y, z) and `distance` to frame
+    the part the player sees (e.g. the game camera's view), and `size` for its aspect."""
     style = style or load_style()
     objs = [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.get("collider_only")]
     for o in bpy.context.scene.objects:
         if o.get("collider_only"):
             o.hide_render = True
     setup_lighting(style)
-    setup_camera(objs, yaw_deg=yaw_deg, pitch_deg=pitch_deg)
+    cam = setup_camera(objs, yaw_deg=yaw_deg, pitch_deg=pitch_deg, fov_deg=fov_deg,
+                       target=mathutils.Vector(target) if target is not None else None, distance=distance)
+    cam.data.clip_end = max(cam.data.clip_end, 2000)
     configure_render(path, size)
     bpy.ops.render.render(write_still=True)
     print(f"[lab_bpy] preview {path}")

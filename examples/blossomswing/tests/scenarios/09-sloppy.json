@@ -1,0 +1,18 @@
+{
+  "name": "sloppy",
+  "description": "the difficulty curve: a player who kicks a little late (6° past the bottom) still fills the valley in 25-90 s; one who kicks very late (14°) can't reach the last row's 39° peak",
+  "steps": [
+    { "step": 2 },
+    { "input": { "type": "start" } },
+    { "script": "bots/swinger.ts", "args": { "stop": "bloom", "late": 6, "max": 6000 } },
+    { "assert": "state.rows === 5 && result.ticks > 60 * 12 && result.ticks < 60 * 90", "label": "a little late still blooms the valley" },
+    { "input": { "type": "debug", "rows": 0, "theta": 0, "omega": 0 } },
+    { "step": 2 },
+    { "script": "bots/swinger.ts", "args": { "stop": "bloom", "late": 10, "max": 5400 } },
+    { "assert": "state.rows >= 3", "label": "kicking 10° late gets most of the way" },
+    { "input": { "type": "debug", "rows": 0, "theta": 0, "omega": 0 } },
+    { "step": 2 },
+    { "script": "bots/swinger.ts", "args": { "stop": "bloom", "late": 14, "max": 3600 } },
+    { "assert": "state.rows <= 1", "label": "very late kicks (14°) barely get a gust" }
+  ]
+}

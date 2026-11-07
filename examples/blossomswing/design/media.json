@@ -1,0 +1,91 @@
+{
+  "provider": "runware",
+  "videos": {
+    "gameplay": {
+      "model": "minimax:h3@max",
+      "prompt": "A small child in a yellow raincoat swings on a long rope swing hanging from the big low branch of a huge old tree on a grassy hilltop, pumping higher and higher; at the top of each swing a gust of pink petals blows out over the valley and the bare orchard trees on the slopes below burst into pink and white blossom, one row after another. Original cosy 3D arcade game, low-poly flat-shaded toy look, rounded simple shapes, soft spring morning light, pastel green rolling hills, a small round blue pond at the bottom of the valley, a few soft white clouds. Side-on camera at the height of the swing seat, showing the whole swing arc, the tree trunk on one side and the valley spreading out behind and below. Real in-engine gameplay footage, one continuous take, no cuts, the player is clearly controlling the child on the swing. Absolutely no text, no letters, no numbers, no HUD, no interface on screen.",
+      "width": 1344,
+      "height": 768,
+      "duration": 6,
+      "seed": 23,
+      "candidates": 2
+    }
+  },
+  "images": {
+    "child-ref": {
+      "prompt": "The small child from the reference images, alone, as a game character concept: a little toy-like child with a big round head (about 0.4 of the body height), wearing a bright yellow hooded raincoat with the hood up, the coat flaring out to a short A-line hem at the hips, brown hair with a short fringe showing under the hood, a peach face with rosy cheeks and small dark dot eyes, blue trousers with pale cuffs, small brown shoes. No bag, no buttons, no pattern, no boots, no scarf. Standing in a T-pose: arms straight out to the sides, legs slightly apart, facing the camera, full body visible from head to feet, front view. Same smooth soft clay-toy 3D style and colours as the reference. Plain pure white background, soft even light, no shadow, no other objects, no text.",
+      "reference": [
+        "design/reference/crops/child.png",
+        "design/reference/crops/child_side.png"
+      ],
+      "width": 1024,
+      "height": 1024,
+      "out": "png",
+      "dir": "design/reference/props",
+      "candidates": 2
+    },
+    "splash": {
+      "prompt": "Stylised soft 3D render of a little child in a yellow hooded raincoat on a rope swing hanging from the big branch of a huge old brown tree with a salmon-pink canopy on a grassy hilltop, swinging out over a green valley; a stream of pink petals blows from the branch over the valley; round pink blossom trees on the slopes, a small round blue pond at the bottom, pastel green rolling hills, soft white puffy clouds in a pale blue sky. Smooth clay-toy look, soft spring morning light, cosy and bright. Wide composition, no text, no logo, no interface. Match the palette and style of the reference image.",
+      "reference": [
+        "design/reference/keyart.png"
+      ],
+      "width": 1376,
+      "height": 768,
+      "out": "webp",
+      "candidates": 2
+    },
+    "icon": {
+      "prompt": "Game icon: a small child in a bright yellow hooded raincoat on a wooden plank swing hanging on two tan ropes, a few pink petals blowing past, one round pink blossom tree behind. Bold simple soft 3D toy shapes, readable at 32 pixels, centred, filling most of the frame, transparent background, no text.",
+      "transparent": true,
+      "width": 1024,
+      "height": 1024,
+      "resize": 64,
+      "out": "png",
+      "candidates": 2
+    }
+  },
+  "sfx": {
+    "creak": {
+      "prompt": "A thick hemp rope creaking once against a wooden tree branch as a swing moves: one short soft wooden creak. The creak is the very first sound, nothing before it. No voice, no music, no wind.",
+      "duration": 1,
+      "maxDuration": 0.6,
+      "candidates": 3
+    },
+    "gust": {
+      "prompt": "A soft gentle breath of spring wind rustling through blossom leaves, rising and fading away. Starts immediately. No voice, no music, no birds.",
+      "duration": 3,
+      "maxDuration": 2.2,
+      "trimDb": 30,
+      "candidates": 3,
+      "gain": -2
+    },
+    "bloom": {
+      "prompt": "One soft wooden marimba bar struck once with a felt mallet: a warm round pluck that rings briefly. The strike is the very first sound, nothing before it. One note only. No music, no ambience, no voice.",
+      "duration": 2,
+      "maxDuration": 0.7,
+      "trimDb": 36,
+      "candidates": 3
+    },
+    "land": {
+      "prompt": "A small child landing softly on thick grass: one soft muffled thump with a little rustle of grass. The thump is the very first sound, nothing before it. No voice, no music.",
+      "duration": 1,
+      "maxDuration": 0.6,
+      "candidates": 3
+    }
+  },
+  "music": {
+    "play": {
+      "prompt": "light playful cheerful video game background music for a cosy spring morning on a hilltop, plucked ukulele, glockenspiel melody and soft flute, gentle bouncy rhythm, no heavy drums, instrumental loop",
+      "bpm": 96,
+      "key": "G major",
+      "bars": 8,
+      "candidates": 2
+    }
+  },
+  "models": {
+    "child": {
+      "image": "design/reference/props/child-ref.png",
+      "faceLimit": 8000
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "leap",
+  "description": "full bloom → let go on the upswing → flight → landing on the hill with a distance and the end card; a kick puts the child back on the swing",
+  "steps": [
+    { "step": 2 },
+    { "input": { "type": "start" } },
+    { "input": { "type": "debug", "rows": 5, "theta": -40, "omega": 0 } },
+    { "step": 40 },
+    { "assert": "state.bloomed === state.trees", "label": "the debug rows are in bloom" },
+    { "assert": "state.phase === 'swing' && state.swing.omega > 1", "label": "swinging forward through the bottom" },
+    { "script": "bots/swinger.ts", "args": { "stop": "landed", "max": 600 } },
+    { "assert": "state.phase === 'landed' && state.leap.distance > 5", "label": "landed well down the hill" },
+    { "assert": "state.sfx.land === 2", "label": "push-off and landing thumps" },
+    { "step": 100 },
+    { "assert": "state.endText.startsWith(state.leap.distance.toFixed(1) + ' m')", "label": "end card shows the distance" },
+    { "screenshot": "landed" },
+    { "input": { "type": "kick" } },
+    { "step": 2 },
+    { "assert": "state.phase === 'swing' && Math.abs(state.swing.omega) < 0.5 && state.rows === 5", "label": "back on the swing, still in bloom" }
+  ]
+}

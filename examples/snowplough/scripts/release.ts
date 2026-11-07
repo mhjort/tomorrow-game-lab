@@ -102,6 +102,8 @@ if (!argv.includes('--no-preload')) {
   const hints = walk(dist)
     .filter((f) => (/\.(js|wasm|glb|mp3|ogg)$/.test(f) || /^images\/.*\.(webp|png|jpg)$/.test(relative(dist, f))) && !page.includes(relative(dist, f)))
     .filter((f) => !lazy.has(relative(dist, f)))
+    // icon.* is the favicon / share image, never loaded by the game: a preload of it only warns 'not used'
+    .filter((f) => !/^images\/icon\./.test(relative(dist, f)))
     .map((f) =>
       f.endsWith('.js')
         ? `<link rel="modulepreload" crossorigin href="${rel(f)}">`

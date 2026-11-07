@@ -387,6 +387,57 @@ def add_hang_clips(arm, clips=("hang", "swing", "climb", "pull")):
     return made
 
 
+def add_seated_clips(arm, clips=("sit", "kick", "fly", "land")):
+    """Clips for a character sitting on a swing seat, bench, cart or boat and holding on at its sides. The game puts
+    the `hips` bone on the seat every frame (move the model so hips' world position = seat point) and moves the seat.
+      sit  (2 s loop)  seated, thighs forward, shins hanging, hands gripping at chest height beside the body
+      kick (1 s, scrub it: `animator.scrub('kick', u)`) u=0 legs stretched out forward and leaning back (the front of
+           a swing), u=0.5 sitting, u=1 legs tucked under and leaning forward (the back of a swing)
+      fly  (0.8 s loop) let go: arms flung up and out, legs bicycling a little
+      land (0.6 s, once) sitting on the ground, legs out in front, hands behind on the ground
+    Forward is the character's -Y (the lab convention)."""
+    X, Y = (1, 0, 0), (0, 1, 0)
+    up = {"L": _arm_up_deg(arm, "L"), "R": _arm_up_deg(arm, "R")}
+    down = {"L": _arm_down_deg(arm, "L"), "R": _arm_down_deg(arm, "R")}
+
+    def grip(fwd=45.0, elbow=75.0, out=0.0):
+        # arms lowered, upper arms swung forward, elbows bent up: hands in front of the chest at the sides
+        return {"upper_arm.L": [(Y, down["L"] - out), (X, -fwd)], "upper_arm.R": [(Y, -down["R"] + out), (X, -fwd)],
+                "forearm.L": [(X, -elbow)], "forearm.R": [(X, -elbow)]}
+
+    def legs(thigh, shin, spread=0.0):
+        return {"thigh.L": [(X, thigh + spread)], "thigh.R": [(X, thigh - spread)], "shin.L": [(X, shin)], "shin.R": [(X, shin)]}
+
+    made = []
+    if "sit" in clips:
+        keys = []
+        for i in range(5):
+            s = math.sin(i / 4 * 2 * math.pi)
+            keys.append((i / 4 * 2.0, {**grip(), **legs(-85, 80 + 6 * s), "head": [(X, 2 * s)]}))
+        made.append(_clip(arm, "sit", keys))
+    if "kick" in clips:
+        out_ = {**grip(fwd=30, elbow=60), **legs(-95, 8), "hips": [(X, 14)], "chest": [(X, 4)], "head": [(X, -6)]}
+        mid = {**grip(), **legs(-85, 80)}
+        tuck = {**grip(fwd=55, elbow=85), **legs(-70, 125), "hips": [(X, -12)], "chest": [(X, -6)], "head": [(X, 6)]}
+        made.append(_clip(arm, "kick", [(0, out_), (0.5, mid), (1.0, tuck)]))
+    if "fly" in clips:
+        keys = []
+        for i in range(5):
+            s = math.sin(i / 4 * 2 * math.pi)
+            p = {"upper_arm.L": [(Y, up["L"] * 0.7), (X, -15 - 8 * s)], "upper_arm.R": [(Y, up["R"] * 0.7), (X, -15 + 8 * s)],
+                 "forearm.L": [(X, -15)], "forearm.R": [(X, -15)], "head": [(X, -8)]}
+            p.update({"thigh.L": [(X, -50 - 20 * s)], "thigh.R": [(X, -50 + 20 * s)],
+                      "shin.L": [(X, 50 + 25 * s)], "shin.R": [(X, 50 - 25 * s)]})
+            keys.append((i / 4 * 0.8, p))
+        made.append(_clip(arm, "fly", keys))
+    if "land" in clips:
+        sitg = {"upper_arm.L": [(Y, down["L"] * 0.8), (X, 35)], "upper_arm.R": [(Y, -down["R"] * 0.8), (X, 35)],
+                "forearm.L": [(X, -5)], "forearm.R": [(X, -5)], **legs(-80, 12, spread=4), "hips": [(X, 8)], "head": [(X, -4)]}
+        made.append(_clip(arm, "land", [(0, {**grip(), **legs(-60, 60)}), (0.3, sitg), (0.6, sitg)]))
+    print(f"[lab_rig] clips: {[a.name for a in made]}")
+    return made
+
+
 # ---------------------------------------------------------------- review
 
 

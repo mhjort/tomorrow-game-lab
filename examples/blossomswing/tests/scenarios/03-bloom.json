@@ -1,0 +1,26 @@
+{
+  "name": "bloom",
+  "description": "gusts bloom rows in order, one per gust, only when the peak is high enough; trees pop in after the gust",
+  "steps": [
+    { "step": 2 },
+    { "input": { "type": "start" } },
+    { "input": { "type": "debug", "theta": -19, "omega": 0 } },
+    { "step": 200 },
+    { "assert": "state.rows === 1 && state.gusts === 1", "label": "a 19° forward peak blooms row 1 (needs 15°), not row 2" },
+    { "step": 60 },
+    { "assert": "state.bloomed >= 8 && state.bloomed <= state.trees / 5", "label": "row 1's trees have popped" },
+    { "screenshot": "row1" },
+    { "input": { "type": "debug", "theta": -19, "omega": 0 } },
+    { "step": 200 },
+    { "assert": "state.rows === 1 && state.nextPeak === 21 && state.hint.includes('higher')", "label": "19° can't bloom row 2 (needs 21°), and the hint says to swing higher" },
+    { "assert": "state.petals > 0 || state.gusts >= 2", "label": "a weak gust still blows petals" },
+    { "input": { "type": "debug", "theta": -23, "omega": 0 } },
+    { "step": 200 },
+    { "assert": "state.rows === 2", "label": "23° blooms row 2" },
+    { "script": "bots/swinger.ts", "args": { "stop": "bloom", "max": 4000 } },
+    { "assert": "state.rows === 5", "label": "all five rows" },
+    { "step": 420 },
+    { "assert": "state.bloomed === state.trees && state.trees === 61 && state.hint.includes('let go')", "label": "every tree in bloom, then the let-go hint" },
+    { "screenshot": "full-bloom" }
+  ]
+}
