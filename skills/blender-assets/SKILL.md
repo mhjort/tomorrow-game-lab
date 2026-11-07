@@ -67,6 +67,8 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
 - **Look at the pose sheet**: one row per clip (idle, walk, run, jump), 4 frames each. Knees and elbows must bend at the joints, and nothing may tear or stretch across the body. If a joint is off, fix that landmark: `R.rig_biped(body, landmarks={"hip.L": (0.08, 0, 0.3), "hip.R": (-0.08, 0, 0.3)})`.
 - `add_biped_clips(rig, clips=(...), stride_deg=28)` keys every bone in every clip, so clips never inherit each other's pose. The game moves the character; clips only bob in place.
 - `add_hang_clips(rig)` adds `hang` (loop), `swing` (scrub it: u=0 legs kicked forward, 1 tucked back), `climb` (hand over hand) and `pull` (both hands on a line overhead) for rope swings, ladders, bell ropes and monkey bars. The game pins the midpoint of the hand bones to the grip point each frame and drives `swing`/`pull` with `animator.scrub(name, u)` from the pendulum's angle.
+- `add_seated_clips(rig)` adds `sit` (loop), `kick` (scrub it: u=0 legs out front, 1 tucked under), `fly` (arms flung up) and `land` (sitting on the ground) for swings, benches, carts and boats. The game puts the `hips` bone on the seat every frame (move the model by seat − hips world position).
+- A long coat, dress or A-line raincoat hides the crotch, and T-pose arms level with the coat's shoulders hide the shoulders: the auto landmarks put a raincoat child's hips at its ankles (the legs never bent) and its shoulders on the centre line (raising the arms stretched the hood). Print the mesh's x-extent per 2.5 cm height band, read the leg gap, coat hem, arm line and neck from it, and pass every landmark (`rig_biped(body, landmarks={...})`).
 - In the game: `createAnimator(model)` from the runtime's `animation.ts`, `play('walk')` from `update(dt)`, and `update(dt)` in the fixed step (see `web-game-runtime`).
 
 ## Conventions (the runtime depends on these)
@@ -87,7 +89,7 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
 
 ## Review loop (always)
 1. `pnpm assets <name>`
-2. **Look at `.lab/previews/<name>.png`** and compare it with the key art and the art bible. Fix the silhouette, proportions and colours before writing any game code that uses the asset.
+2. **Look at `.lab/previews/<name>.png`** and compare it with the key art and the art bible. A level or landscape framed whole is a few pixels per prop: frame the player's view with `L.finish(__file__, style, {"target": (x, y, z), "distance": d, "fov_deg": 60, "size": (1344, 768)})`. Fix the silhouette, proportions and colours before writing any game code that uses the asset.
 3. `L.finish` fails the build on **z-fighting**: faces of different materials that lie in the same plane, face the
    same way and overlap ("Z-FIGHT Tower_stoneLit / Tower_stoneWarm: 23 m2 … near (x, y, z)"). Fix the geometry:
    move one surface by ≥ 1 cm, or end the hidden part inside the solid it meets. `check_coplanar=False` is only for
@@ -106,6 +108,8 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
   plinth top (both z = 0) striped the bell tower's floor in the game. A block resting **on** another is fine (their
   contact faces face opposite ways and are hidden); a block passing **through** a slab must end inside it, not flush
   with its underside. The `finish()` check catches both.
+- Two meshes of one surface (a grass hilltop over a valley) overlap somewhere: offset the hidden one by ≥ 15 cm, not a few. A vertical offset barely separates near-vertical faces (their plane distance is offset × normal.z), and the `finish()` check flagged a 4 cm one on a steep bank.
+- Put props on terrain by **raycasting the mesh** (`mathutils.bvhtree.BVHTree.FromObject` + `ray_cast` down), not by evaluating the height function the mesh was sampled from: between grid points the mesh is linear, and on slopes props sank by up to a metre.
 - Booleans: use the EXACT solver (the `boolean_cut` default), and cut a single mesh before joining it with others. A cutter built with bmesh must have outward normals (`bmesh.ops.recalc_face_normals`): an inside-out cutter makes the cut a silent no-op (the bell tower's arches were simply missing). The cut also appends an empty material slot to the target, so find slots by name (`obj.data.materials.find("stoneShade")`), not by index.
 - `poly.center` and `poly.normal` are object-local. `L.box` keeps its origin at the box's middle, so compare face centres with world heights via `obj.matrix_world @ poly.center`.
 - Shade the insides of openings (arch soffits, pier sides) with a darker palette role per face (append a second material slot, then for each `poly` set `poly.material_index` where the world-space face centre is inside the opening and the normal points across it). One flat material reads as evenly lit, and the judges asked for the reference's shade side in every round.

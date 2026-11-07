@@ -1,0 +1,55 @@
+{
+  "source": "design/reference/keyart.png",
+  "colors": [
+    {
+      "hex": "#93a640",
+      "share": 0.172,
+      "luma": 0.606
+    },
+    {
+      "hex": "#cbdbe3",
+      "share": 0.166,
+      "luma": 0.848
+    },
+    {
+      "hex": "#8daf8c",
+      "share": 0.147,
+      "luma": 0.648
+    },
+    {
+      "hex": "#b2d3e1",
+      "share": 0.122,
+      "luma": 0.804
+    },
+    {
+      "hex": "#594b29",
+      "share": 0.083,
+      "luma": 0.296
+    },
+    {
+      "hex": "#629477",
+      "share": 0.08,
+      "luma": 0.53
+    },
+    {
+      "hex": "#8ec6d1",
+      "share": 0.077,
+      "luma": 0.733
+    },
+    {
+      "hex": "#c1a4b0",
+      "share": 0.062,
+      "luma": 0.671
+    },
+    {
+      "hex": "#dcbacd",
+      "share": 0.055,
+      "luma": 0.763
+    },
+    {
+      "hex": "#bf7869",
+      "share": 0.035,
+      "luma": 0.526
+    }
+  ]
+}

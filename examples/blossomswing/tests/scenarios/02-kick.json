@@ -1,0 +1,24 @@
+{
+  "name": "kick",
+  "description": "kicks at the bottom grow the swing; a kick near the peak does almost nothing; one kick per half-swing",
+  "steps": [
+    { "step": 2 },
+    { "input": { "type": "start" } },
+    { "step": 2 },
+    { "input": { "type": "kick" } },
+    { "step": 1 },
+    { "assert": "state.kicks === 1 && state.lastKick.q > 0.99 && state.swing.omega > 0.3", "label": "a kick from rest pushes forward" },
+    { "input": { "type": "kick" } },
+    { "step": 1 },
+    { "assert": "state.kicks === 1", "label": "a second kick in the same half-swing does nothing" },
+    { "script": "bots/swinger.ts", "args": { "stop": "rows", "n": 1, "max": 1200 } },
+    { "assert": "state.peak >= 15 && state.gusts >= 1", "label": "kicking at the bottom grows the swing to a gust" },
+    { "assert": "result.ticks < 60 * 4.5", "label": "first gust within ~4 s of good kicks" },
+    { "input": { "type": "debug", "theta": 30, "omega": 0 } },
+    { "step": 2 },
+    { "eval": "window.__game.getState().kicks" },
+    { "input": { "type": "kick" } },
+    { "step": 1 },
+    { "assert": "state.kicks === result + 1 && state.lastKick.q < 0.1", "label": "a kick at the peak has almost no effect (timing quality ~0)" }
+  ]
+}

@@ -66,3 +66,24 @@ Blender scripts alone come out as clean CG. The bell-tower proof (an exercise ga
 - **Connect-to-goal rules need slack:** "a cleared path from each door to the square" failed with exact geometry: the lane ended 1 m short of the square. Pre-clear an apron around goals and doorsteps so any sensible pass connects.
 - **A turning-radius vehicle in grid streets:** the bot needs pure pursuit with lookahead plus three-point turns into side streets out of dead ends. Write the bot early; it found the connectivity bug before any human did.
 - **Generated models rarely match the gameplay numbers:** the Tripo plough's blade was only as wide as its body. Fix the mesh in the import script (stretch the blade vertices) so what the player sees matches what the rules clear.
+
+## Lessons from Blossom Swing (a generated clip, an original game)
+- **Frame from proportions, not guesses.** Measure the reference's ratios (the rope spans 0.65 of the frame height,
+  the child 0.26, the horizon 0.45 from the top, the pivot at 1/3 of the width) and solve for camera distance, height
+  and pitch. Three "looks about right" camera passes went the wrong way (farther, higher); the measured one matched.
+- **Judges read occlusion as bad modelling.** Orchard rows on the near side of the valley lost their trunks behind
+  the slope's bulge, and all three judges said "trees with no trunk". Before changing a model, zoom into the
+  screenshot and check what hides it; put set dressing on slopes that face the camera.
+- **A pond is a basin, not a disc.** A flat disc cutting a coarse terrain grid has straight edges. Carve an oval dip
+  and set the water below its rim: the waterline is then a smooth contour. Find the rim by marching the ground.
+- Generated character with a long coat or A-line dress: pass the rig landmarks yourself (blender-assets).
+- **A canopy seen from below reads as a sheet** however you colour it: from a seated camera only the undersides of
+  the balls show. What passed was a front row of smaller balls hung low in front of the branch (their round lower
+  halves cut by the frame top) plus per-ball shading from the view direction (bright centres, darker rims where
+  balls meet). Shading by the up vector painted one dark rust band, and colour tweaks alone moved no judge.
+- **Measure what the reference's colour is, rendered**, before tuning a material: the canopy under a warm sun and a
+  yellow ground bounce rendered `#b56a51` against the key art's `#c57776`. Driving it mostly by emission in the
+  reference colour fixed it in one step after three rounds of palette nudges.
+- Blossom Swing passed the visual bar in round 10 (median 7.1): 5.3 → 5.7 → 5.5 → 6.1 → 6.7 → 6.4 → 6.6 → 6.6 → 6.7
+  → 7.1. Three early rounds were lost to a release-only bug, two to one regression each (rust canopy, AO grain).
+

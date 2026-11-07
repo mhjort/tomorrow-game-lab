@@ -6,7 +6,7 @@ import { join } from 'node:path';
 
 const root = new URL('..', import.meta.url).pathname;
 const out = join(root, '_site');
-const examples = ['minigolf', 'snowplough'];
+const examples = ['minigolf', 'snowplough', 'blossomswing'];
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out);
 cpSync(join(root, 'site'), out, { recursive: true });

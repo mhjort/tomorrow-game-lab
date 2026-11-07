@@ -1,0 +1,28 @@
+{
+  "name": "pointer",
+  "description": "real pointer: a press starts, a tap kicks",
+  "steps": [
+    { "step": 2 },
+    { "drag": { "from": [640, 400], "to": [640, 400] } },
+    { "assert": "state.phase === 'swing'", "label": "a press starts" },
+    { "step": 4 },
+    { "drag": { "from": [640, 400], "to": [640, 400] } },
+    { "step": 1 },
+    { "assert": "state.kicks === 1 && state.swing.omega > 0.15", "label": "a tap kicks" },
+    { "drag": { "from": [640, 400], "to": [640, 400], "hold": 60, "release": false } },
+    { "assert": "state.kicks === 1", "label": "a press in the same half-swing as the last kick does nothing, and holding it never repeats" },
+    { "pointerUp": true },
+    { "assert": "state.hint.includes('tap')", "label": "the hint mentions tap" },
+    { "input": { "type": "debug", "rows": 5, "theta": -22, "omega": 0 } },
+    { "step": 50 },
+    { "drag": { "from": [640, 400], "to": [640, 400] } },
+    { "step": 1 },
+    { "assert": "state.phase === 'flight'", "label": "a tap lets go" },
+    { "step": 240 },
+    { "assert": "state.phase === 'landed'", "label": "lands" },
+    { "step": 60 },
+    { "drag": { "from": [640, 400], "to": [640, 400] } },
+    { "step": 2 },
+    { "assert": "state.phase === 'swing'", "label": "a tap swings again" }
+  ]
+}

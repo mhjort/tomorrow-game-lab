@@ -50,6 +50,7 @@ Exit codes: 0 = pass, 1 = a scenario failed or there was a console error, 2 = se
 - Give every screenshot that is framed like a reference frame a `compare` path (the overview → `keyart.png`, chase shots → the matching video frame). The visual judge compares only these pairs for palette and composition. Other shots (debug cameras, modal cards, the win screen) are context for polish only.
 - Take a screenshot right after each *natural* level transition (won/finished → next level), not only after `loadLevel` hooks. Backend-specific bugs hide there.
 - Fix failures in the game, not by loosening asserts, unless the brief changed.
+- The playtest serves `dist/` with `vite preview` when it exists. If `src/`, `public/` or `index.html` is newer, it warns and tests the dev server instead: an old release build had made every new assertion fail. Run `pnpm release` before a judged round so `dist/release-report.json` matches.
 
 ## 2. Judges (independent agents)
 First build the visual judge's evidence pack. It holds a same-height side-by-side image per `compare` pair, plus measured palettes and colour metrics, so the judge quotes numbers instead of guessing hex values:
@@ -95,7 +96,7 @@ When iterating:
 - **Don't move the target.** Judges never read `art-bible.md` or notes, but the builder does. Write what you learn while iterating in `design/notes.md`, not into the art bible: a judge that read the art bible quoted the builder's fixes back as reference facts.
 - Keep the framing of `compare` shots fixed between rounds unless the fix is about the camera; otherwise rounds aren't comparable.
 - Re-run the playtest and `visual-pack.ts`, then only the judges whose inputs changed (e.g. the visual panel only after a `style.json` tweak).
-- Stop after 6 rounds and report what is left, with the scores of judges run on the final build (not an earlier one).
+- Stop after 10 rounds and report what is left, with the scores of judges run on the final build (not an earlier one).
 
 ## Thresholds
 | judge | passes at |

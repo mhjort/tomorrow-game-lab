@@ -837,7 +837,9 @@ export async function main(argv = process.argv.slice(2)): Promise<{ lock: Lock; 
     const src = l.candidates[Number(idx)];
     if (!src || !existsSync(join(project, src))) throw new Error(`--pick ${p}: candidate ${idx} not found (have 0..${l.candidates.length - 1})`);
     Object.assign(l, await finalise(e, join(project, src), project), { picked: Number(idx), seed: l.seeds?.[Number(idx)], post: specHash(e, project).post });
-    console.log(`✓ ${name}: picked candidate ${idx} → ${l.file}`);
+    // music: show the seam and tempo here too, so candidates can be compared by picking each in turn
+    const loopInfo = l.seam === undefined ? '' : ` (loop seam ${l.seam}, ${l.tempo} BPM)`;
+    console.log(`✓ ${name}: picked candidate ${idx} → ${l.file}${loopInfo}`);
     saveLock();
   }
   if (picks.length) return { lock };

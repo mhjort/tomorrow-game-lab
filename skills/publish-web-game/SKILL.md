@@ -40,6 +40,7 @@ Never inline large assets as base64.
 node <game-judge skill>/scripts/playtest.ts          # serves dist/ via vite preview when dist/ exists
 ```
 - All scenarios must pass on **webgpu and webgl2**.
+- **Look at the release screenshots next to the dev ones** (the playtest tests `dist/` whenever it is up to date). Passing asserts don't prove the release *looks* the same: meshopt quantization moves each mesh's dequantize transform into its node, and code that drops node transforms (instancing from a template, merging geometry) renders wrong in the release build only.
 - In `summary.md`, the **loading** line should show models, the Rapier `.wasm` and chunks in flight together ("max N in parallel"). A chain of one-at-a-time requests means something awaits too early. Every download belongs in the single `loading.parallel(...)` phase (see web-game-runtime).
 
 ## 3. Deploy to GitHub Pages

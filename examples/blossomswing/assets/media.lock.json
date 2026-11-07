@@ -1,0 +1,249 @@
+{
+  "bloom": {
+    "bytes": 9355,
+    "candidates": [
+      ".lab/media/bloom/0.wav",
+      ".lab/media/bloom/1.wav",
+      ".lab/media/bloom/2.wav"
+    ],
+    "cost": 0.06,
+    "duration": 0.7,
+    "file": "public/sfx/bloom.mp3",
+    "hash": "6f094535569c3437",
+    "kind": "sfx",
+    "model": "mirelo:1@1",
+    "picked": 1,
+    "post": "a24db9d032fd7948",
+    "provider": "runware",
+    "seed": 1426673985,
+    "seeds": [
+      1426673983,
+      1426673985,
+      1426673984
+    ],
+    "trim": [
+      0,
+      0.7
+    ],
+    "waveform": ".lab/media/bloom.png"
+  },
+  "child": {
+    "bytes": 2154556,
+    "candidates": [
+      ".lab/media/child/0.glb"
+    ],
+    "cost": 0.3,
+    "file": "assets/generated/child.glb",
+    "hash": "f95475828b60ebba",
+    "kind": "models",
+    "model": "tripo:v3.1@0",
+    "picked": 0,
+    "post": "bb045ab46d4bebfa",
+    "provider": "runware",
+    "seed": 5113807,
+    "seeds": [
+      5113807
+    ],
+    "sheet": ".lab/media/child.png",
+    "size": [
+      0.46,
+      0.74,
+      1
+    ],
+    "tris": 7814
+  },
+  "child-ref": {
+    "bytes": 1018144,
+    "candidates": [
+      ".lab/media/child-ref/0.png",
+      ".lab/media/child-ref/1.png"
+    ],
+    "cost": 0.07449,
+    "file": "design/reference/props/child-ref.png",
+    "hash": "1a9d2b295c47f35f",
+    "kind": "images",
+    "model": "google:nano-banana@2.1",
+    "picked": 1,
+    "post": "648248576e923f7e",
+    "provider": "runware",
+    "seed": 1933578856,
+    "seeds": [
+      1933578857,
+      1933578856
+    ]
+  },
+  "creak": {
+    "bytes": 6270,
+    "candidates": [
+      ".lab/media/creak/0.wav",
+      ".lab/media/creak/1.wav",
+      ".lab/media/creak/2.wav"
+    ],
+    "cost": 0.03,
+    "duration": 0.6,
+    "file": "public/sfx/creak.mp3",
+    "hash": "f44a56b34de3e6f2",
+    "kind": "sfx",
+    "model": "mirelo:1@1",
+    "picked": 0,
+    "post": "4173ba1527ff31c9",
+    "provider": "runware",
+    "seed": 991068486,
+    "seeds": [
+      991068486,
+      991068487,
+      991068488
+    ],
+    "trim": [
+      0,
+      0.6
+    ],
+    "waveform": ".lab/media/creak.png"
+  },
+  "gameplay": {
+    "bytes": 7758845,
+    "candidates": [
+      ".lab/media/gameplay/0.mp4",
+      ".lab/media/gameplay/1.mp4"
+    ],
+    "cost": 0.672,
+    "duration": 6.583333,
+    "file": "design/reference/gameplay.mp4",
+    "hash": "b0c500b064a1654e",
+    "kind": "videos",
+    "model": "minimax:h3@max",
+    "picked": 0,
+    "post": "f0c2e8eb2a3f7bb5",
+    "provider": "runware",
+    "seed": 23,
+    "seeds": [
+      23,
+      24
+    ],
+    "sheet": ".lab/media/gameplay.png"
+  },
+  "gust": {
+    "bytes": 21496,
+    "candidates": [
+      ".lab/media/gust/0.wav",
+      ".lab/media/gust/1.wav",
+      ".lab/media/gust/2.wav"
+    ],
+    "cost": 0.09,
+    "duration": 2.2,
+    "file": "public/sfx/gust.mp3",
+    "hash": "8a4e9505d2eafefb",
+    "kind": "sfx",
+    "model": "mirelo:1@1",
+    "picked": 0,
+    "post": "61eee9cea1146aa8",
+    "provider": "runware",
+    "seed": 1001558715,
+    "seeds": [
+      1001558715,
+      1001558717,
+      1001558716
+    ],
+    "trim": [
+      0,
+      2.2
+    ],
+    "waveform": ".lab/media/gust.png"
+  },
+  "icon": {
+    "bytes": 11467,
+    "candidates": [
+      ".lab/media/icon/0.png",
+      ".lab/media/icon/1.png"
+    ],
+    "cost": 0.0476,
+    "file": "public/images/icon.png",
+    "hash": "a01b0df320902078",
+    "kind": "images",
+    "model": "openai:gpt-image@2.5-flare",
+    "picked": 1,
+    "post": "7f1bcaae103a24fa",
+    "provider": "runware",
+    "seed": null,
+    "seeds": [
+      null,
+      null
+    ]
+  },
+  "land": {
+    "bytes": 7268,
+    "candidates": [
+      ".lab/media/land/0.wav",
+      ".lab/media/land/1.wav",
+      ".lab/media/land/2.wav"
+    ],
+    "cost": 0.03,
+    "duration": 0.6,
+    "file": "public/sfx/land.mp3",
+    "hash": "aeb77975df5938b7",
+    "kind": "sfx",
+    "model": "mirelo:1@1",
+    "picked": 1,
+    "post": "4173ba1527ff31c9",
+    "provider": "runware",
+    "seed": 740543288,
+    "seeds": [
+      740543287,
+      740543288,
+      740543289
+    ],
+    "trim": [
+      0.125,
+      0.725
+    ],
+    "waveform": ".lab/media/land.png"
+  },
+  "play": {
+    "bytes": 410416,
+    "candidates": [
+      ".lab/media/play/0.wav",
+      ".lab/media/play/1.wav"
+    ],
+    "cost": 0.0036,
+    "duration": 19.9797,
+    "file": "public/music/play.mp3",
+    "hash": "e7032d9a25157db5",
+    "kind": "music",
+    "loop": [
+      9.7,
+      29.6797
+    ],
+    "model": "runware:ace-step@v1.5-xl-turbo",
+    "picked": 1,
+    "post": "00323f2db11bc31f",
+    "provider": "runware",
+    "seam": 0.941,
+    "seed": 468581526,
+    "seeds": [
+      468581527,
+      468581526
+    ],
+    "tempo": 96.1,
+    "waveform": ".lab/media/play.png"
+  },
+  "splash": {
+    "bytes": 161012,
+    "candidates": [
+      ".lab/media/splash/0.webp",
+      ".lab/media/splash/1.webp"
+    ],
+    "cost": 0.07098,
+    "file": "public/images/splash.webp",
+    "hash": "48ad62a7d192a222",
+    "kind": "images",
+    "model": "google:nano-banana@2.1",
+    "picked": 0,
+    "post": "e15fefc53235a038",
+    "provider": "runware",
+    "seed": 568580619,
+    "seeds": [
+      568580619,
+      568580620
+    ]
+  }
+}

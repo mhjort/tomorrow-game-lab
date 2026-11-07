@@ -1,0 +1,28 @@
+{
+  "name": "keys",
+  "description": "real keyboard: any key starts; Space at the bottom kicks; holding Space doesn't repeat; M mutes",
+  "steps": [
+    { "step": 2 },
+    { "key": "KeyA", "steps": 2 },
+    { "assert": "state.phase === 'swing'", "label": "any key starts" },
+    { "key": "Space", "steps": 2 },
+    { "assert": "state.kicks === 1 && state.swing.omega > 0.15", "label": "Space kicks" },
+    { "key": "Space", "steps": 40, "release": false },
+    { "assert": "state.kicks === 1", "label": "held Space doesn't repeat" },
+    { "keyUp": "Space" },
+    { "step": 1 },
+    { "eval": "window.__game.getState().kicks" },
+    { "key": "ArrowUp", "steps": 2 },
+    { "assert": "state.kicks === result + 1", "label": "↑ kicks" },
+    { "step": 80 },
+    { "eval": "window.__game.getState().kicks" },
+    { "key": "Enter", "steps": 2 },
+    { "assert": "state.kicks === result + 1", "label": "Enter kicks" },
+    { "step": 80 },
+    { "eval": "window.__game.getState().kicks" },
+    { "key": "KeyW", "steps": 2 },
+    { "assert": "state.kicks === result + 1", "label": "W kicks" },
+    { "key": "KeyM", "steps": 2 },
+    { "assert": "state.muted === true", "label": "M mutes" }
+  ]
+}

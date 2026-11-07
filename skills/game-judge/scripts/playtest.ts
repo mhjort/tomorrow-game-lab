@@ -14,7 +14,7 @@
 // Exit code: 0 all scenarios passed with no console errors, 1 otherwise, 2 setup failure.
 import { spawn, spawnSync } from 'node:child_process';
 import { createRequire, stripTypeScriptTypes } from 'node:module';
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve, relative } from 'node:path';
 import type { Browser, BrowserType, Page, Request } from 'playwright-core';
 
@@ -136,10 +136,27 @@ try {
 }
 
 // ------------------------------------------------------------------ server
+/** Newest modification time (ms) of any file under `dir` (0 if it doesn't exist). */
+function newest(dir: string): number {
+  if (!existsSync(dir)) return 0;
+  const st = statSync(dir);
+  if (!st.isDirectory()) return st.mtimeMs;
+  return readdirSync(dir).reduce((m, f) => Math.max(m, newest(join(dir, f))), 0);
+}
+
 async function startServer(): Promise<{ url: string; stop(): void }> {
   const url = opt('--url');
   if (url) return { url, stop() {} };
-  const mode = existsSync(join(project, 'dist', 'index.html')) && !flag('--dev') ? 'preview' : 'dev';
+  const built = join(project, 'dist', 'index.html');
+  let mode = existsSync(built) && !flag('--dev') ? 'preview' : 'dev';
+  // a dist/ older than the sources tests yesterday's game: every new assertion fails against the old build
+  if (mode === 'preview') {
+    const src = Math.max(...['src', 'public', 'index.html'].map((d) => newest(join(project, d))));
+    if (src > statSync(built).mtimeMs) {
+      console.warn('[playtest] dist/ is older than src/ or public/: testing the dev server instead (run `pnpm release` to test the release build)');
+      mode = 'dev';
+    }
+  }
   const port = 4300 + Math.floor(Math.random() * 500);
   const args = mode === 'preview' ? ['exec', 'vite', 'preview', '--port', port, '--strictPort'] : ['exec', 'vite', '--port', port, '--strictPort'];
   const proc = spawn('pnpm', args.map(String), { cwd: project, stdio: ['ignore', 'pipe', 'pipe'] });

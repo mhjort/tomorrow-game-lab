@@ -12,7 +12,8 @@
     "eval": "node lab/eval/run-eval.ts",
     "release:minigolf": "pnpm --filter minigolf run release",
     "release:snowplough": "pnpm --filter snowplough run release",
-    "site": "pnpm release:minigolf && pnpm release:snowplough && node lab/build-site.ts"
+    "release:blossomswing": "pnpm --filter blossomswing run release",
+    "site": "pnpm release:minigolf && pnpm release:snowplough && pnpm release:blossomswing && node lab/build-site.ts"
   },
   "packageManager": "pnpm@12.16.1",
   "devDependencies": {
