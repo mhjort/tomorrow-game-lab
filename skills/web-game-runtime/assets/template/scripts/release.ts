@@ -72,8 +72,10 @@ if (glbs.length && !argv.includes('--no-glb-opt')) {
     // quantization moves the mesh of a node that also has child nodes into a new unnamed child (so the dequantize
     // scale doesn't scale the children): a mesh looked up by its node's name would no longer be there
     const splits = doc.getRoot().listNodes().filter((n) => n.getMesh() && n.listChildren().length).map((n) => n.getName());
-    // keepLeaves: marker empties (Spawn, Tee, Goal...) are leaf nodes without meshes — never prune them
-    await doc.transform(dedup(), weld(), prune({ keepLeaves: true, keepExtras: true }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+    // keepLeaves: marker empties (Spawn, Tee, Goal...) are leaf nodes without meshes — never prune them.
+    // keepAttributes: UVs no texture uses can still drive a node material (uv() in TSL: bark grain, gradients); prune
+    // would drop them and the effect vanishes in release builds only. Measured cost: ≤0.01 MB gzip per game.
+    await doc.transform(dedup(), weld(), prune({ keepLeaves: true, keepExtras: true, keepAttributes: true }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
     if (names(doc) !== namesBefore) {
       console.error(`${relative(dist, f)}: optimization changed the node set (markers/colliders would break)`);
       if (splits.length)

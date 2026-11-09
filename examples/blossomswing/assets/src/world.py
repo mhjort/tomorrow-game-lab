@@ -25,7 +25,7 @@ def M(role, rough=0.85):
     return L.material(role, L.color(role, style), roughness=rough)
 
 
-MAT = {k: M(k) for k in ("grass", "grassLit", "hillMid", "trunk", "trunkShade", "canopy", "leaf", "bush", "water",
+MAT = {k: M(k) for k in ("grass", "grassLit", "blade", "hillMid", "trunk", "trunkShade", "canopy", "leaf", "bush", "water",
                          "pebble", "cloud", "seat", "flower", "flowerCentre", "bareWood")}
 MAT["water"] = L.material("water", L.color("water", style), roughness=0.35)
 
@@ -125,13 +125,29 @@ for k in range(18):
     L.sphere(f"Pebble{k}", 0.15 + rng.random() * 0.14, (px, py, ground(px, py) + 0.04), 2, MAT["pebble"])
 
 # ------------------------------------------------------------------ the big tree (crops/big_tree.png)
-# wide at the foot and leaning into the branch at the top (frame_01: the trunk is ~1.4 child-heights wide)
+# wide at the foot and leaning into the branch at the top (frame_01: the trunk is ~1.4 child-heights wide).
+# Root flare (crops/big_tree.png, key art): the foot spreads into four buttress lobes, the biggest sweeping right
+# toward the swing. They are part of the trunk's own surface (a bulge per vertex), so there is no crease and the bark
+# grain runs on down them: separate root tubes stuck on the trunk drew a seam and a turn in the grain.
+TRUNK_FOOT = (-2.45, 0.7)
+LOBES = ((-0.25, 1.15), (-1.75, 0.6), (2.9, 0.75), (1.3, 0.6))  # (azimuth: 0 = +x toward the swing, reach at the grass in m)
+FLARE_H = 1.9  # how high up the trunk the flare starts
+
+
+def wrap(a):
+    return (a + math.pi) % (2 * math.pi) - math.pi
+
+
+def flare(c, d):
+    t = min(1.25, max(0.0, 1 - (c.z - 0.15) / FLARE_H))  # 0 above the flare, 1 at the grass, a little more below it
+    if t <= 0:
+        return 0.0
+    az = math.atan2(d.y, d.x)
+    return sum(A * math.exp(-(wrap(az - a0) / 0.5) ** 2) for a0, A in LOBES) * t ** 2.5
+
+
 trunk = tube("Trunk", [(-2.5, 0.7, -0.6), (-2.4, 0.7, 0.6), (-2.2, 0.65, 1.8), (-1.9, 0.6, 3.0), (-1.6, 0.6, 5.0)],
-             [1.6, 1.05, 0.88, 0.82, 0.7], MAT["trunk"], n=40, sides=36, wobble=0.04, seed=1, cap_end=False)
-# root flare: three low lobes sinking into the hill
-for k, (dx, dy, r) in enumerate(((0.75, -0.35, 0.5), (-0.6, -0.5, 0.55), (0.1, -0.7, 0.42), (1.0, -0.75, 0.42))):  # the last one reaches into the frame
-    tube(f"Root{k}", [(-2.3, 0.7, 0.6), (-2.3 + dx * 0.6, 0.7 + dy * 0.6, 0.15), (-2.3 + dx * 1.3, 0.7 + dy * 1.3, -0.35)],
-         [r, r * 0.8, r * 0.45], MAT["trunk"], n=10, sides=14)
+             [1.6, 1.05, 0.88, 0.82, 0.7], MAT["trunk"], n=48, sides=48, wobble=0.04, seed=1, cap_end=False, bulge=flare)
 # the dark knot hole facing the camera (frame_01): a flattened dark ellipsoid set into the bark, a bark rim round it
 # on the trunk's front-right face, the part the swing camera sees; its thin axis along the bark's normal
 knot = L.sphere("Knot", 1.0, (-1.74, -0.14, 1.75), 3, MAT["trunkShade"])
@@ -191,28 +207,38 @@ for k, (x, y, s) in enumerate(green_spots):
     # a cloud-like canopy of merged balls, wider than tall (crops/green_tree.png)
     blob(f"GreenTree{k}", [(x, y, z + 1.3 * s, 0.62 * s), (x - 0.5 * s, y, z + 1.15 * s, 0.5 * s), (x + 0.5 * s, y + 0.1, z + 1.18 * s, 0.52 * s), (x + 0.1 * s, y - 0.2, z + 1.6 * s, 0.45 * s)], MAT["leaf"], subdiv=3)
 
-# grass tufts: clumps of 5-9 rounded blades on the near hill (crops/ground_front.png), denser near the camera
+def on_root(x, y):
+    """Is (x, y) on the big tree's root flare (along a lobe, with a margin)?"""
+    dx, dy = x - TRUNK_FOOT[0], y - TRUNK_FOOT[1]
+    az, dist = math.atan2(dy, dx), math.hypot(dx, dy)
+    return any(abs(wrap(az - a0)) < 0.45 and dist < 1.3 + A + 0.15 for a0, A in LOBES)
+
+
+# grass tufts (crops/ground_front.png, crops/big_tree.png): clumps of 5-9 upright blades, each a slim capsule
+# ~11-19 cm tall and ~6 cm wide with a round tip, fanning a little out of the clump; denser near the camera
 bm = bmesh.new()
-for k in range(380):
+for k in range(640):
     x = rng.uniform(-6, 15)
     y = rng.uniform(-4.5, 1.8)
-    if math.hypot(x + 2.5, y - 0.7) < 1.8:
-        continue  # not inside the trunk
-    z = near_hill(x, y)
+    if math.hypot(x + 2.5, y - 0.7) < 1.8 or on_root(x, y):
+        continue  # not inside the trunk or poking out of a root
+    if y > -2.0 and rng.random() < 0.55:
+        continue  # densest at the camera's feet (crops/ground_front.png), thinner toward the back
     for b in range(rng.randint(5, 9)):
-        bx, by = x + rng.uniform(-0.12, 0.12), y + rng.uniform(-0.06, 0.06)
-        ht = rng.uniform(0.05, 0.1)
-        # thick rounded blades (crops/ground_front.png): a fat cone with a blunt tip
-        # a rounded blob-tipped blade (crops/ground_front.png): a stretched smooth sphere, half sunk in the ground
-        blade = bmesh.ops.create_icosphere(bm, subdivisions=1, radius=1.0)
-        lean = rng.uniform(-0.3, 0.3)
+        ox, oy = rng.uniform(-0.09, 0.09), rng.uniform(-0.04, 0.04)
+        bx, by = x + ox, y + oy
+        ht = rng.uniform(0.11, 0.19)
+        w = rng.uniform(0.026, 0.034)  # half-width: chunky blades, ~1:3 (crops/big_tree.png), not straws
+        lx, ly = ox * 0.9 + rng.uniform(-0.05, 0.05), oy * 0.9  # lean out of the clump (per metre of height)
         gz = ground(bx, by)
+        blade = bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=6, radius=1.0)
         for v in blade["verts"]:
-            zz = (v.co.z * 0.5 + 0.5) * ht
-            v.co.x = v.co.x * 0.03 + bx + lean * zz
-            v.co.y = v.co.y * 0.022 + by
-            v.co.z = zz + gz - 0.03
-link("Tufts", bm, MAT["grassLit"])
+            # a capsule: the top hemisphere lifted to the blade's height, the bottom one sunk into the ground
+            z = (ht - w + v.co.z * w) if v.co.z > 0 else v.co.z * 0.06
+            v.co.x = bx + v.co.x * w + lx * z
+            v.co.y = by + v.co.y * w * 0.7 + ly * z
+            v.co.z = gz + z - 0.02
+link("Tufts", bm, MAT["blade"])
 # daisies: tiny white discs with a yellow centre, a few cm over the grass
 bm = bmesh.new()
 for k in range(70):
@@ -248,19 +274,20 @@ def row(x0, x1, y0, y1, n):
 # row 0 stays left of the band behind the swing: canopies right behind the child hid its silhouette
 ROWS = [row(-19, -4, 15, 24, 10), row(-22, -2, 27, 36, 12), row(8, 24, 11, 22, 14), row(10, 29, 26, 33, 11), row(-16, 30, 40, 48, 14)]
 placed = []
+orng = random.Random(1)  # its own stream: edits to the grass or props above must not move the trees (all 61 placed)
 for r, trees in enumerate(ROWS):
     for i, (x, y) in enumerate(trees):
         if math.hypot((x - POND[0]) / 6.5, (y - POND[1]) / 4.5) < 1:
             x += 8 if x > POND[0] else -8
-        px, py = x + rng.uniform(-0.5, 0.5), y + rng.uniform(-0.6, 0.6)
+        px, py = x + orng.uniform(-0.5, 0.5), y + orng.uniform(-0.6, 0.6)
         if any(math.hypot(px - qx, py - qy) < 2.6 for qx, qy in placed):
             continue  # a minimum spacing: no interpenetrating trees
         placed.append((px, py))
         e = bpy.data.objects.new(f"Orchard_r{r}_{i}", None)
         e.location = (px, py, 0)
         e.location.z = ground(e.location.x, e.location.y) - 0.05
-        e.rotation_euler = (0, 0, rng.uniform(0, 2 * math.pi))
-        s = rng.uniform(1.1, 1.5)
+        e.rotation_euler = (0, 0, orng.uniform(0, 2 * math.pi))
+        s = orng.uniform(1.1, 1.5)
         e.scale = (s, s, s)
         bpy.context.scene.collection.objects.link(e)
 

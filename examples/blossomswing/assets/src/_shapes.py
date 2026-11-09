@@ -35,8 +35,11 @@ def catmull(points, n):
     return out
 
 
-def tube(name, points, radii, mat=None, n=24, sides=16, cap_end=True, wobble=0.0, seed=0):
-    """A smooth tube along a spline; radii are interpolated along it. Both ends are closed."""
+def tube(name, points, radii, mat=None, n=24, sides=16, cap_end=True, wobble=0.0, seed=0, grain=0.13, bulge=None):
+    """A smooth tube along a spline; radii are interpolated along it. Both ends are closed.
+    UVs: u counts bark-grain lines round the tube (a whole number, ~`grain` m apart, so the seam at the back matches),
+    v is the length along it in metres. The game draws the grain from them (src/main.ts, trunk material).
+    bulge(centre, direction) -> extra radius (m) per vertex: e.g. a trunk's root flare, part of the same surface."""
     path = catmull(points, n)
     rs = [0.0] * n
     for k in range(n):  # piecewise-linear radius over the control points
@@ -55,12 +58,23 @@ def tube(name, points, radii, mat=None, n=24, sides=16, cap_end=True, wobble=0.0
         for j in range(sides):
             ang = 2 * math.pi * j / sides
             r = rs[k] * (1 + wobble * math.sin(3 * ang + seed + k * 0.7))
-            ring.append(bm.verts.new(c + (u * math.cos(ang) + v * math.sin(ang)) * r))
+            dirn = u * math.cos(ang) + v * math.sin(ang)
+            if bulge:
+                r += bulge(c, dirn)
+            ring.append(bm.verts.new(c + dirn * r))
         rings.append(ring)
-    for a_, b_ in zip(rings, rings[1:]):
+    lines = max(3, round(2 * math.pi * sum(rs) / n / grain))
+    vs = [0.0]
+    for p0, p1 in zip(path, path[1:]):
+        vs.append(vs[-1] + (p1 - p0).length)
+    uv = bm.loops.layers.uv.new("UVMap")
+    for k, (a_, b_) in enumerate(zip(rings, rings[1:])):
         for j in range(sides):
             j2 = (j + 1) % sides
-            bm.faces.new((a_[j], a_[j2], b_[j2], b_[j]))
+            f = bm.faces.new((a_[j], a_[j2], b_[j2], b_[j]))
+            u0, u1 = j / sides * lines, (j + 1) / sides * lines
+            for loop, (u, v) in zip(f.loops, ((u0, vs[k]), (u1, vs[k]), (u1, vs[k + 1]), (u0, vs[k + 1]))):
+                loop[uv].uv = (u, v)
     bm.faces.new(rings[0][::-1])
     if cap_end:
         bm.faces.new(rings[-1])
