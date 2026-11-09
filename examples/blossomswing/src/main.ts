@@ -2,7 +2,7 @@
 // orchard trees bursts into blossom; when the valley is pink, let go at the top and fly.
 // Boot: loading screen -> PARALLEL(renderer, models, sfx, music) -> style -> scene -> prewarm -> hooks -> loop
 import * as THREE from 'three/webgpu';
-import { mix, normalView, positionLocal, positionWorld, smoothstep, vec3 } from 'three/tsl';
+import { abs, float, fract, mix, normalView, positionLocal, positionWorld, sin, smoothstep, uv, vec3 } from 'three/tsl';
 import { createRenderer, fitToWindow, params } from './engine/renderer.ts';
 import { applyStyle, paletteColor, style } from './engine/style.ts';
 import { createLoop } from './engine/loop.ts';
@@ -87,7 +87,17 @@ world.traverse((o) => {
     o.material = m;
     o.receiveShadow = false;
   } else if (name === 'trunk') {
-    glowFrom(o.material, 0.38); // fill: its underside only sees the ground bounce (rendered #483109)
+    // warm brown with faint darker wavy grain running along the wood (crops/big_tree.png). The tubes' UVs count grain
+    // lines round the wood (u) and metres along it (v); the wander keeps the lines from reading as ruled stripes.
+    const base = vec3(...paletteColor('trunk').toArray());
+    const t = uv();
+    const wander = sin(t.y.mul(1.9).add(t.x.mul(2.3))).mul(0.22).add(sin(t.y.mul(5.3).add(t.x.mul(7.1))).mul(0.08));
+    const line = float(1).sub(smoothstep(0.04, 0.16, abs(fract(t.x.add(wander)).sub(0.5))));
+    const c = base.mul(mix(float(1), float(0.72), line));
+    const m = new THREE.MeshStandardNodeMaterial({ roughness: 0.9, metalness: 0 });
+    m.colorNode = c;
+    m.emissiveNode = c.mul(0.38); // fill: its underside only sees the ground bounce
+    o.material = m;
     o.receiveShadow = false; // in the canopy's shadow it crushed to near-black
   }
   else if (name === 'rope') glowFrom(o.material, 0.35);

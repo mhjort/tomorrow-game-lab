@@ -23,7 +23,8 @@ What makes it distinct:
 | grassShade | `#5f7a2e` | the tree's shadow on the hill |
 | hillMid | `#8db58a` | the valley slopes (k-means `#8daf8c`, the reference's sage) |
 | hillFar | `#9cc7c0` | far ridges |
-| trunk | `#6e5036` | big tree trunk and branch (measured `#5a412c` in the crop's shade; lifted so the lit side reads mid-brown) · shade `#4a3624` |
+| trunk | `#57403a` | big tree trunk and branch: a warm red-brown (measured `#5a3e29` in crops/big_tree.png, `#563e32` in the key art; an olive `#655843` rendered khaki) · shade `#4a3624` · faint darker vertical grain |
+| blade | `#8fba3e` | grass blades (measured `#7c9f28` in crops/big_tree.png, lifted for the lit tops) |
 | canopy | `#e9998c` | big tree's salmon-pink canopy balls (by eye) · shade `#bf7869` (k-means) |
 | bareWood | `#85706a` | orchard trunks and branches (grey-brown, by eye) |
 | blossom | `#f2b8d2` | blossom canopy balls (by eye; k-means `#dcbacd` is blended with grass) · shade `#d08aac` |
