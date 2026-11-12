@@ -1,0 +1,59 @@
+{
+  "decisions": [
+    {
+      "change": "music-vbr7:music/desert.mp3",
+      "accepted": true,
+      "gain": "-105.3 KB gzip",
+      "date": "2026-11-12"
+    },
+    {
+      "change": "music-vbr7:music/snow.mp3",
+      "accepted": true,
+      "gain": "-105.5 KB gzip",
+      "date": "2026-11-12"
+    },
+    {
+      "change": "music-vbr7:music/course.mp3",
+      "accepted": true,
+      "gain": "-98 KB gzip",
+      "date": "2026-11-12"
+    },
+    {
+      "change": "music-vbr7:music/city.mp3",
+      "accepted": true,
+      "gain": "-105.7 KB gzip",
+      "date": "2026-11-12"
+    }
+  ],
+  "textures": {
+    "*": {
+      "format": "webp",
+      "quality": 90
+    }
+  },
+  "images": {
+    "images/*": {
+      "quality": 85
+    }
+  },
+  "audio": {
+    "music/*": {
+      "vbr": 5
+    },
+    "sfx/*": {
+      "vbr": 5
+    },
+    "music/desert.mp3": {
+      "vbr": 7
+    },
+    "music/snow.mp3": {
+      "vbr": 7
+    },
+    "music/course.mp3": {
+      "vbr": 7
+    },
+    "music/city.mp3": {
+      "vbr": 7
+    }
+  }
+}

@@ -4,7 +4,7 @@
 
 **▶ Play the examples: [Island Putt (3D minigolf)](https://mhjort.github.io/tomorrow-game-lab/minigolf/) · [Little Plough (snowplough, built from a gameplay video)](https://mhjort.github.io/tomorrow-game-lab/snowplough/) · [Blossom Swing (swing timing, built from a gameplay video)](https://mhjort.github.io/tomorrow-game-lab/blossomswing/)** · [all examples](https://mhjort.github.io/tomorrow-game-lab/)
 
-Lightweight agent skills for building **web games** from a prompt or from key art. There are seven skills, one stack, and no engine zoo.
+Lightweight agent skills for building **web games** from a prompt or from key art. There are nine skills, one stack, and no engine zoo.
 
 - **Runtime:** three.js `WebGPURenderer`, which falls back to WebGL2 automatically, plus Vite. Rapier 3D/2D handles physics when a game needs it.
 - **Assets:** Python scripts run in headless **Blender** and export GLB files with physics collider tags and preview renders. Characters, vehicles and organic props can be generated (reference image → 3D model), then imported, sized and budgeted by the same scripts. Characters are auto-rigged in Blender with procedural idle, walk, run and jump clips.
@@ -49,7 +49,8 @@ The `make-web-game` environment check (`scripts/check-env.ts`) reports whether t
 | [`blender-assets`](skills/blender-assets/SKILL.md) | `lab_bpy` helper, Blender → GLB with collider tags, preview renders, GLB inspector, `import_glb` for generated models, `lab_rig` auto-rigging + animation clips |
 | [`generate-media`](skills/generate-media/SKILL.md) | `design/media.json` → Runware (Nano Banana 2.1 / GPT-Image-2.5 images, Mirelo SFX, ACE-Step music, MiniMax H3 Max video, Tripo image-to-3D) → candidate review (contact sheets, waveforms, 3D preview sheets) → trimmed, normalised `public/sfx/*.mp3`, seamless `public/music/*.mp3` loops, `public/images/*`, reference clips in `design/reference/` and raw GLBs in `assets/generated/` with a cost/seed lock file |
 | [`optimize-web-game`](skills/optimize-web-game/SKILL.md) | performance pass for a target device after the game matches its reference: measure, free wins first, ask before any visible compromise; `perf-compare.ts` before/after report |
-| [`publish-web-game`](skills/publish-web-game/SKILL.md) | `pnpm release` (minify, code-split, meshopt GLBs, gzip budgets) → GitHub Pages workflow → live-URL playtest |
+| [`optimize-assets`](skills/optimize-assets/SKILL.md) | web-sized assets before publishing: `design/optimize.json` (WebP textures, image/audio re-encodes, GLB simplification) applied by `pnpm release` to `dist/` only; near-lossless settings proven by identical screenshots, bigger savings measured one by one for the user to pick |
+| [`publish-web-game`](skills/publish-web-game/SKILL.md) | `pnpm release` (minify, code-split, `design/optimize.json`, meshopt GLBs, gzip budgets) → GitHub Pages workflow → live-URL playtest |
 | [`game-judge`](skills/game-judge/SKILL.md) | Playwright playtest (scenarios, bots, screenshots, perf, SSIM backend parity) + 4 judge rubrics + aggregator |
 
 ## How verification works

@@ -4,15 +4,14 @@
 **visible** = the image changes: make it alone, show the user before/after and the gain, apply only with their OK.
 
 ## Download and load time
+Asset sizes (textures, images, audio, GLB simplification) are the `optimize-assets` skill: `design/optimize.json`, applied by `pnpm release`. The rows below are the rest.
+
 | change | look | how |
 |---|---|---|
 | meshopt-compress GLBs | free | `pnpm release` does it (quantize + reorder + compress); runtime decodes with `MeshoptDecoder` |
-| WebP for 2D images, Opus/MP3 at sane bitrates | free if quality ≥ 80 | re-encode in `generate-media`'s pipeline, then compare |
 | KTX2/Basis textures | usually free, check | colours can shift slightly: run `perf-compare.ts` before calling it free |
 | lazy-load music after first frame | free | start the loop after the loading screen; keep sfx preloaded |
 | drop unused three addons / imports | free | check the bundle table in `dist/release-report.json` |
-| smaller textures (2048 → 1024) | visible | the asset's `import_glb(max_texture=…)` or the texture source |
-| fewer triangles (decimate) | visible | `import_glb(max_tris=…)` for generated models; fewer segments in Blender scripts |
 
 ## CPU (draw calls, per-frame work)
 | change | look | how |
