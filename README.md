@@ -82,7 +82,8 @@ examples/blossomswing/  video-first: "Blossom Swing", a swing-timing game (gener
 lab/fixtures/keyart/    original key art fixtures (rendered by Blender: minigolf.png + minigolf.mp4)
 lab/validate-skills.ts  skill format + conventions + template/example drift check
 lab/test/               node:test suites for every script (frames, palette, Blender→GLB, playtest, aggregator)
-site/                   GitHub Pages landing page (deployed by .github/workflows/pages.yml)
+site/                   GitHub Pages landing page: the games, then "How they were made" (each reference next to its
+                        game; build-site.ts copies the gameplay videos in). Deployed by .github/workflows/pages.yml
 lab/build-site.ts       assembles _site/: site/ + each example's release build at /<name>/
 lab/eval/run-eval.ts    end-to-end agent eval (fresh workspace → install skills → claude -p → independent judges)
 lab/eval/permissions.ts scoped allowlists for the unattended eval agents (no permission bypass)

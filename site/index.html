@@ -25,6 +25,17 @@
       code { background: var(--card); padding: 2px 6px; border-radius: 6px; font-size: 14px; }
       pre { background: var(--card); padding: 14px 16px; border-radius: 10px; overflow-x: auto; }
       a { color: var(--accent); }
+      .made { margin-top: 28px; }
+      .made h3 { margin: 0 0 10px; font-size: 20px; }
+      .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+      figure { margin: 0; }
+      figure img, figure video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 10px; background: var(--card); }
+      figcaption { color: var(--muted); font-size: 13px; margin-top: 4px; }
+      .made p { margin: 10px 0 6px; }
+      details { font-size: 14px; color: var(--muted); }
+      summary { cursor: pointer; color: var(--ink); }
+      blockquote { margin: 8px 0 0; padding: 10px 14px; background: var(--card); border-radius: 10px; }
     </style>
   </head>
   <body>
@@ -61,6 +72,48 @@
           </div>
         </a>
       </div>
+
+      <section>
+        <h2>How they were made</h2>
+        <p>Each game starts from a reference: a key-art image, or a short gameplay video that the agent generates itself
+          from words. The agent reads it into an art bible (palette, light, camera, shapes) and an inventory of every
+          prop and character, then builds the game to look like it. Judge agents compare screenshots with the reference
+          until they pass.</p>
+
+        <article class="made">
+          <h3>Island Putt</h3>
+          <div class="pair">
+            <figure><img src="./minigolf-ref.jpg" alt="Key art: a low-poly minigolf hole on a floating grass island" width="960" height="540" loading="lazy" /><figcaption>Reference: one key-art image (rendered in Blender as a lab test fixture)</figcaption></figure>
+            <figure><img src="./minigolf.jpg" alt="Island Putt in play" width="640" height="360" loading="lazy" /><figcaption>The game</figcaption></figure>
+          </div>
+          <p>Prompt: <em>“Make a 3D minigolf game that looks like reference/keyart.png”</em>. Course, trees and rocks are
+            Blender scripts; Rapier handles the ball. Generated music and sound effects: $0.29.</p>
+        </article>
+
+        <article class="made">
+          <h3>Little Plough</h3>
+          <div class="pair">
+            <figure><video src="./media/snowplough-gameplay.mp4" poster="./snowplough-ref.jpg" controls muted loop playsinline preload="none" width="960" height="548"></video><figcaption>Reference: a gameplay video the agent generated (MiniMax H3, 6.6 s, $0.34)</figcaption></figure>
+            <figure><img src="./snowplough.jpg" alt="Little Plough in play" width="640" height="360" loading="lazy" /><figcaption>The game</figcaption></figure>
+          </div>
+          <p>Prompt: <em>“Make a cosy game where a little snowplough clears paths through a snowed-in toy village”</em>.
+            The plough and the villager are 3D models generated from crops of the video, then rigged and animated in
+            Blender; the village is a Blender script. All generated media: $2.04.</p>
+          <details><summary>The video prompt the agent wrote</summary><blockquote>A tiny orange snowplough clears winding paths through a snowed-in toy village at dusk, pushing snow into soft heaps so little villagers can walk from their glowing houses to the lantern-lit square. Original cosy 3D driving game, low-poly flat-shaded toy look, warm window light against blue snow, soft long shadows, high three-quarter chase camera behind the plough. Real in-engine gameplay footage, one continuous take, no cuts, the player is clearly controlling the plough. Absolutely no text, no letters, no numbers, no HUD, no interface on screen.</blockquote></details>
+        </article>
+
+        <article class="made">
+          <h3>Blossom Swing</h3>
+          <div class="pair">
+            <figure><video src="./media/blossomswing-gameplay.mp4" poster="./blossomswing-ref.jpg" controls muted loop playsinline preload="none" width="960" height="548"></video><figcaption>Reference: a gameplay video the agent generated (MiniMax H3, 6.6 s, $0.67 for two candidates)</figcaption></figure>
+            <figure><img src="./blossomswing.jpg" alt="Blossom Swing in play" width="640" height="360" loading="lazy" /><figcaption>The game</figcaption></figure>
+          </div>
+          <p>An original idea from a one-line pitch. The child is a generated 3D model, rigged with seated swing clips in
+            Blender; the hill, tree and orchard are Blender scripts. The judges took 10 rounds to pass it on looks
+            (visual score 5.3 → 7.1). All generated media: $1.38.</p>
+          <details><summary>The video prompt the agent wrote</summary><blockquote>A small child in a yellow raincoat swings on a long rope swing hanging from the big low branch of a huge old tree on a grassy hilltop, pumping higher and higher; at the top of each swing a gust of pink petals blows out over the valley and the bare orchard trees on the slopes below burst into pink and white blossom, one row after another. Original cosy 3D arcade game, low-poly flat-shaded toy look, rounded simple shapes, soft spring morning light, pastel green rolling hills, a small round blue pond at the bottom of the valley, a few soft white clouds. Side-on camera at the height of the swing seat, showing the whole swing arc, the tree trunk on one side and the valley spreading out behind and below. Real in-engine gameplay footage, one continuous take, no cuts, the player is clearly controlling the child on the swing. Absolutely no text, no letters, no numbers, no HUD, no interface on screen.</blockquote></details>
+        </article>
+      </section>
 
       <section>
         <h2>Build your own</h2>
