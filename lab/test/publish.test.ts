@@ -92,6 +92,9 @@ test('site: landing page + every example assembled for GitHub Pages', { timeout:
   assert.match(index, /href="\.\/blossomswing\/"/);
   assert.ok(existsSync(join(ROOT, '_site/blossomswing.jpg')));
   assert.ok(existsSync(join(ROOT, '_site/blossomswing/index.html')));
+  // "How they were made": each game's reference next to it (build-site fails on a missing src/poster)
+  for (const name of ['minigolf', 'snowplough', 'blossomswing']) assert.match(index, new RegExp(`src="\\./${name}-ref\\.jpg"|poster="\\./${name}-ref\\.jpg"`));
+  for (const name of ['snowplough', 'blossomswing']) assert.ok(existsSync(join(ROOT, `_site/media/${name}-gameplay.mp4`)));
 });
 
 test('release --precompress: .br/.gz siblings decode to the originals and the game plays when served with Content-Encoding: br', { skip: process.env.SKIP_BROWSER && 'SKIP_BROWSER set', timeout: 300000 }, async () => {
