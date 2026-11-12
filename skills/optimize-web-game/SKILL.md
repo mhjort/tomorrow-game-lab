@@ -1,6 +1,6 @@
 ---
 name: optimize-web-game
-description: Make a finished three.js web game run well on a target device (laptop, phone, low-end) and download fast, without quietly degrading how it looks. Measures first, applies the changes that leave the image unchanged, and asks the user before any trade of visual quality for speed or size, showing before/after screenshots and the measured gain. Use after a game matches its reference and the user has played it, when the user says a game is slow, stutters or takes too long to load, or when a release build is over its size budget.
+description: Make a finished three.js web game run well on a target device (laptop, phone, low-end) and download fast, without quietly degrading how it looks. Measures first, applies the changes that leave the image unchanged, and asks the user before any trade of visual quality for speed or size, showing before/after screenshots and the measured gain. Use after a game matches its reference and the user has played it, or when the user says a game is slow or stutters. Download size is the `optimize-assets` skill.
 ---
 
 # optimize-web-game
@@ -12,7 +12,7 @@ Files:
 - `references/targets.md`: frame, draw-call, triangle and download targets per device class.
 - `references/changes.md`: the catalogue of optimisations, each marked **free** (same image) or **visible** (needs the user's OK), with how to apply and verify it.
 
-Uses sibling skills by name: `game-judge` (playtest, visual panel), `blender-assets` (`inspect_glb.ts`, asset scripts), `publish-web-game` (`pnpm release`).
+Uses sibling skills by name: `game-judge` (playtest, visual panel), `blender-assets` (`inspect_glb.ts`, asset scripts), `publish-web-game` (`pnpm release`). When the problem is download size or load time from big files, use `optimize-assets` instead: it owns the asset settings (`design/optimize.json`).
 
 ## 1. Agree the target (ask once)
 Ask the user which device class matters and what hurts most: frame rate, load time or download size. Offer the classes in `references/targets.md`; the default is a mid-range laptop at 1080p. In unattended runs, use the default and apply **free** changes only.

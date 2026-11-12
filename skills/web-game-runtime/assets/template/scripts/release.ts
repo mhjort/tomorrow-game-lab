@@ -3,6 +3,12 @@
 // gzip size report with budgets. Run from the game project root: `pnpm release` (or node this file).
 //
 //   node release.ts [--project .] [--no-glb-opt] [--no-preload] [--precompress] [--max-js-kb 1500] [--max-total-mb 20] [--skip-build]
+//                   [--optimize design/optimize.json]
+//
+// design/optimize.json (written by the optimize-assets skill; optional) sets per-asset web settings applied to the
+// copies in dist/ only, so public/ keeps the full-quality sources: GLB textures (WebP, max size), GLB simplification,
+// 2D images (quality, max size) and audio (LAME VBR, mono). Keys are dist-relative paths or globs ("*", "music/*").
+// Without the file only the lossless GLB pipeline runs. Audio needs ffmpeg on PATH.
 //
 // --precompress writes <file>.br (brotli q11) and <file>.gz (gzip -9) next to every compressible file > 1 KB,
 // for hosts that serve precompressed files (nginx brotli_static/gzip_static, S3/CloudFront, Caddy precompressed).
@@ -14,7 +20,7 @@
 // typescript when installed (`tsc` runs first, so type errors fail the release).
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { readdirSync, readFileSync, statSync, writeFileSync, existsSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync, unlinkSync, writeFileSync, existsSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:zlib';
 
@@ -53,38 +59,138 @@ const COMPRESSIBLE = /\.(js|mjs|wasm|glb|gltf|bin|html|json|css|svg|txt|xml)$/;
 const brotli = (buf: Buffer) =>
   brotliCompressSync(buf, { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 11, [zlibConstants.BROTLI_PARAM_SIZE_HINT]: buf.length } });
 
-// 2. GLB optimization: dedup + weld + meshopt (quantize + reorder + compress). Runtime decodes via MeshoptDecoder.
+// design/optimize.json: per-asset settings (see the header). Later, more specific keys override earlier ones.
+type TexOpt = { format?: 'webp' | 'jpeg' | 'png' | 'avif'; quality?: number; maxSize?: number };
+type ModelOpt = { simplify?: { ratio: number; error?: number; lockBorder?: boolean } };
+type ImgOpt = { quality?: number; maxSize?: number };
+type AudioOpt = { vbr?: number; mono?: boolean };
+type OptimizeConfig = {
+  textures?: Record<string, TexOpt>;
+  models?: Record<string, ModelOpt>;
+  images?: Record<string, ImgOpt>;
+  audio?: Record<string, AudioOpt>;
+};
+const optimizePath = resolve(project, opt('--optimize', 'design/optimize.json'));
+const optimize: OptimizeConfig = existsSync(optimizePath) ? (JSON.parse(readFileSync(optimizePath, 'utf8')) as OptimizeConfig) : {};
+const globRe = (k: string) => new RegExp(`^${k.split('*').map((x) => x.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join(k === '*' ? '.*' : '[^/]*')}$`);
+/** Settings for one dist-relative file: every matching key merged, wildcards first, exact paths last. */
+function settingsFor<T extends object>(map: Record<string, T> | undefined, rel: string): T | undefined {
+  if (!map) return undefined;
+  const keys = Object.keys(map).filter((k) => globRe(k).test(rel)).sort((a, b) => Number(!a.includes('*')) - Number(!b.includes('*')) || a.length - b.length);
+  return keys.length ? (Object.assign({}, ...keys.map((k) => map[k])) as T) : undefined;
+}
+const optimized: { file: string; kind: string; before: number; after: number; settings: object }[] = [];
+
+// 2. GLB optimization: dedup + weld (+ simplify, + texture compression per optimize.json) + meshopt (quantize +
+//    reorder + compress). Runtime decodes via MeshoptDecoder.
 const glbs = walk(dist).filter((f) => f.endsWith('.glb'));
 const glbReport: { file: string; before: number; after: number }[] = [];
 if (glbs.length && !argv.includes('--no-glb-opt')) {
   const { NodeIO } = await imp<typeof import('@gltf-transform/core')>('@gltf-transform/core');
   const { ALL_EXTENSIONS } = await imp<typeof import('@gltf-transform/extensions')>('@gltf-transform/extensions');
-  const { dedup, weld, prune, meshopt } = await imp<typeof import('@gltf-transform/functions')>('@gltf-transform/functions');
-  const { MeshoptEncoder, MeshoptDecoder } = await imp<typeof import('meshoptimizer')>('meshoptimizer');
+  const { dedup, weld, prune, meshopt, simplify, textureCompress } = await imp<typeof import('@gltf-transform/functions')>('@gltf-transform/functions');
+  const { MeshoptEncoder, MeshoptDecoder, MeshoptSimplifier } = await imp<typeof import('meshoptimizer')>('meshoptimizer');
   await MeshoptEncoder.ready;
   await MeshoptDecoder.ready;
+  await MeshoptSimplifier.ready;
   const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.encoder': MeshoptEncoder, 'meshopt.decoder': MeshoptDecoder });
-  for (const f of glbs) {
-    const before = statSync(f).size;
+  const names = (d: import('@gltf-transform/core').Document) => d.getRoot().listNodes().map((n) => n.getName()).sort().join('|');
+  /** One GLB through the pipeline, with or without the texture re-encode; returns the encoded bytes. */
+  const build = async (f: string, rel: string, tex: TexOpt | undefined, model: ModelOpt | undefined): Promise<Uint8Array> => {
     const doc = await io.read(f);
-    const names = (d: import('@gltf-transform/core').Document) => d.getRoot().listNodes().map((n) => n.getName()).sort().join('|');
     const namesBefore = names(doc);
     // quantization moves the mesh of a node that also has child nodes into a new unnamed child (so the dequantize
     // scale doesn't scale the children): a mesh looked up by its node's name would no longer be there
     const splits = doc.getRoot().listNodes().filter((n) => n.getMesh() && n.listChildren().length).map((n) => n.getName());
+    const steps = [dedup(), weld()];
+    // simplify before quantization; only for files listed by name (thin parts such as ropes and blades can open up)
+    if (model?.simplify) steps.push(simplify({ simplifier: MeshoptSimplifier, error: 1e-3, ...model.simplify }));
+    if (tex) {
+      const sharp = (await imp<{ default: unknown }>('sharp')).default;
+      steps.push(textureCompress({ encoder: sharp, targetFormat: tex.format ?? 'webp', quality: tex.quality ?? 90, ...(tex.maxSize ? { resize: [tex.maxSize, tex.maxSize] as [number, number] } : {}) }));
+    }
     // keepLeaves: marker empties (Spawn, Tee, Goal...) are leaf nodes without meshes — never prune them.
     // keepAttributes: UVs no texture uses can still drive a node material (uv() in TSL: bark grain, gradients); prune
     // would drop them and the effect vanishes in release builds only. Measured cost: ≤0.01 MB gzip per game.
-    await doc.transform(dedup(), weld(), prune({ keepLeaves: true, keepExtras: true, keepAttributes: true }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+    steps.push(prune({ keepLeaves: true, keepExtras: true, keepAttributes: true }), meshopt({ encoder: MeshoptEncoder, level: 'medium' }));
+    await doc.transform(...steps);
     if (names(doc) !== namesBefore) {
-      console.error(`${relative(dist, f)}: optimization changed the node set (markers/colliders would break)`);
+      console.error(`${rel}: optimization changed the node set (markers/colliders would break)`);
       if (splits.length)
         console.error(`  nodes with both a mesh and child nodes: ${splits.join(', ')}. Meshopt quantization moves such a mesh into a new unnamed child.\n  Fix the asset script: make the parent an empty (the pivot) and parent the mesh and the other children to it.`);
       process.exit(1);
     }
-    await io.write(f, doc);
-    glbReport.push({ file: relative(dist, f), before, after: statSync(f).size });
+    return io.writeBinary(doc);
+  };
+  for (const f of glbs) {
+    const before = statSync(f).size;
+    const rel = relative(dist, f);
+    const model = settingsFor(optimize.models, rel);
+    const texWanted = settingsFor(optimize.textures, rel);
+    const tex = texWanted && (await io.read(f)).getRoot().listTextures().length ? texWanted : undefined;
+    let bytes = await build(f, rel, undefined, model);
+    let usedTex = false;
+    if (tex) {
+      // a texture re-encode can come out bigger (JPEG already small): keep whichever GLB is smaller
+      const withTex = await build(f, rel, tex, model);
+      if (withTex.length < bytes.length || tex.maxSize) [bytes, usedTex] = [withTex, true];
+    }
+    writeFileSync(f, bytes);
+    glbReport.push({ file: rel, before, after: bytes.length });
+    if (usedTex || model) optimized.push({ file: rel, kind: 'glb', before, after: bytes.length, settings: { ...(usedTex ? { textures: tex } : {}), ...(model ?? {}) } });
   }
+}
+
+// 2b. 2D images and audio per optimize.json, in place in dist/ (same names, so code and preload hints don't change).
+//     A re-encode is kept only when it is smaller.
+for (const f of walk(dist)) {
+  const rel = relative(dist, f);
+  const img = /^images\/.*\.(webp|png|jpe?g)$/.test(rel) ? settingsFor(optimize.images, rel) : undefined;
+  const snd = rel.endsWith('.mp3') ? settingsFor(optimize.audio, rel) : undefined;
+  const before = statSync(f).size;
+  let out: Buffer | null = null;
+  if (img) {
+    const sharp = (await imp<{ default: (b: Buffer) => import('sharp').Sharp }>('sharp')).default;
+    let p = sharp(readFileSync(f));
+    if (img.maxSize) p = p.resize({ width: img.maxSize, height: img.maxSize, fit: 'inside', withoutEnlargement: true });
+    const q = img.quality ?? 85;
+    out = await (rel.endsWith('.webp') ? p.webp({ quality: q, effort: 6 }) : rel.endsWith('.png') ? p.png({ compressionLevel: 9 }) /* lossless: sharp's `effort` or `palette` quantize */ : p.jpeg({ quality: q, mozjpeg: true })).toBuffer();
+  } else if (snd) {
+    out = reencodeMp3(f, rel, snd);
+  }
+  if (out && out.length < before) {
+    writeFileSync(f, out);
+    optimized.push({ file: rel, kind: img ? 'image' : 'audio', before, after: out.length, settings: (img ?? snd)! });
+  }
+}
+
+/** LAME VBR re-encode of one mp3; music loops (music/<name>.json sidecar) must keep their exact sample count. */
+function reencodeMp3(f: string, rel: string, o: AudioOpt): Buffer {
+  if (spawnSync('ffmpeg', ['-version']).error) {
+    console.error('release: design/optimize.json re-encodes audio, which needs ffmpeg on PATH (brew install ffmpeg / apt-get install ffmpeg)');
+    process.exit(1);
+  }
+  const tmp = `${f}.tmp.mp3`;
+  const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', f, '-map_metadata', '-1', '-c:a', 'libmp3lame', '-q:a', String(o.vbr ?? 5), ...(o.mono ? ['-ac', '1'] : []), tmp]);
+  if (r.status !== 0) {
+    console.error(`release: ffmpeg failed on ${rel}: ${r.stderr}`);
+    process.exit(1);
+  }
+  const sidecar = f.replace(/\.mp3$/, '.json');
+  if (rel.startsWith('music/') && existsSync(sidecar) && (JSON.parse(readFileSync(sidecar, 'utf8')) as { loop?: boolean }).loop) {
+    // decode from files, not a pipe: from a pipe ffmpeg can't use the LAME gapless header and adds ~224 samples
+    const samples = (file: string) => spawnSync('ffmpeg', ['-v', 'error', '-i', file, '-f', 'f32le', '-ac', '1', 'pipe:1'], { maxBuffer: 1 << 30 }).stdout.length / 4;
+    const want = samples(f);
+    const got = samples(tmp);
+    if (got !== want) {
+      unlinkSync(tmp);
+      console.error(`release: re-encoding ${rel} changed its length (${want} -> ${got} samples): the loop seam would drift. Drop its audio setting in design/optimize.json.`);
+      process.exit(1);
+    }
+  }
+  const buf = readFileSync(tmp);
+  unlinkSync(tmp);
+  return buf;
 }
 
 // 3. preload hints: the browser starts EVERY download while parsing index.html, instead of waiting for the
@@ -161,6 +267,10 @@ const kb = (b: number) => (b / 1024).toFixed(1).padStart(8);
 console.log(`\n${'file'.padEnd(46)}      raw KB   gzip KB`);
 for (const r of rows.sort((a, b) => b.gzip - a.gzip)) console.log(`${r.file.padEnd(46)} ${kb(r.bytes)}  ${kb(r.gzip)}`);
 for (const g of glbReport) console.log(`  optimized ${g.file}: ${kb(g.before).trim()} KB -> ${kb(g.after).trim()} KB`);
+if (optimized.length) {
+  console.log(`\noptimize.json (${relative(project, optimizePath)}):`);
+  for (const o of optimized) console.log(`  ${o.file.padEnd(40)} ${kb(o.before)} -> ${kb(o.after)} KB  ${JSON.stringify(o.settings)}`);
+}
 const totals: { jsGzipKb: number; totalGzipMb: number; files: number; jsBrotliKb?: number; totalBrotliMb?: number } = {
   jsGzipKb: sum(js, 'gzip') / 1024,
   totalGzipMb: sum(rows, 'gzip') / 1024 / 1024,
@@ -177,6 +287,6 @@ console.log(`\nJS ${totals.jsGzipKb.toFixed(0)} KB gzip (budget ${maxJsKb}) · t
 if (brotliTotals)
   console.log(`precompressed .br/.gz written · brotli: JS ${brotliTotals.jsBrotliKb.toFixed(0)} KB, total ${brotliTotals.totalBrotliMb.toFixed(2)} MB (${((1 - brotliTotals.totalBrotliMb / totals.totalGzipMb) * 100).toFixed(0)}% smaller than gzip)`);
 for (const p of problems) console.log(`BUDGET: ${p}`);
-writeFileSync(join(dist, 'release-report.json'), JSON.stringify({ createdAt: new Date().toISOString(), totals, budgets: { maxJsKb, maxTotalMb }, problems, glbs: glbReport, files: rows }, null, 2));
+writeFileSync(join(dist, 'release-report.json'), JSON.stringify({ createdAt: new Date().toISOString(), totals, budgets: { maxJsKb, maxTotalMb }, problems, glbs: glbReport, optimized, files: rows }, null, 2));
 console.log(problems.length ? 'release: FAIL' : 'release: OK -> dist/');
 process.exit(problems.length ? 1 : 0);

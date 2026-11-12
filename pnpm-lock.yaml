@@ -187,6 +187,9 @@ importers:
       playwright-core:
         specifier: ^1.64.1
         version: 1.64.1
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@26.6.6)
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -218,6 +221,9 @@ importers:
       playwright-core:
         specifier: ^1.64.1
         version: 1.64.1
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@26.6.6)
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -258,6 +264,9 @@ importers:
       playwright-core:
         specifier: ^1.64.1
         version: 1.64.1
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@26.6.6)
       typescript:
         specifier: ^7.0.2
         version: 7.0.2
@@ -295,6 +304,9 @@ importers:
       playwright-core:
         specifier: ^1.64.1
         version: 1.64.1
+      sharp:
+        specifier: ^0.35.5
+        version: 0.35.5(@types/node@26.6.6)
       typescript:
         specifier: ^7.0.2
         version: 7.0.2

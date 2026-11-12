@@ -15,6 +15,7 @@ Entry point of the tomorrow-game-lab skills. It orchestrates these sibling skill
 | `generate-media` | AI-generated 2D images, sound effects, music loops, gameplay videos and image-to-3D models (Runware) from `design/media.json` → `public/images/`, `public/sfx/`, `public/music/`, `design/reference/*.mp4`, `./assets/generated/*.glb` |
 | `game-judge` | headless Chrome playtest + judge rubrics → `verdict.md` with a fix list |
 | `optimize-web-game` | performance pass for a target device, after the user has played the game: free wins first, asks before any visible compromise |
+| `optimize-assets` | web-sized assets before publishing: `design/optimize.json` applied by `pnpm release` (sources stay full quality), near-lossless automatically, bigger savings picked by the user |
 | `publish-web-game` | optimized release build (`pnpm release`) + GitHub Pages deploy + live smoke test |
 
 If a sibling skill is not installed, tell the user: `pnpm dlx skills add <repo> --skill <name>`.
@@ -64,7 +65,8 @@ tests/scenarios/   playtest scenarios (*.json) + bots/*.ts
     - wait for the answer, apply the feedback, re-run the playtest, then reply with the same link
     Don't ask mid-build. With no user available (unattended runs), list the questions in the final report.
 11. **Optimize** (after the user has played it and likes it, when they ask, or when the release is over budget) — `optimize-web-game`: agree a target device, measure, apply the changes that don't change the look, and ask before any that do.
-12. **Publish** (when asked, or when the user wants a link) — `publish-web-game`: release build, GitHub Pages deploy, live-URL playtest.
+12. **Optimize assets** (before the first publish, once the user likes the game) — `optimize-assets`: near-lossless settings proven by identical screenshots, then one table of bigger savings for the user to pick from.
+13. **Publish** (when asked, or when the user wants a link) — `publish-web-game`: release build, GitHub Pages deploy, live-URL playtest.
 
 ## Every hand-off ends with a play link
 Whenever you finish a change the user can see or feel (a new game, a fix, a tuning tweak, a new level), your final message **starts with a working local link**. Don't make the user ask where to test. Follow `references/human-review.md` §1 to start and check the server, then send:
@@ -77,7 +79,7 @@ Leave the server running and say so. This is not the full taste review (step 10)
 ## Definition of done
 - `pnpm typecheck` is clean and `pnpm build` succeeds (it type-checks first), and the playtest passes on **webgpu and webgl2** with zero console errors.
 - The game boots through a loading screen with a progress bar. All downloads run in one parallel phase, then everything on screen is prewarmed before play. Multi-level games load and prewarm only the first level up front and stream the rest during play (`levels.ts` in the `web-game-runtime` skill), so the player starts sooner.
-- `pnpm release` succeeds (sizes are reported; budgets for a target device are the `optimize-web-game` pass).
+- `pnpm release` succeeds (sizes are reported; budgets for a target device are the `optimize-web-game` pass). A published game has a `design/optimize.json` from `optimize-assets`.
 - Every judge passes (see `game-judge`). Remaining minor issues are listed in your final message.
 - A full-game bot reaches the end state. The README or final message explains the controls.
 - The final message starts with a checked local play link, the controls and what to try.

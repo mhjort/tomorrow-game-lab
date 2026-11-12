@@ -36,6 +36,8 @@ jobs:
       - name: Install
         working-directory: ${{ env.GAME_DIR }}
         run: pnpm install --frozen-lockfile
+      - name: Install ffmpeg (design/optimize.json re-encodes audio)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       # GLBs in public/models are committed (built locally with Blender); CI never needs Blender.
       - name: Release build (minify, optimize GLBs, budgets)
         working-directory: ${{ env.GAME_DIR }}
