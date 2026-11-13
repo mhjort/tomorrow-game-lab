@@ -8,9 +8,9 @@
     },
     {
       "change": "simplify:models/world.glb:0.5",
-      "accepted": true,
-      "gain": "-88.7 KB gzip",
-      "date": "2026-11-12"
+      "accepted": false,
+      "gain": "+23 KB gzip (grass instanced)",
+      "date": "2026-11-13"
     },
     {
       "change": "music-vbr7:music/play.mp3",
@@ -48,14 +48,6 @@
     },
     "music/play.mp3": {
       "vbr": 7
-    }
-  },
-  "models": {
-    "models/world.glb": {
-      "simplify": {
-        "ratio": 0.5,
-        "error": 0.002
-      }
     }
   }
 }

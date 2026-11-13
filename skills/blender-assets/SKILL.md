@@ -36,6 +36,7 @@ L.finish(__file__, style)                    # exports GLB + renders preview
 Helpers in `lab_bpy`:
 - Primitives: `box`, `cylinder`, `sphere`
 - Mesh operations: `bevel`, `boolean_cut`, `cut_hole` (cup/pit/goal: cut + wall + floor + sensor), `join`, `apply_all_modifiers`, `apply_transform`
+- Repeated small meshes (grass blades, posts, pebbles): `instances(name, [(mesh, loc, rot, scale), ...])` stores each mesh once with a transform per copy (glTF `EXT_mesh_gpu_instancing`, an `InstancedMesh` in three.js). Joining thousands of copies stores every vertex of every copy: Blossom Swing's world.glb went from 7.5 MB to 2.3 MB.
 - Styling and tagging: `material`, `color`, `tag_collider`
 - Output: `export_glb`, `render_preview`, `setup_camera`, `setup_lighting`
 - Diagnostics: `triangle_count`, and `args()` for the script arguments after `--`

@@ -226,8 +226,25 @@ def join(objs, name):
     return o
 
 
+def instances(name, placements):
+    """One small mesh drawn many times (grass blades, fence posts, pebbles), stored once in the GLB.
+    `placements` is a list of (mesh, location, rotation_euler, scale): each becomes a child of an empty `name`
+    that shares the mesh data. The GLB gets one node per distinct mesh with EXT_mesh_gpu_instancing (a list of
+    transforms), and three.js GLTFLoader loads it as an InstancedMesh. Joined copies would store every vertex of
+    every copy. Use a few mesh variants instead of a non-uniform scale that would squash rounded parts. Returns the empty."""
+    parent = bpy.data.objects.new(name, None)
+    bpy.context.scene.collection.objects.link(parent)
+    for i, (mesh, loc, rot, scale) in enumerate(placements):
+        o = bpy.data.objects.new(f"{name}_{i}", mesh)
+        o.location, o.rotation_euler, o.scale = loc, rot, scale
+        o.parent = parent
+        bpy.context.scene.collection.objects.link(o)
+    _EXPORT_OPTS["export_gpu_instances"] = True
+    return parent
+
+
 _EXPORT_IMAGE_FORMAT = "AUTO"
-_EXPORT_OPTS = {}  # extra glTF exporter options set by helpers (lab_rig: skins + one animation per NLA track)
+_EXPORT_OPTS = {}  # extra glTF exporter options set by helpers (lab_rig: skins + one animation per NLA track; instances)
 _FORWARD_YAW = {"-Y": 0.0, "+X": -90.0, "+Y": 180.0, "-X": 90.0}
 
 
