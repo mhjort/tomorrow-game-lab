@@ -215,8 +215,31 @@ def on_root(x, y):
 
 
 # grass tufts (crops/ground_front.png, crops/big_tree.png): clumps of 5-9 upright blades, each a slim capsule
-# ~11-19 cm tall and ~6 cm wide with a round tip, fanning a little out of the clump; denser near the camera
-bm = bmesh.new()
+# ~11-19 cm tall and ~6 cm wide with a round tip, fanning a little out of the clump; denser near the camera.
+# Instanced (L.instances): ~2700 blades share 4 blade meshes, one per height:width ratio, so scaling a blade to its
+# size stretches its round tip by at most ~13%. Joined, they were 2/3 of the world's triangles and bytes.
+ASPECTS = (3.7, 4.7, 5.7, 6.7)  # blade height / half-width (the blades span 3.2-7.3)
+SUNK = 2.0  # the bottom hemisphere's depth below the ground, in half-widths (6 cm at a 3 cm half-width)
+
+
+def blade_mesh(a):
+    """A capsule 1 half-width wide (0.7 deep), `a` half-widths tall, its bottom hemisphere sunk below z = 0."""
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=6, radius=1.0)
+    for v in bm.verts:
+        v.co.y *= 0.7
+        v.co.z = (a - 1 + v.co.z) if v.co.z > 0 else v.co.z * SUNK
+    me = bpy.data.meshes.new(f"Blade{a}")
+    bm.to_mesh(me)
+    bm.free()
+    for p in me.polygons:
+        p.use_smooth = True
+    me.materials.append(MAT["blade"])
+    return me
+
+
+blades = {a: blade_mesh(a) for a in ASPECTS}
+placements = []
 for k in range(640):
     x = rng.uniform(-6, 15)
     y = rng.uniform(-4.5, 1.8)
@@ -230,15 +253,10 @@ for k in range(640):
         ht = rng.uniform(0.11, 0.19)
         w = rng.uniform(0.026, 0.034)  # half-width: chunky blades, ~1:3 (crops/big_tree.png), not straws
         lx, ly = ox * 0.9 + rng.uniform(-0.05, 0.05), oy * 0.9  # lean out of the clump (per metre of height)
-        gz = ground(bx, by)
-        blade = bmesh.ops.create_uvsphere(bm, u_segments=8, v_segments=6, radius=1.0)
-        for v in blade["verts"]:
-            # a capsule: the top hemisphere lifted to the blade's height, the bottom one sunk into the ground
-            z = (ht - w + v.co.z * w) if v.co.z > 0 else v.co.z * 0.06
-            v.co.x = bx + v.co.x * w + lx * z
-            v.co.y = by + v.co.y * w * 0.7 + ly * z
-            v.co.z = gz + z - 0.02
-link("Tufts", bm, MAT["blade"])
+        a = min(ASPECTS, key=lambda s: abs(s - ht / w))
+        # the lean as a tilt: x drifts by lx (y by ly) per metre of height
+        placements.append((blades[a], (bx, by, ground(bx, by) - 0.02), (-math.atan(ly), math.atan(lx), 0), (w, w, ht / a)))
+L.instances("Tufts", placements)
 # daisies: tiny white discs with a yellow centre, a few cm over the grass
 bm = bmesh.new()
 for k in range(70):

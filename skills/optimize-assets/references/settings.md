@@ -31,5 +31,5 @@
 ## Not automated yet (offer them in the report when they would matter)
 - **KTX2/Basis textures:** saves GPU memory, not just download, so it matters on phones with many big textures. Needs `toktx` (KTX-Software) at release time and `KTX2Loader` with its transcoder in the game. The colours can shift: compare screenshots.
 - **Opus or AAC music:** about half the size of MP3 at the same quality. Needs `engine/audio.ts` to load another extension, and a check on Safari.
-- **Instancing repeated meshes:** grass, fences, rows of props. It is an asset-script and game change (one mesh plus a list of transforms), and often the biggest geometry win: see the inventory's biggest meshes.
+- **Instancing repeated meshes:** grass, fences, rows of props. It is an asset-script change, not a release setting: blender-assets' `L.instances` exports `EXT_mesh_gpu_instancing`, which GLTFLoader loads as an `InstancedMesh` with no game change. Often the biggest geometry win (Blossom Swing's grass: world.glb 886 → 395 KB gzip): see the inventory's biggest meshes.
 - **Rapier wasm (~1.1 MB gzip):** only games that use physics carry it. A game with simple collisions can drop the dependency.

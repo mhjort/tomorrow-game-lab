@@ -79,6 +79,32 @@ L.finish(__file__, None, {})
   assert.equal(good.status, 0, good.stdout.slice(-2000) + good.stderr.slice(-2000));
 });
 
+test('lab_bpy.instances: copies of a mesh export once, with EXT_mesh_gpu_instancing transforms', { skip: !hasBlender() && 'blender missing', timeout: 120000 }, () => {
+  const proj = tmp('instances');
+  mkdirSync(join(proj, 'assets/src'), { recursive: true });
+  copyFileSync(join(SKILLS, 'blender-assets/scripts/lab_bpy.py'), join(proj, 'assets/src/lab_bpy.py'));
+  writeFileSync(join(proj, 'assets/src/field.py'), `import os, sys; sys.path.insert(0, os.path.dirname(__file__))
+import lab_bpy as L
+L.reset_scene()
+L.box("Ground", (10, 10, 0.1), (0, 0, -0.05))
+tall, short = (L.sphere(n, 1.0, (0, 0, 0), 2) for n in ("TallTpl", "ShortTpl"))
+meshes = [tall.data, short.data]
+for t in (tall, short):
+    L.bpy.data.objects.remove(t)  # keep only the mesh data
+L.instances("Blades", [(meshes[i % 2], (i * 0.1, 0, 0), (0, 0.1, 0), (0.03, 0.03, 0.15)) for i in range(60)])
+L.finish(__file__, None, {})
+`);
+  const r = run(join(SKILLS, 'blender-assets/scripts/run_blender.sh'), ['assets/src/field.py', '--no-preview'], { cwd: proj });
+  assert.equal(r.status, 0, r.stdout.slice(-2000) + r.stderr.slice(-2000));
+  const glb = readFileSync(join(proj, 'public/models/field.glb'));
+  type Gltf = { meshes: unknown[]; accessors: { count: number }[]; nodes: { name: string; extensions?: { EXT_mesh_gpu_instancing?: { attributes: Record<string, number> } } }[] };
+  const json = JSON.parse(glb.subarray(20, 20 + glb.readUInt32LE(12)).toString('utf8')) as Gltf;
+  const batches = json.nodes.flatMap((n) => (n.extensions?.EXT_mesh_gpu_instancing ? [n.extensions.EXT_mesh_gpu_instancing] : []));
+  assert.equal(batches.length, 2, 'one instanced node per distinct mesh');
+  assert.deepEqual(batches.map((b) => json.accessors[b.attributes['TRANSLATION']!]!.count), [30, 30]);
+  assert.equal(json.meshes.length, 3, 'ground + two blade meshes, each stored once');
+});
+
 test('lab_bpy.import_glb: generated GLB -> facing, scale, bottom-centre origin, tri + texture budget', { skip: !hasBlender() && 'blender missing', timeout: 180000 }, () => {
   const proj = tmp('import-glb');
   mkdirSync(join(proj, 'assets/src'), { recursive: true });

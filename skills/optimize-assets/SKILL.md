@@ -61,7 +61,7 @@ Both write to `decisions` in `optimize.json`, so a later pass doesn't ask again.
 - Commit `design/optimize.json`. `.lab/` is generated.
 
 ## Gotchas
-- **Look at the inventory's biggest meshes first.** If one GLB is mostly a repeated small mesh (grass blades: 216k of Blossom Swing's 330k triangles), the fix is in the asset script: one blade mesh, instanced at load. Release settings can't fix that.
+- **Look at the inventory's biggest meshes first.** If one GLB is mostly a repeated small mesh (grass blades: 216k of Blossom Swing's 330k triangles), the fix is in the asset script: `L.instances` (blender-assets) stores the blade once with a transform per copy. Blossom Swing's shipped world.glb fell from 886 to 395 KB gzip, and the simplify it had accepted before then grew the file: re-trial simplify after instancing.
 - **Music loops keep their exact length.** The release re-encodes with LAME and refuses a result whose sample count differs from the source, so the seam can't drift. Count samples from files, never through a pipe: from a pipe ffmpeg can't read the gapless header and adds about 224 samples.
 - **PNG stays lossless.** sharp's `effort` or `palette` options quantize PNGs to a palette. The release writes PNGs with `compressionLevel` only, and keeps a re-encode only when it is smaller.
 - **A texture re-encode can grow a GLB.** A small JPEG made by `import_glb` is often smaller than WebP q90, so the release builds both and keeps the smaller one.
