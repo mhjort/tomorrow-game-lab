@@ -46,7 +46,7 @@ The `make-web-game` environment check (`scripts/check-env.ts`) reports whether t
 | [`make-web-game`](skills/make-web-game/SKILL.md) | entry point: art direction → brief → scaffold → assets + media → implement → playtest → judge → iterate → human review |
 | [`key-art-direction`](skills/key-art-direction/SKILL.md) | image/video → key frames, palette, `design/art-bible.md`, `design/style.json` |
 | [`web-game-runtime`](skills/web-game-runtime/SKILL.md) | Vite + three.js WebGPU/WebGL2 template, fixed-step loop, Rapier wrapper, skeletal animation, `window.__game` test hooks |
-| [`blender-assets`](skills/blender-assets/SKILL.md) | `lab_bpy` helper, Blender → GLB with collider tags, preview renders, GLB inspector, `import_glb` for generated models, `lab_rig` auto-rigging + animation clips |
+| [`blender-assets`](skills/blender-assets/SKILL.md) | `lab_bpy` helper, Blender → GLB with collider tags, preview renders, GLB inspector, `import_glb` for generated models, `lab_rig` auto-rigging + animation clips (bipeds, four-legged animals) and wheels/rotors cut out for vehicles and machines |
 | [`generate-media`](skills/generate-media/SKILL.md) | `design/media.json` → Runware (Nano Banana 2.1 / GPT-Image-2.5 images, Mirelo SFX, ACE-Step music, MiniMax H3 Max video, Tripo image-to-3D) → candidate review (contact sheets, waveforms, 3D preview sheets) → trimmed, normalised `public/sfx/*.mp3`, seamless `public/music/*.mp3` loops, `public/images/*`, reference clips in `design/reference/` and raw GLBs in `assets/generated/` with a cost/seed lock file |
 | [`optimize-web-game`](skills/optimize-web-game/SKILL.md) | performance pass for a target device after the game matches its reference: measure, free wins first, ask before any visible compromise; `perf-compare.ts` before/after report |
 | [`optimize-assets`](skills/optimize-assets/SKILL.md) | web-sized assets before publishing: `design/optimize.json` (WebP textures, image/audio re-encodes, GLB simplification) applied by `pnpm release` to `dist/` only; near-lossless settings proven by identical screenshots, bigger savings measured one by one for the user to pick |
@@ -77,7 +77,7 @@ With `?test` the game never advances by itself, so every scenario is determinist
 skills/                 the product (what `pnpm dlx skills add` installs)
 examples/minigolf/      golden test game, built by following the skills (3 holes, Rapier, Blender assets)
 examples/snowplough/    video-first proof: "Little Plough", built from a generated gameplay video (generated
-                        plough + rigged villager models, scripted village, deformable snow, music; no physics engine)
+                        plough (wheels roll and steer) + rigged villager models, scripted village, deformable snow, music; no physics engine)
 examples/blossomswing/  video-first: "Blossom Swing", a swing-timing game (generated child rigged with seated clips,
                         scripted hill, tree and instanced orchard; judged over 10 rounds to pass the visual bar)
 lab/fixtures/keyart/    original key art fixtures (rendered by Blender: minigolf.png + minigolf.mp4)

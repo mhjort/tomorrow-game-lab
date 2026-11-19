@@ -1,5 +1,6 @@
-// Skeletal animation for rigged models (blender-assets lab_rig: idle / walk / run / jump, hang / swing / climb /
-// pull clips).
+// Skeletal animation for rigged models (blender-assets lab_rig: biped idle / walk / run / jump, hang / swing / climb /
+// pull, sit / kick / fly / land; quadruped idle / walk / trot / gallop), and rigid moving parts (lab_rig
+// rig_vehicle wheels, rig_rotor propellers and sails: createParts).
 // Advance it from the game's fixed-step update(dt), never from render(): then ?test runs and screenshots are
 // deterministic. `counts` (plays per clip) goes into getState() so scenarios can assert that a clip started.
 import * as THREE from 'three/webgpu';
@@ -61,6 +62,74 @@ export function createAnimator(model: THREE.Object3D, { fade = 0.2 }: { fade?: n
     },
     update(dt) {
       mixer.update(dt);
+    },
+  };
+}
+
+export interface Wheel {
+  node: THREE.Object3D;
+  radius: number;
+  steers: boolean;
+}
+export interface Rotor {
+  node: THREE.Object3D;
+  axis: THREE.Vector3;
+  rest: THREE.Quaternion;
+  angle: number;
+}
+export interface Parts {
+  wheels: Wheel[];
+  rotors: Rotor[];
+  /** Roll every wheel by `distance` metres driven (negative = reversing) and turn the steering wheels to `steer`
+   * radians (positive = left, i.e. counter-clockwise seen from above). Call it every tick with that tick's distance. */
+  drive(distance: number, steer?: number): void;
+  /** Turn the rotors (all, or the one named `name`) by `turns` revolutions: turnsPerSecond * dt each tick. */
+  spin(turns: number, name?: string): void;
+  /** Wheel roll angle (radians, wrapped) and steering, for getState(). */
+  readonly state: { roll: number; steer: number };
+}
+
+/**
+ * createParts(model from loadModel) finds the nodes lab_rig cut out of a vehicle or machine: `wheel.*` (extras
+ * wheel_radius, steer) and rotors (extras spin_axis). A model without them gives empty lists, so it is safe to call
+ * on any model. Drive it from the fixed-step update(dt), like the animator.
+ */
+export function createParts(model: THREE.Object3D): Parts {
+  const wheels: Wheel[] = [];
+  const rotors: Rotor[] = [];
+  model.traverse((o) => {
+    const u = o.userData;
+    if (typeof u['wheel_radius'] === 'number') {
+      o.rotation.order = 'YXZ'; // steer about the vehicle's up axis, then roll about the axle
+      wheels.push({ node: o, radius: u['wheel_radius'], steers: u['steer'] === 1 });
+    } else if (Array.isArray(u['spin_axis'])) {
+      const [x = 0, y = 0, z = 0] = u['spin_axis'] as number[];
+      rotors.push({ node: o, axis: new THREE.Vector3(x, y, z).normalize(), rest: o.quaternion.clone(), angle: 0 });
+    }
+  });
+  const state = { roll: 0, steer: 0 };
+  const q = new THREE.Quaternion();
+  const TAU = Math.PI * 2;
+  return {
+    wheels,
+    rotors,
+    state,
+    drive(distance, steer = state.steer) {
+      // rolling forward (the model's +z) turns the top of the wheel forward: positive about +x
+      state.steer = steer;
+      for (const w of wheels) {
+        w.node.rotation.x = (w.node.rotation.x + distance / w.radius) % TAU;
+        if (w.steers) w.node.rotation.y = steer;
+      }
+      const first = wheels[0];
+      state.roll = first ? first.node.rotation.x : 0;
+    },
+    spin(turns, name) {
+      for (const r of rotors) {
+        if (name !== undefined && r.node.name !== name) continue;
+        r.angle = (r.angle + turns * TAU) % TAU;
+        r.node.quaternion.copy(r.rest).multiply(q.setFromAxisAngle(r.axis, r.angle));
+      }
     },
   };
 }

@@ -11,7 +11,7 @@ Every asset is a **Python script** (`assets/src/<name>.py`) that rebuilds it fro
 
 Files in this skill's `scripts/`:
 - `lab_bpy.py`: helper module. Copy it into `assets/src/` and don't edit the copy, so it can be refreshed later.
-- `lab_rig.py`: auto-rigging and procedural animation for characters (needs `lab_bpy`). Copy it next to `lab_bpy.py` when a game has characters.
+- `lab_rig.py`: auto-rigging and procedural animation for characters and four-legged animals, and moving parts (wheels, rotors) for vehicles and machines (needs `lab_bpy`). Copy it next to `lab_bpy.py` when a game has any of them.
 - `run_blender.sh <script.py> [args]`: runs a single script headless (`blender -b --factory-startup --python-exit-code 1`).
 - `inspect_glb.ts <glb...>`: triangle count, size, materials and colliders. Budgets are opt-in flags (`--max-tris`, `--max-kb`) for the `optimize-web-game` pass. No dependencies.
 
@@ -55,7 +55,7 @@ L.finish(__file__, L.load_style())
 `import_glb` joins the meshes and turns the front to −Y (three.js +Z). It scales uniformly to `height` (Z) or `length` (Y) in meters, puts the origin at bottom-centre and decimates to `max_tris`. It shrinks textures to `max_texture` px and exports them as JPEG, and by default (`pbr=False`) it drops metallic, roughness and normal maps for a flat toy look. `forward` is the axis the raw model faces: read it from generate-media's preview sheet. The model keeps its own texture colours, so `style.json` doesn't restyle it: generate its reference image from the key art instead.
 
 ## Rigging and animation (`lab_rig`)
-Rigging happens here, in Blender, for any biped: generated or scripted. The character must stand in a **T- or A-pose** (arms away from the body), so ask for one in its reference image.
+Rigging happens here, in Blender, for any biped, four-legged animal or vehicle: generated or scripted. The character must stand in a **T- or A-pose** (arms away from the body), so ask for one in its reference image.
 ```python
 import lab_bpy as L, lab_rig as R
 body = L.import_glb("assets/generated/villager.glb", "Villager", forward="+X", height=1.1, max_tris=6000)
@@ -71,6 +71,28 @@ L.finish(__file__)                          # GLB with a 16-joint skin and one g
 - `add_seated_clips(rig)` adds `sit` (loop), `kick` (scrub it: u=0 legs out front, 1 tucked under), `fly` (arms flung up) and `land` (sitting on the ground) for swings, benches, carts and boats. The game puts the `hips` bone on the seat every frame (move the model by seat − hips world position).
 - A long coat, dress or A-line raincoat hides the crotch, and T-pose arms level with the coat's shoulders hide the shoulders: the auto landmarks put a raincoat child's hips at its ankles (the legs never bent) and its shoulders on the centre line (raising the arms stretched the hood). Print the mesh's x-extent per 2.5 cm height band, read the leg gap, coat hem, arm line and neck from it, and pass every landmark (`rig_biped(body, landmarks={...})`).
 - In the game: `createAnimator(model)` from the runtime's `animation.ts`, `play('walk')` from `update(dt)`, and `update(dt)` in the fixed step (see `web-game-runtime`).
+
+### Four-legged animals
+```python
+body = L.import_glb("assets/generated/fox.glb", "Fox", forward="-Y", length=0.9, max_tris=5000)
+rig = R.rig_quadruped(body)       # legs .FL .FR .HL .HR (H = hind, L = +X), hips, chest, neck, head, tail.1/2
+R.add_quadruped_clips(rig)        # idle 2 s, walk 1 s, trot 0.6 s, gallop 0.45 s; all loops, in place
+R.render_pose_sheet(rig, ".lab/previews/fox-poses.png")
+```
+- The animal must **stand on all four legs** with air between its front and hind legs (ask for "standing on all four legs, legs straight and apart, side view" in the reference image). The belly is the top of that gap, measured from the feet up; legs, spine height, head (whatever sticks out in front of the front legs) and tail (behind the hind legs) follow from it. Fix a landmark the same way as for bipeds (`landmarks={"ankle.HL": (x, y, z), ...}`).
+- The head is rigid in front of the head joint, and a thigh never takes vertices more than 10% of the height above its hip, so the flank stays with the body. Pick the gait from the speed and scale it with `play(name, { timeScale })`.
+
+### Vehicles and machines: rigid parts, no skeleton
+```python
+body = L.import_glb("assets/generated/plough.glb", "Plough", forward="-X", length=3.6)
+R.rig_vehicle(body)               # cuts wheel.FL/FR/RL/RR out; prints "[lab_rig] wheels [...]"
+R.rig_rotor(body, "propeller", (0, -1.9, 0.8), axis="Y", radius=0.5, depth=0.2)  # centre in metres, world space
+R.render_parts_sheet(body, ".lab/previews/plough-parts.png")
+```
+- `rig_vehicle` finds the wheels itself: ground contacts that don't straddle the centre line, each with a circle fitted to its tyre's bottom profile. A blade, skid or bumper touching the ground is skipped ("no tyre arc"). Wheels are named by axle (F/R, or F/M/R) and side (L = +X, R, C = centre); the F axle steers (`steer=("F",)`). If the printed list is wrong, pass `wheels=[{"name", "center", "radius", "width"}]`.
+- Each part becomes an **empty on its axis** (extras `wheel_radius`/`steer` or `spin_axis`) holding the cut-out mesh, and the body becomes `<name>Body` under an empty with the model's name: the release's meshopt step rewrites mesh nodes' transforms, and a wheel's pivot moved 1 cm off its hub before the empties.
+- **Look at the parts sheet** (front three-quarter and side, wheels rolled and steered, rotors turned): no body faces may turn with a part, and no tyre or blade may stay behind.
+- In the game: `createParts(model)` from `animation.ts`, then `parts.drive(speed * dt, steer)` (radians, positive = left) and `parts.spin(turnsPerSecond * dt)` in the fixed step.
 
 ## Conventions (the runtime depends on these)
 - **Units:** meters. Blender is +Z up; the glTF export is +Y up, so Blender `(x, y, z)` becomes three.js `(x, z, -y)`. Put the origin where the game will place the object (usually bottom-center).

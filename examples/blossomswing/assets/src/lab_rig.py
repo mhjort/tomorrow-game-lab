@@ -1,4 +1,5 @@
-"""lab_rig — automatic rigging + procedural animation clips for characters, in headless Blender (5.2 LTS+).
+"""lab_rig — automatic rigging + procedural animation clips for characters, animals and vehicles, in headless
+Blender (5.2 LTS+).
 
 Copy next to lab_bpy.py (assets/src/lab_rig.py; the build skips lab_* helpers) and:
 
@@ -438,23 +439,541 @@ def add_seated_clips(arm, clips=("sit", "kick", "fly", "land")):
     return made
 
 
+# ---------------------------------------------------------------- quadrupeds
+
+
+def quadruped_landmarks(obj):
+    """Measure the joints of a four-legged animal standing on all fours (front -Y, up Z, feet at z = 0) from its
+    faces. Returns {name: Vector} in object space; legs are FL, FR (front), HL, HR (hind), L = +X."""
+    vs = [obj.matrix_world @ v.co for v in obj.data.vertices]
+    H = max(v.z for v in vs)
+    ylo, yhi = min(v.y for v in vs), max(v.y for v in vs)
+    Ly = yhi - ylo
+    bins = 50
+    # the y ranges each face covers per height band: the belly is the highest band with air between the front and
+    # hind legs (a y gap in the middle of the body)
+    spans = [[] for _ in range(bins)]
+    for poly in obj.data.polygons:
+        pts = [vs[i] for i in poly.vertices]
+        lo_i = min(bins - 1, int(min(p.z for p in pts) / H * bins))
+        hi_i = min(bins - 1, int(max(p.z for p in pts) / H * bins))
+        for i in range(lo_i, hi_i + 1):
+            spans[i].append((min(p.y for p in pts), max(p.y for p in pts)))
+
+    def gap(i):  # the widest uncovered y interval in the band, as (start, end), or None
+        ivs = sorted(spans[i])
+        if not ivs:
+            return None
+        best, e = None, ivs[0][1]
+        for lo, hi in ivs[1:]:
+            if lo > e and (best is None or lo - e > best[1] - best[0]):
+                best = (e, lo)
+            e = max(e, hi)
+        return best
+    # from the feet up, while the gap lasts (higher up, the space between a raised head and the tail is a gap too)
+    belly_i = 0
+    for i in range(int(bins * 0.8)):
+        g = gap(i)
+        if g and g[1] - g[0] > 0.12 * Ly:
+            belly_i = i
+        elif belly_i or i > bins * 0.2:
+            break
+    if not belly_i:
+        raise RuntimeError("rig_quadruped: no space between the front and hind legs; the animal must stand on four legs")
+    belly = (belly_i + 1) / bins * H
+    g = gap(max(0, belly_i // 2)) or gap(belly_i)
+    mid_y = (g[0] + g[1]) / 2
+    # the legs: vertices below the belly, in four groups by side and by front/hind of the gap
+    out = {}
+    feet = {}
+    for leg, front in (("FL", True), ("FR", True), ("HL", False), ("HR", False)):
+        sign = 1 if leg[1] == "L" else -1
+        ps = [v for v in vs if v.z < belly * 0.9 and sign * v.x > 0 and ((v.y < mid_y) if front else (v.y > mid_y))]
+        if not ps:
+            raise RuntimeError(f"rig_quadruped: no {leg} leg found below the belly (z {belly:.2f})")
+        low = [v for v in ps if v.z < 0.35 * belly] or ps
+        x = sorted(sign * v.x for v in low)[len(low) // 2] * sign
+        y = sorted(v.y for v in low)[len(low) // 2]
+        feet[leg] = (x, y)
+    top = [v for v in vs if abs(v.y - mid_y) < 0.1 * Ly]
+    back_z = max(v.z for v in top) if top else H
+    spine_z = belly + 0.55 * (back_z - belly)
+    y_front = (feet["FL"][1] + feet["FR"][1]) / 2
+    y_hind = (feet["HL"][1] + feet["HR"][1]) / 2
+    for leg, (x, y) in feet.items():
+        top_z = belly + 0.45 * (spine_z - belly)
+        out[f"hip.{leg}"] = Vector((x * 0.85, y, top_z))
+        out[f"knee.{leg}"] = Vector((x, y + (0.02 if leg[0] == "F" else -0.03) * Ly, 0.5 * belly))
+        out[f"ankle.{leg}"] = Vector((x, y, 0.14 * belly))
+        out[f"toe.{leg}"] = Vector((x, y - 0.06 * Ly, 0.02 * H))
+    out["pelvis"] = Vector((0, y_hind, spine_z))
+    out["withers"] = Vector((0, y_front, spine_z))
+    out["spine_mid"] = Vector((0, (y_front + y_hind) / 2, spine_z))
+    # head and neck: what sticks out in front of the front legs above the belly
+    head = [v for v in vs if v.y < y_front - 0.08 * Ly and v.z > belly]
+    if len(head) > 10:
+        nose_y = min(v.y for v in head)
+        front_half = [v for v in head if v.y < (nose_y + y_front) / 2] or head
+        hc = sum(front_half, Vector()) / len(front_half)
+        hz = max(hc.z, spine_z)
+    else:  # no head forward of the legs (a squat animal): the head sits on top of the front
+        nose_y, hz = ylo, max(spine_z, 0.8 * H)
+        hc = Vector((0, ylo + 0.1 * Ly, hz))
+    out["head"] = Vector((0, y_front + 0.55 * (hc.y - y_front), hz))
+    out["nose"] = Vector((0, nose_y, hz))
+    out["neck"] = Vector((0, y_front - 0.05 * Ly, spine_z + 0.25 * (hz - spine_z)))
+    # tail: what sticks out behind the hind legs above half the belly height
+    tail = [v for v in vs if v.y > y_hind + 0.1 * Ly and v.z > 0.5 * belly]
+    if len(tail) > 5:
+        tip = max(tail, key=lambda v: v.y)
+        out["tail_base"] = Vector((0, y_hind + 0.06 * Ly, spine_z))
+        out["tail_tip"] = Vector((0, tip.y, tip.z))
+        out["tail_mid"] = out["tail_base"].lerp(out["tail_tip"], 0.5)
+    out["top"] = Vector((0, 0, H))
+    return out
+
+
+def _quad_bones(lm):
+    """bone: (head landmark, tail landmark, parent)."""
+    b = {"root": (None, None, None), "hips": ("pelvis", "spine_mid", "root"), "chest": ("spine_mid", "withers", "hips"),
+         "neck": ("withers", "head", "chest"), "head": ("head", "nose", "neck")}
+    if "tail_base" in lm:
+        b.update({"tail.1": ("tail_base", "tail_mid", "hips"), "tail.2": ("tail_mid", "tail_tip", "tail.1")})
+    for leg in ("FL", "FR", "HL", "HR"):
+        b.update({f"thigh.{leg}": (f"hip.{leg}", f"knee.{leg}", "chest" if leg[0] == "F" else "hips"),
+                  f"shin.{leg}": (f"knee.{leg}", f"ankle.{leg}", f"thigh.{leg}"),
+                  f"foot.{leg}": (f"ankle.{leg}", f"toe.{leg}", f"shin.{leg}")})
+    return b
+
+
+def rig_quadruped(obj, landmarks=None, name="Rig"):
+    """Build a four-legged armature (root, hips, chest, neck, head, tail.1/2 if there is a tail, thigh/shin/foot per
+    leg .FL .FR .HL .HR) from measured (or given) landmarks and skin `obj` to it like rig_biped: nearest bones, never
+    across the centre line, the head rigid in front of the head joint. Returns the armature; ["landmarks"] = JSON."""
+    lm = quadruped_landmarks(obj)
+    lm.update({k: Vector(v) for k, v in (landmarks or {}).items()})
+    print("[lab_rig] landmarks " + json.dumps({k: [round(c, 3) for c in v] for k, v in lm.items()}))
+    bones = _quad_bones(lm)
+    data = bpy.data.armatures.new(name)
+    arm = bpy.data.objects.new(name, data)
+    bpy.context.scene.collection.objects.link(arm)
+    L.select_only(arm)
+    bpy.ops.object.mode_set(mode="EDIT")
+    H = lm["top"].z
+    for bname, (h, t, parent) in bones.items():
+        b = data.edit_bones.new(bname)
+        if bname == "root":
+            b.head, b.tail = Vector((0, 0, 0)), Vector((0, 0, 0.2 * H))
+        else:
+            b.head, b.tail = lm[h], lm[t]
+        if parent:
+            b.parent = data.edit_bones[parent]
+            b.use_connect = (b.parent.tail - b.head).length < 1e-4
+        b.use_deform = bname != "root"
+        b.roll = 0.0
+    bpy.ops.object.mode_set(mode="OBJECT")
+    deform = [b for b in data.bones if b.use_deform]
+    segs = {b.name: (b.head_local.copy(), b.tail_local.copy()) for b in deform}
+    groups = {b.name: obj.vertex_groups.new(name=b.name) for b in deform}
+    side_of = lambda n: n[-1] if "." in n and n[-2] in "FH" else None  # noqa: E731
+    W = max(abs(v.co.x) for v in obj.data.vertices)
+    for v in obj.data.vertices:
+        p = obj.matrix_world @ v.co
+        side = "L" if p.x > 0.02 * W else "R" if p.x < -0.02 * W else None
+        cands = [(n, _segment_distance(p, *segs[n])) for n in segs if not (side and side_of(n) and side_of(n) != side)]
+        # a leg bone only takes what is below its hip joint (plus a little): the flank above a thigh moves with the body
+        cands = [(n, d) for n, d in cands if not (n.startswith("thigh.") and p.z > segs[n][0].z + 0.1 * H)]
+        cands.sort(key=lambda c: c[1])
+        best = cands[:2]
+        if p.y <= lm["head"].y and p.z > 2 * lm["knee.FL"].z:  # the head is rigid: the jaw and ears must not bend with the neck
+            best = [("head", 0.0)]
+        ws = [1.0 / (d ** 4 + 1e-10) for _, d in best]
+        total = sum(ws)
+        for (n, _), w in zip(best, ws):
+            if w / total > 0.05:
+                groups[n].add([v.index], w / total, "REPLACE")
+    mod = obj.modifiers.new("Armature", "ARMATURE")
+    mod.object = arm
+    obj.parent = arm
+    arm["landmarks"] = json.dumps({k: list(v) for k, v in lm.items()})
+    arm["head_top"] = H
+    L._EXPORT_OPTS.update(export_animation_mode="NLA_TRACKS", export_skins=True, export_animations=True)
+    return arm
+
+
+# gaits: (period s, leg phases, thigh swing deg, knee lift deg, body bob as a share of the height, spine flex deg)
+GAITS = {
+    "walk": (1.0, {"HL": 0.0, "FL": 0.25, "HR": 0.5, "FR": 0.75}, 22, 40, 0.01, 0),
+    "trot": (0.6, {"FL": 0.0, "HR": 0.0, "FR": 0.5, "HL": 0.5}, 30, 60, 0.025, 0),
+    "gallop": (0.45, {"HL": 0.0, "HR": 0.1, "FL": 0.45, "FR": 0.55}, 42, 80, 0.05, 8),
+}
+
+
+def add_quadruped_clips(arm, clips=("idle", "walk", "trot", "gallop")):
+    """In-place loops for a rig_quadruped animal (the game moves it): idle (2 s: breathing, a look around, a tail
+    wag), walk (1 s, one foot at a time), trot (0.6 s, diagonal pairs), gallop (0.45 s, a bounding gait with the
+    spine flexing). Match the clip to the speed with play(name, { timeScale })."""
+    X, Z = (1, 0, 0), (0, 0, 1)
+    H = arm["head_top"]
+    has_tail = "tail.1" in arm.data.bones
+
+    def tail(a):
+        return {"tail.1": [(Z, a)], "tail.2": [(Z, a * 1.5)]} if has_tail else {}
+
+    made = []
+    if "idle" in clips:
+        keys = []
+        for i in range(5):
+            s = math.sin(i / 4 * 2 * math.pi)
+            c = math.cos(i / 4 * 2 * math.pi)
+            keys.append((i / 4 * 2.0, {"chest": [(X, 1.5 * s)], "neck": [(Z, 8 * s), (X, -3 * c)], "head": [(X, 4 * c)],
+                                       **tail(15 * s), "root_z": 0.004 * H * s}))
+        made.append(_clip(arm, "idle", keys))
+    for name, (period, phases, swing, knee, bob, flex) in GAITS.items():
+        if name not in clips:
+            continue
+        keys = []
+        for i in range(9):  # 8 segments, the last key = the first: a seamless loop
+            t = i / 8
+            p = {}
+            for leg, ph in phases.items():
+                a = 2 * math.pi * (t + ph)
+                p[f"thigh.{leg}"] = [(X, -swing * math.sin(a))]  # negative = forward
+                p[f"shin.{leg}"] = [(X, knee * max(0.0, math.sin(a + math.pi / 2)))]
+                p[f"foot.{leg}"] = [(X, -0.4 * knee * max(0.0, math.sin(a + math.pi / 2)))]
+            s2 = math.sin(2 * math.pi * 2 * t)
+            p["hips"] = [(X, flex * math.sin(2 * math.pi * t))]
+            p["chest"] = [(X, -flex * math.sin(2 * math.pi * t))]
+            p["neck"] = [(X, 3 * s2 + flex * 0.5 * math.sin(2 * math.pi * t))]
+            p.update(tail(10 * math.sin(2 * math.pi * t)))
+            p["root_z"] = bob * H * (abs(s2) if not flex else math.sin(2 * math.pi * t))
+            keys.append((t * period, p))
+        made.append(_clip(arm, name, keys))
+    print(f"[lab_rig] clips: {[a.name for a in made]}")
+    return made
+
+
+# ---------------------------------------------------------------- rigid parts: wheels and rotors
+# Vehicles and machines need no skeleton: each moving part becomes its own node with its origin on its axis, and the
+# game turns it (engine/animation.ts createParts). Custom properties become glTF extras -> three.js userData.
+
+
+def rig_root(obj):
+    """The empty that holds `obj` and its moving parts. The first call creates it with obj's name and transform and
+    renames the mesh to <name>Body: a mesh node with child nodes would be split up by the release's meshopt step."""
+    if obj.parent and obj.parent.type == "EMPTY" and obj.name == obj.parent.name + "Body":
+        return obj.parent
+    name = obj.name
+    root = bpy.data.objects.new(name + "_root", None)
+    bpy.context.scene.collection.objects.link(root)
+    root.matrix_world = obj.matrix_world.copy()
+    obj.name = name + "Body"
+    root.name = name
+    obj.parent = root
+    obj.matrix_parent_inverse = mathutils.Matrix.Identity(4)
+    obj.location, obj.rotation_euler, obj.scale = (0, 0, 0), (0, 0, 0), (1, 1, 1)
+    return root
+
+
+def split_part(obj, name, inside, pivot, props=None):
+    """Move the faces of `obj` whose vertices all pass `inside(co)` (object space) into a new mesh `<name>_mesh` under
+    an empty `name` at `pivot` (object space), a sibling of `obj` under rig_root(obj): the game turns the empty.
+    Faces that straddle the boundary stay on `obj`. `props` become custom properties (glTF extras) of the empty.
+    Returns the empty."""
+    import bmesh
+    root = rig_root(obj)
+    me = obj.data
+    pts = [v.co.copy() for v in me.vertices]
+    ok = [inside(p) for p in pts]
+    sel = [all(ok[i] for i in poly.vertices) for poly in me.polygons]
+    if not any(sel):
+        raise RuntimeError(f"split_part {name}: no faces inside the region")
+    part = obj.copy()
+    part.data = me.copy()
+    part.modifiers.clear()
+    for k in list(part.keys()):
+        del part[k]
+    part.name = name + "_mesh"
+    bpy.context.scene.collection.objects.link(part)
+    for target, keep in ((part, True), (obj, False)):
+        bm = bmesh.new()
+        bm.from_mesh(target.data)
+        bm.faces.ensure_lookup_table()
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if sel[f.index] != keep], context="FACES")
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
+        bm.to_mesh(target.data)
+        bm.free()
+    pivot = Vector(pivot)
+    part.data.transform(mathutils.Matrix.Translation(-pivot))
+    # the turning node is an empty on the axis, the mesh its child: the release's meshopt quantization rewrites a
+    # mesh node's transform (it moved a wheel's pivot 1 cm off the hub), but never an empty's
+    hub = bpy.data.objects.new(name, None)
+    bpy.context.scene.collection.objects.link(hub)
+    for child, parent, at in ((hub, root, pivot), (part, hub, Vector())):
+        child.parent = parent
+        child.matrix_parent_inverse = mathutils.Matrix.Identity(4)
+        child.location, child.rotation_euler, child.scale = at, (0, 0, 0), (1, 1, 1)
+    for k, v in (props or {}).items():
+        hub[k] = v
+    print(f"[lab_rig] part {name}: {len(part.data.polygons)} faces, pivot {tuple(round(c, 3) for c in pivot)}")
+    return hub
+
+
+def _contact_patches(vs, ground, H, cell):
+    """Groups of vertices touching the ground (z within 2% of the height), joined over neighbouring grid cells."""
+    cells = {}
+    for v in vs:
+        if v.z < ground + 0.02 * H:
+            cells.setdefault((math.floor(v.x / cell), math.floor(v.y / cell)), []).append(v)
+    seen, patches = set(), []
+    for start in cells:
+        if start in seen:
+            continue
+        stack, group = [start], []
+        seen.add(start)
+        while stack:
+            c = stack.pop()
+            group.extend(cells[c])
+            for dx in (-2, -1, 0, 1, 2):  # 2 cells: tread grooves must not split one tyre into two patches
+                for dy in (-2, -1, 0, 1, 2):
+                    n = (c[0] + dx, c[1] + dy)
+                    if n in cells and n not in seen:
+                        seen.add(n)
+                        stack.append(n)
+        if len(group) >= 3:
+            patches.append(group)
+    # tread blocks of one tyre can touch the ground further apart than the 2-cell join: merge boxes closer than 3%
+    gap = 0.05 * cell / 0.015
+    box = lambda g: (min(v.x for v in g), max(v.x for v in g), min(v.y for v in g), max(v.y for v in g))  # noqa: E731
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(patches)):
+            for j in range(i + 1, len(patches)):
+                a, b = box(patches[i]), box(patches[j])
+                if a[0] - gap <= b[1] and b[0] - gap <= a[1] and a[2] - gap <= b[3] and b[2] - gap <= a[3] and (a[0] < 0) == (b[0] < 0):
+                    patches[i] += patches.pop(j)
+                    merged = True
+                    break
+            if merged:
+                break
+    return patches
+
+
+def _fit_wheel(vs, edges, x0, x1, yc0, ground, H, L):
+    """Fit the circle of a tyre touching the ground from the mesh's bottom profile (lowest point per slice along Y)
+    in the tyre's x range: (y - yc)^2 + (z - r)^2 = r^2 with the hub at height r. Returns (yc, r) or None."""
+    import numpy as np
+    step = 0.012 * L
+    prof = {}
+    # sample along the edges, not only the vertices: one long flat tread face can span a slice with no vertex in it
+    for i, j in edges:
+        a, b = vs[i], vs[j]
+        n = 1 + int(abs(b.y - a.y) / step * 2)
+        for k in range(n + 1):
+            p = a.lerp(b, k / n)
+            if x0 <= p.x <= x1:
+                s = math.floor((p.y - yc0) / step)
+                z = p.z - ground
+                if z < prof.get(s, 1e9):
+                    prof[s] = z
+    pts = []
+    for d in (1, -1):  # walk out from the contact while the profile keeps rising (the arch or a step ends it)
+        b, last, gaps = 0 if d == 1 else -1, -1.0, 0
+        while abs(b) < 1 / 0.012 and gaps <= 3:
+            if b not in prof:
+                gaps += 1
+            else:
+                z = prof[b]
+                if z < last - 0.01 * H or z > 0.6 * H:
+                    break
+                last = max(last, z)
+                pts.append((yc0 + (b + 0.5) * step, z))
+                gaps = 0
+            b += d
+    # least squares on y^2 + z^2 = 2y*yc - c + 2z*r, then drop the worst point until all sit on the circle: the
+    # profile may run on into a flat underside or a step at hub height, which is not the tyre
+    while True:
+        if len(pts) < 5:
+            return None
+        A = np.array([[2 * y, -1.0, 2 * z] for y, z in pts])
+        rhs = np.array([y * y + z * z for y, z in pts])
+        yc, _, r = (float(x) for x in np.linalg.lstsq(A, rhs, rcond=None)[0])
+        if r <= 0:
+            return None
+        res = [abs(math.hypot(y - yc, z - r) - r) if z <= r else r for y, z in pts]
+        worst = max(range(len(pts)), key=lambda i: res[i])
+        if res[worst] <= 0.03 * r:
+            break
+        pts.pop(worst)
+    # a tyre: the arc rises on both sides of the contact (a blade or a step doesn't)
+    reach = (min(y for y, _ in pts) - yc, max(y for y, _ in pts) - yc)
+    if reach[0] > -0.35 * r or reach[1] < 0.35 * r:
+        return None
+    return float(yc), float(r)
+
+
+def find_wheels(obj):
+    """Measure the wheels of a vehicle (lab conventions: front -Y, up Z, wheels on the ground at the lowest point):
+    returns [{"name", "center", "radius", "width"}] in object space. Wheels are the parts touching the ground that
+    don't straddle the centre line (a plough blade or a skid does), with a circle fitted to each tyre's profile."""
+    vs = [v.co.copy() for v in obj.data.vertices]
+    edges = [tuple(e.vertices) for e in obj.data.edges]
+    lo = Vector((min(v.x for v in vs), min(v.y for v in vs), min(v.z for v in vs)))
+    hi = Vector((max(v.x for v in vs), max(v.y for v in vs), max(v.z for v in vs)))
+    W, L, H = hi.x - lo.x, hi.y - lo.y, hi.z - lo.z
+    wheels = []
+    for patch in _contact_patches(vs, lo.z, H, 0.015 * max(W, L)):
+        x0, x1 = min(v.x for v in patch), max(v.x for v in patch)
+        if x0 < 0 < x1 and x1 - x0 > 0.25 * W:  # a blade, skid or bumper across the middle
+            continue
+        yc0 = sum(v.y for v in patch) / len(patch)
+        fit = _fit_wheel(vs, edges, x0, x1, yc0, lo.z, H, L)
+        if not fit or not (0.04 * H < fit[1] < 0.6 * H):
+            print(f"[lab_rig] find_wheels: skipped a ground contact at x {x0:.2f}..{x1:.2f} y {yc0:.2f} (no tyre arc)")
+            continue
+        yc, r = fit
+        if yc - r < lo.y - 0.02 * L or yc + r > hi.y + 0.02 * L:
+            continue
+        wheels.append({"center": Vector(((x0 + x1) / 2, yc, lo.z + r)), "radius": r, "width": x1 - x0})
+    if not wheels:
+        raise RuntimeError("find_wheels: no wheels found; pass rig_vehicle(obj, wheels=[...]) by hand")
+    # axles front (-Y) to back; a wheel within 15% of the length of the axle's first wheel shares it
+    wheels.sort(key=lambda w: w["center"].y)
+    axles = []
+    for w in wheels:
+        if axles and abs(w["center"].y - axles[-1][0]["center"].y) < 0.15 * L:
+            axles[-1].append(w)
+        else:
+            axles.append([w])
+    tags = {1: ["F"], 2: ["F", "R"], 3: ["F", "M", "R"]}.get(len(axles)) or [str(i) for i in range(len(axles))]
+    for tag, axle in zip(tags, axles):
+        for w in axle:
+            side = "C" if abs(w["center"].x) < 0.05 * W else "L" if w["center"].x > 0 else "R"
+            w["name"] = f"wheel.{tag}{side}"
+    return wheels
+
+
+def rig_vehicle(obj, wheels=None, steer=("F",)):
+    """Cut each wheel out of `obj` into its own node `wheel.<axle><side>` (axles F/R or F/M/R front to back, sides
+    L = +X / R / C = centre; e.g. wheel.FL), origin on the hub, with extras `wheel_radius` (m) and `steer` (1 on
+    the axles in `steer`). The game rolls and steers them with createParts (engine/animation.ts). The vehicle becomes
+    an empty with obj's name holding <name>Body and the wheels (rig_root); the GLB's top node keeps the name.
+    wheels: None to measure them (find_wheels; the printed list is the place to start a fix), or
+    [{"name", "center": (x, y, z), "radius", "width"}] in object space. Returns the wheel objects."""
+    if wheels is None:
+        wheels = find_wheels(obj)
+    print("[lab_rig] wheels " + json.dumps([{"name": w["name"], "center": [round(c, 3) for c in w["center"]],
+                                             "radius": round(w["radius"], 3), "width": round(w["width"], 3)} for w in wheels]))
+    out = []
+    for w in wheels:
+        c, r, hw = Vector(w["center"]), w["radius"], w["width"] / 2
+        # rounded sidewalls and hub caps reach past the tread that touches the ground: more outwards than inwards
+        side = 0 if w["name"].endswith("C") else 1 if c.x > 0 else -1
+        a, b = c.x - hw * (1.3 + 0.3 * side), c.x + hw * (1.3 + 0.3 * side)
+        a, b = (c.x - hw * 1.2, c.x + hw * 1.6) if side > 0 else (c.x - hw * 1.6, c.x + hw * 1.2) if side < 0 else (a, b)
+        inside = lambda p, c=c, r=r, a=a, b=b: a <= p.x <= b and (p.y - c.y) ** 2 + (p.z - c.z) ** 2 <= (r * 1.04) ** 2  # noqa: E731
+        axle = w["name"][len("wheel."):-1]
+        out.append(split_part(obj, w["name"], inside, c, {"wheel_radius": r, "steer": 1 if axle in steer else 0}))
+    return out
+
+
+def rig_rotor(obj, name, center, axis="Y", radius=None, depth=None):
+    """Cut a spinning part (propeller, fan, windmill sails, rotor blades, a saw) out of `obj` into its own node
+    `name` with its origin at `center` (world space, metres). It takes the faces inside a disc of `radius` around it,
+    `depth` thick along `axis` ("X", "Y" or "Z" in Blender; "Y" = the front-back axis, "Z" = up for a helicopter).
+    Extras: `spin_axis` (the glTF axis: Blender X/Y/Z = three.js x / -z / y). createParts spins it."""
+    c = obj.matrix_world.inverted() @ Vector(center)  # L.join keeps the first part's origin: object space differs
+    i = "XYZ".index(axis)
+    r = radius or 1e9
+    d = (depth or 1e9) / 2
+
+    def inside(p):
+        q = p - c
+        radial = sum(q[k] ** 2 for k in range(3) if k != i)
+        return abs(q[i]) <= d and radial <= r * r
+    gl = {"X": [1, 0, 0], "Y": [0, 0, -1], "Z": [0, 1, 0]}[axis]
+    return split_part(obj, name, inside, c, {"spin_axis": gl})
+
+
 # ---------------------------------------------------------------- review
+
+
+def _render_tile(tile):
+    """Render the scene camera to a tile x tile RGBA float array."""
+    import numpy as np
+    scene = bpy.context.scene
+    bpy.ops.render.render(write_still=True)
+    img = bpy.data.images.load(scene.render.filepath, check_existing=False)
+    px = np.empty(tile * tile * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    bpy.data.images.remove(img)
+    return px.reshape(tile, tile, 4)
+
+
+def _save_sheet(rows, path):
+    """Write rows of tiles (top row first) as one PNG, and remove the render's temp file and the lights."""
+    import numpy as np
+    scene = bpy.context.scene
+    os.remove(scene.render.filepath)
+    sheet = np.concatenate([np.concatenate(r, axis=1) for r in rows][::-1], axis=0)  # Blender rows start at the bottom
+    img = bpy.data.images.new("sheet", sheet.shape[1], sheet.shape[0], alpha=True)
+    img.pixels.foreach_set(sheet.ravel())
+    img.filepath_raw = os.path.abspath(path)
+    img.file_format = "PNG"
+    img.save()
+    bpy.data.images.remove(img)
+    for o in [o for o in scene.objects if o.type == "LIGHT"]:
+        bpy.data.objects.remove(o, do_unlink=True)
+
+
+def render_parts_sheet(obj, path, tile=256, style=None):
+    """Review sheet for rig_vehicle / rig_rotor: top row from the front three-quarter, bottom row from the side, 4
+    columns with the parts turned further each time (wheels rolled 0/60/120/180 degrees, steering 0/+25/0/-25,
+    rotors 0/30/60/90). The cut must be clean: no body faces turning with a wheel, no tyre left on the body."""
+    style = style or L.load_style()
+    root = rig_root(obj) if obj.type == "MESH" else obj
+    parts = [o for o in root.children if "wheel_radius" in o or "spin_axis" in o]
+    obj = next(o for o in root.children if o.name == root.name + "Body")
+    if not parts:
+        raise RuntimeError("render_parts_sheet: no wheels or rotors on the object (rig_vehicle / rig_rotor first)")
+    L.setup_lighting(style)
+    L.configure_render(path + ".tile.png", (tile, tile))
+    rows = []
+    for yaw, pitch in ((-35, 20), (-90, 5)):
+        cam = L.setup_camera([obj, *[p.children[0] for p in parts]], yaw_deg=yaw, pitch_deg=pitch, margin=1.05)
+        cols = []
+        for k in range(4):
+            for p in parts:
+                p.rotation_mode = "XYZ"
+                if "wheel_radius" in p:  # rolling forward (-Y) is +X; steering left is +Z
+                    p.rotation_euler = (math.radians(60 * k), 0, math.radians((0, 25, 0, -25)[k]) if p["steer"] else 0)
+                else:
+                    ax = list(p["spin_axis"])
+                    p.rotation_euler = [math.radians(30 * k) * c for c in (ax[0], -ax[2], ax[1])]  # glTF -> Blender axes
+            cols.append(_render_tile(tile))
+        rows.append(cols)
+        bpy.data.objects.remove(cam, do_unlink=True)
+    for p in parts:
+        p.rotation_euler = (0, 0, 0)
+    _save_sheet(rows, path)
+    print(f"[lab_rig] parts sheet {path} ({[p.name for p in parts]})")
 
 
 def render_pose_sheet(arm, path, frames_per_clip=4, tile=256, style=None):
     """Render each clip at evenly spaced frames from a 3/4 front view: one row per clip. Look at it before using
     the character: limbs must bend at the joints, nothing may tear or stretch across the body."""
-    import numpy as np
-
     style = style or L.load_style()
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH" and o.parent == arm]
     tracks = list(arm.animation_data.nla_tracks)
     for tr in tracks:
         tr.mute = True
     L.setup_lighting(style)
-    H = json.loads(arm["landmarks"])["head_top"][2]
-    # frame the body's height, not the rest pose's arm span; side-on enough to see limbs swing
-    cam = L.setup_camera(meshes, yaw_deg=-55, pitch_deg=12, target=Vector((0, 0, H * 0.5)), distance=H * 0.62 / math.sin(math.radians(20)))
+    H = arm["head_top"] if "head_top" in arm else json.loads(arm["landmarks"])["head_top"][2]
+    ys = [(m.matrix_world @ v.co).y for m in meshes for v in m.data.vertices]
+    size = max(H, 0.95 * (max(ys) - min(ys)))  # a long animal is framed by its length
+    # frame the body's height (or length), not the rest pose's arm span; side-on enough to see limbs swing
+    cam = L.setup_camera(meshes, yaw_deg=-55, pitch_deg=12, target=Vector((0, (max(ys) + min(ys)) / 2, H * 0.5)), distance=size * 0.62 / math.sin(math.radians(20)))
     L.configure_render(path + ".tile.png", (tile, tile))
     scene = bpy.context.scene
     rows = []
@@ -465,25 +984,12 @@ def render_pose_sheet(arm, path, frames_per_clip=4, tile=256, style=None):
         for k in range(frames_per_clip):
             f = strip.frame_start + (strip.frame_end - strip.frame_start) * k / frames_per_clip
             scene.frame_set(int(round(f)))
-            bpy.ops.render.render(write_still=True)
-            img = bpy.data.images.load(scene.render.filepath, check_existing=False)
-            px = np.empty(tile * tile * 4, dtype=np.float32)
-            img.pixels.foreach_get(px)
-            cols.append(px.reshape(tile, tile, 4))
-            bpy.data.images.remove(img)
+            cols.append(_render_tile(tile))
         tr.mute = True
-        rows.append(np.concatenate(cols, axis=1))
+        rows.append(cols)
     for tr in tracks:
         tr.mute = False
-    os.remove(scene.render.filepath)
-    sheet = np.concatenate(rows[::-1], axis=0)  # Blender rows start at the bottom
-    img = bpy.data.images.new("poses", sheet.shape[1], sheet.shape[0], alpha=True)
-    img.pixels.foreach_set(sheet.ravel())
-    img.filepath_raw = os.path.abspath(path)
-    img.file_format = "PNG"
-    img.save()
+    _save_sheet(rows, path)
     bpy.data.objects.remove(cam, do_unlink=True)
-    for o in [o for o in scene.objects if o.type == "LIGHT"]:
-        bpy.data.objects.remove(o, do_unlink=True)
     scene.frame_set(1)
     print(f"[lab_rig] pose sheet {path} (rows: {[t.name for t in tracks]})")

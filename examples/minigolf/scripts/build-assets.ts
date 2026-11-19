@@ -27,7 +27,7 @@ for (const f of scripts) {
   });
   const ok = r.status === 0;
   if (!ok) failed++;
-  const log = (r.stdout + r.stderr).split('\n').filter((l) => /\[lab_bpy\]|Error|Traceback|^\s+File /.test(l));
+  const log = (r.stdout + r.stderr).split('\n').filter((l) => /\[lab_(bpy|rig)\]|Error|Traceback|^\s+File /.test(l));
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${f} (${((Date.now() - t0) / 1000).toFixed(1)}s)\n  ${log.join('\n  ')}`);
 }
 process.exit(failed ? 1 : 0);

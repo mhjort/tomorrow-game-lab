@@ -2,9 +2,10 @@
 a boxy orange cab with dark windows, red tail lights, an exhaust stack, big tyres and a wide curved yellow-orange
 mouldboard on push arms. 3.6 m long including the blade, front = -Y. The blade is widened to the 2.6 m the game clears.
 The earlier model's blade was a flat plate that read as a spoiler; it was cut off and replaced with a modelled one.
-This model has the crop's blade, so it is imported as it is."""
+This model has the crop's blade, so it is imported as it is. The wheels are cut out as their own nodes (lab_rig
+rig_vehicle) so the game rolls them and steers the front pair; check .lab/previews/plough-parts.png after a change."""
 import os, sys; sys.path.insert(0, os.path.dirname(__file__))  # noqa: E401
-import lab_bpy as L
+import lab_bpy as L, lab_rig as R  # noqa: E401
 
 L.reset_scene()
 style = L.load_style()
@@ -19,4 +20,6 @@ for v in body.data.vertices:
         v.co.x *= 1 + STRETCH * min(1.0, t)
 xs = [v.co.x for v in body.data.vertices if v.co.y < front + 0.5]
 print(f"[lab_bpy] plough blade width {max(xs) - min(xs):.2f} m (the game clears 2.6 m: src/plough.js)")
+R.rig_vehicle(body)  # wheel.FL/FR steer, wheel.RL/RR; the blade's ground contacts are skipped (no tyre arc)
+R.render_parts_sheet(body, ".lab/previews/plough-parts.png", style=style)
 L.finish(__file__, style)

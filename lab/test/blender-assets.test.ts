@@ -276,6 +276,133 @@ print("RES " + json.dumps({"lm": lm, "loose": loose}))
   assert.equal(loose, 0, 'every head vertex is bound to the head bone only');
 });
 
+test('lab_rig: rig_vehicle cuts the generated plough\'s four wheels (not its blade), rig_rotor a windmill; createParts turns them', { skip: !hasBlender() && 'blender missing', timeout: 240000 }, async () => {
+  const proj = tmp('rig-parts');
+  mkdirSync(join(proj, 'assets/src'), { recursive: true });
+  for (const f of ['lab_bpy.py', 'lab_rig.py']) copyFileSync(join(SKILLS, 'blender-assets/scripts', f), join(proj, 'assets/src', f));
+  // a real image-to-3D model: tyres with tread, fused to the body; the blade touches the ground at its tips
+  const plough = join(ROOT, 'examples/snowplough/assets/generated/plough.glb');
+  writeFileSync(
+    join(proj, 'assets/src/plough.py'),
+    `import os, sys, json; sys.path.insert(0, os.path.dirname(__file__))
+import lab_bpy as L, lab_rig as R
+L.reset_scene()
+body = L.import_glb(${JSON.stringify(plough)}, "Plough", forward="-X", length=3.6, max_texture=256)
+for slot in body.material_slots:  # no texture: GLTFLoader can't decode images in Node
+    slot.material = L.material("Paint", (0.9, 0.5, 0.1, 1))
+wheels = R.rig_vehicle(body)
+R.render_parts_sheet(body, ".lab/previews/plough-parts.png", tile=96)
+print("RES " + json.dumps([{"name": w.name, "at": list(w.location), "r": w["wheel_radius"], "steer": w["steer"], "faces": len(w.children[0].data.polygons)} for w in wheels]))
+L.finish(__file__, None, {})
+`,
+  );
+  writeFileSync(
+    join(proj, 'assets/src/mill.py'),
+    `import os, sys, json; sys.path.insert(0, os.path.dirname(__file__))
+import lab_bpy as L, lab_rig as R
+L.reset_scene()
+tower = L.box("Tower", (0.6, 0.6, 2.0), (0, 0, 1.0))
+sail = L.box("Sail", (2.0, 0.05, 0.2), (0, -0.4, 1.8))
+sail2 = L.box("Sail2", (0.2, 0.05, 2.0), (0, -0.4, 1.8))
+for o in (tower, sail, sail2):
+    L.apply_transform(o)
+mill = L.join([tower, sail, sail2], "Mill")
+rotor = R.rig_rotor(mill, "sails", (0, -0.4, 1.8), axis="Y", radius=1.1, depth=0.1)
+print("RES " + json.dumps({"faces": len(rotor.children[0].data.polygons), "body": len(mill.data.polygons), "axis": list(rotor["spin_axis"])}))
+L.finish(__file__, None, {})
+`,
+  );
+  const r = run(join(SKILLS, 'blender-assets/scripts/run_blender.sh'), ['assets/src/plough.py', '--', '--no-preview'], { cwd: proj });
+  assert.equal(r.status, 0, r.stdout.slice(-2500) + r.stderr.slice(-2500));
+  const wheels = (JSON.parse(resultLine(r.stdout, 'RES ')) as { name: string; at: Vec3; r: number; steer: number; faces: number }[]).sort((a, b) => a.name.localeCompare(b.name));
+  assert.deepEqual(wheels.map((w) => w.name), ['wheel.FL', 'wheel.FR', 'wheel.RL', 'wheel.RR'], 'four tyres; the blade tips are no wheels');
+  for (const w of wheels) {
+    assert.ok(w.r > 0.37 && w.r < 0.45, `${w.name} radius ${w.r}`);
+    assert.ok(Math.abs(w.at[2] - w.r) < 0.01, `${w.name} hub at its radius above the ground: ${w.at}`);
+    assert.ok(Math.abs(Math.abs(w.at[0]) - 0.67) < 0.05 && Math.sign(w.at[0]) === (w.name.endsWith('L') ? 1 : -1), `${w.name} x ${w.at}`);
+    assert.equal(w.steer, w.name.startsWith('wheel.F') ? 1 : 0);
+    assert.ok(w.faces > 300, `${w.name} took the tyre (${w.faces} faces)`);
+  }
+  assert.ok(existsSync(join(proj, '.lab/previews/plough-parts.png')), 'parts sheet');
+  const m = run(join(SKILLS, 'blender-assets/scripts/run_blender.sh'), ['assets/src/mill.py', '--', '--no-preview'], { cwd: proj });
+  assert.equal(m.status, 0, m.stdout.slice(-2500) + m.stderr.slice(-2500));
+  const mill = JSON.parse(resultLine(m.stdout, 'RES ')) as { faces: number; body: number; axis: number[] };
+  assert.equal(mill.faces, 12, 'both sail boxes, nothing of the tower');
+  assert.equal(mill.body, 6);
+  assert.deepEqual(mill.axis, [0, 0, -1], 'Blender Y = glTF -Z');
+
+  // runtime: the wheels are empties on the hubs (meshes under them), createParts rolls and steers them
+  const req = createRequire(join(ROOT, 'examples/minigolf/package.json'));
+  const imp = (mod: string): Promise<unknown> => import(pathToFileURL(req.resolve(mod)).href);
+  const { GLTFLoader } = (await imp('three/addons/loaders/GLTFLoader.js')) as typeof import('three/addons/loaders/GLTFLoader.js');
+  const { createParts } = (await import(pathToFileURL(join(ROOT, 'examples/minigolf/src/engine/animation.ts')).href)) as typeof import('../../skills/web-game-runtime/assets/template/src/engine/animation.ts');
+  const load = async (f: string) => {
+    const buf = readFileSync(join(proj, 'public/models', f));
+    return (await new GLTFLoader().parseAsync(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.length), '')).scene;
+  };
+  const scene = await load('plough.glb');
+  const parts = createParts(scene);
+  assert.equal(parts.wheels.length, 4);
+  const fl = parts.wheels.find((w) => w.node.name === 'wheelFL');
+  assert.ok(fl && fl.steers && fl.node.children.length === 1, 'wheel.FL is an empty holding its mesh');
+  assert.ok(Math.abs(fl.node.position.z - 0.316) < 0.02 && Math.abs(fl.node.position.y - fl.radius) < 0.01, `hub in glTF axes: ${fl.node.position.toArray()}`);
+  parts.drive(fl.radius * 0.5, 0.3);
+  assert.ok(Math.abs(fl.node.rotation.x - 0.5) < 1e-6, 'rolled half a radian forward');
+  assert.equal(fl.node.rotation.y, 0.3);
+  assert.equal(parts.wheels.find((w) => w.node.name === 'wheelRL')!.node.rotation.y, 0, 'rear wheels do not steer');
+  const millScene = await load('mill.glb');
+  const mp = createParts(millScene);
+  assert.equal(mp.rotors.length, 1);
+  mp.spin(0.25);
+  assert.ok(Math.abs(mp.rotors[0]!.node.quaternion.angleTo(mp.rotors[0]!.rest) - Math.PI / 2) < 1e-6, 'a quarter turn');
+});
+
+test('lab_rig: rig_quadruped on a blocky dog: legs, belly, head and tail measured; gaits play', { skip: !hasBlender() && 'blender missing', timeout: 240000 }, () => {
+  const proj = tmp('rig-quad');
+  mkdirSync(join(proj, 'assets/src'), { recursive: true });
+  for (const f of ['lab_bpy.py', 'lab_rig.py']) copyFileSync(join(SKILLS, 'blender-assets/scripts', f), join(proj, 'assets/src', f));
+  // body 0.39..0.71 m high, legs at x ±0.12 and y ±0.33, the head raised in front (-Y), a tail behind
+  writeFileSync(
+    join(proj, 'assets/src/dog.py'),
+    `import os, sys, json; sys.path.insert(0, os.path.dirname(__file__))
+import lab_bpy as L, lab_rig as R
+L.reset_scene()
+m = L.material("Fur", (0.8, 0.5, 0.25, 1))
+parts = [L.box("Body", (0.36, 0.9, 0.32), (0, 0, 0.55), m), L.box("Neck", (0.16, 0.16, 0.3), (0, -0.48, 0.78), m),
+         L.box("Head", (0.24, 0.36, 0.22), (0, -0.62, 0.95), m), L.box("Tail", (0.06, 0.35, 0.06), (0, 0.6, 0.72), m)]
+parts += [L.box("Leg", (0.1, 0.1, 0.42), (x, y, 0.21), m) for x in (-0.12, 0.12) for y in (-0.33, 0.33)]
+for p in parts:
+    mod = p.modifiers.new("Sub", "SUBSURF"); mod.subdivision_type = "SIMPLE"; mod.levels = 3
+    L.apply_all_modifiers(p)
+    L.apply_transform(p)
+body = L.join(parts, "Dog")
+rig = R.rig_quadruped(body)
+R.add_quadruped_clips(rig)
+R.render_pose_sheet(rig, ".lab/previews/dog-poses.png", tile=96)
+head = body.vertex_groups["head"].index
+loose = sum(1 for v in body.data.vertices if v.co.y < -0.6 and v.co.z > 0.85 and any(g.group != head and g.weight > 0.01 for g in v.groups))
+print("RES " + json.dumps({"lm": json.loads(rig["landmarks"]), "loose": loose}))
+L.finish(__file__, None, {})
+`,
+  );
+  const r = run(join(SKILLS, 'blender-assets/scripts/run_blender.sh'), ['assets/src/dog.py', '--', '--no-preview'], { cwd: proj });
+  assert.equal(r.status, 0, r.stdout.slice(-2500) + r.stderr.slice(-2500));
+  const { lm, loose } = JSON.parse(resultLine(r.stdout, 'RES ')) as { lm: Record<string, Vec3>; loose: number };
+  const near = (a: number, b: number, tol: number, what: string) => assert.ok(Math.abs(a - b) < tol, `${what}: ${a} vs ${b}`);
+  near(lm['knee.FL']![2] * 2, 0.39, 0.03, 'belly at the body bottom (knees half way)');
+  for (const [leg, x, y] of [['FL', 0.12, -0.33], ['FR', -0.12, -0.33], ['HL', 0.12, 0.33], ['HR', -0.12, 0.33]] as const) {
+    near(lm[`ankle.${leg}`]![0], x, 0.03, `${leg} x`);
+    near(lm[`ankle.${leg}`]![1], y, 0.03, `${leg} y`);
+  }
+  assert.ok(lm['nose']![1] < -0.75 && lm['head']![2] > 0.85, `head forward and up: ${lm['head']} ${lm['nose']}`);
+  assert.ok(lm['tail_tip'] && lm['tail_tip'][1] > 0.7, `tail found: ${lm['tail_tip']}`);
+  assert.equal(loose, 0, 'the head is rigid');
+  const info = inspectGlb(join(proj, 'public/models/dog.glb'));
+  assert.equal(info.joints, 19, 'root, hips, chest, neck, head, 2 tail, 3 per leg');
+  assert.deepEqual(info.animations.sort(), ['gallop', 'idle', 'trot', 'walk']);
+  assert.ok(existsSync(join(proj, '.lab/previews/dog-poses.png')), 'pose sheet');
+});
+
 test('inspect_glb reports counts without capping them; budgets are opt-in flags', { skip: !existsSync(new URL('../../examples/minigolf/public/models/hole1.glb', import.meta.url).pathname) && 'example not built' }, () => {
   const f = new URL('../../examples/minigolf/public/models/hole1.glb', import.meta.url).pathname;
   const r = run(process.execPath, [join(SKILLS, 'blender-assets/scripts/inspect_glb.ts'), f, '--max-tris', '10']);

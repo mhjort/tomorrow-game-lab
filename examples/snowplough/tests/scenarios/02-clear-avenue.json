@@ -12,6 +12,7 @@
     { "assert": "state.villagers.filter((v) => v.state === 'waiting').length === 10", "label": "everyone else still waits at home" },
     { "assert": "JSON.stringify(state.lit) === '[0,1,2,6,7,10,11,14,15,18,19]'", "label": "exactly those 11 house lamps are lit" },
     { "assert": "state.sfx.scrape >= 5", "label": "scraping while ploughing" },
+    { "assert": "state.plough.wheels === 4 && Math.abs(state.plough.roll) > 0.01", "label": "the plough's four wheels roll as it drives (lab_rig rig_vehicle + createParts)" },
     { "screenshot": "avenue", "compare": "design/reference/frames/frame_06.png" },
     { "input": { "type": "camera", "mode": "overview" } },
     { "step": 1 },

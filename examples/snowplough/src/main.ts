@@ -11,7 +11,7 @@ import { createLoadingScreen, prewarm } from './engine/loading.ts';
 import { loadModels, loadModel, preloadModels } from './engine/assets.ts';
 import { emissive, mrt, output, pass } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
-import { createAnimator } from './engine/animation.ts';
+import { createAnimator, createParts } from './engine/animation.ts';
 import { createAudio } from './engine/audio.ts';
 import { HOUSES, SQUARE, START, createSnow, reachFromSquare, cellIndex, type Cell, type Facing, type Point } from './world.ts';
 import { createFieldMesh, createSnowMesh } from './snow.ts';
@@ -36,7 +36,7 @@ export interface State {
   total: number;
   reached: number;
   arrived: number;
-  plough: { x: number; z: number; heading: number; speed: number; load: number };
+  plough: { x: number; z: number; heading: number; speed: number; load: number; wheels: number; roll: number; steer: number };
   controls: Controls;
   cleared: number;
   villagers: { house: number; state: VillagerState; x: number; z: number }[];
@@ -137,6 +137,7 @@ headlight.position.set(0, 1.4, 1.2); // model space: the front is +z
 headlight.target.position.set(0, 0, 9);
 ploughMesh.add(headlight, headlight.target);
 scene.add(ploughMesh);
+const ploughParts = createParts(ploughMesh); // wheels cut out in assets/src/plough.py: they roll and the front pair steers
 
 // one generated villager, recoloured into the crowd the video shows (coats and hair vary)
 const villagerMeshes = (await Promise.all(HOUSES.map(() => loadModel('villager')))).map((m, i) => {
@@ -322,6 +323,7 @@ function update(dt: number): void {
   if (g.phase === 'play') {
     g.timeLeft = Math.max(0, g.timeLeft - dt);
     const { removed, bumped } = stepPlough(p, g.controls, snow, dt);
+    ploughParts.drive(p.speed * dt, -p.steer); // the plough's steer is positive to the right
     g.scrapeCooldown -= dt;
     g.bumpCooldown -= dt;
     if (removed > 0.4 && g.scrapeCooldown <= 0) {
@@ -541,7 +543,7 @@ function getState(): State {
     total: HOUSES.length,
     reached: g.reached.size,
     arrived: g.arrived,
-    plough: { x: p.x, z: p.z, heading: p.heading, speed: p.speed, load: p.load },
+    plough: { x: p.x, z: p.z, heading: p.heading, speed: p.speed, load: p.load, wheels: ploughParts.wheels.length, roll: ploughParts.state.roll, steer: ploughParts.state.steer },
     controls: { ...g.controls },
     cleared: Number(snow.clearedFraction().toFixed(4)),
     villagers: g.villagers.map((v) => ({ house: v.house, state: v.state, x: v.x, z: v.z })),
