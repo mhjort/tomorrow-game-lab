@@ -53,6 +53,7 @@ Record every decision in `design/notes.md` ("pixel ratio 1.5 on phones: accepted
 - Report the final `perf-compare` table against the original baseline, every accepted and declined trade, and what is still over target.
 
 ## Gotchas
+- **Count triangles per frame, not per file.** Expose `renderer.info.render` (`drawCalls`, `triangles`) in `getState()`: it includes the shadow pass and instances, which `inspect_glb.ts` can't see. In `?test` one step may span several frames, so take the smallest non-zero value as one frame.
 - Optimise what you measured. A game at 2 ms per frame on the target doesn't need fewer triangles. If only the download is too big, compress before you decimate.
 - KTX2/Basis texture compression can shift colours slightly. Check it with `perf-compare.ts` before calling it free.
 - Merging static meshes is free for the image, but it breaks per-object material swaps (lamps that light up) and per-object culling. Keep the nodes the game changes or looks up by name separate.

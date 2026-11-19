@@ -27,6 +27,7 @@ Asset sizes (textures, images, audio, GLB simplification) are the `optimize-asse
 | change | look | how |
 |---|---|---|
 | tighten the shadow camera to the visible play area | free if nothing in view loses its shadow | fit `shadow.camera` bounds, check with `perf-compare.ts` |
+| no shadow pass for instances outside the shadow box | free | an `InstancedMesh` with `frustumCulled = false` draws every instance into the shadow map, even far outside `shadow.camera`. With a fixed sun, test each instance's bounding sphere against `light.shadow.getFrustum()` (after `shadow.updateMatrices(light)`) and put the misses in a second `InstancedMesh` with `castShadow = false`. Blossom Swing's 61 orchard trees: 1.26M → 968k triangles per frame |
 | cap pixel ratio at 2 | free on most screens | the template already does |
 | pixel ratio 1.5 or 1 | visible (softer edges) | `renderer.setPixelRatio`; offer for phones |
 | smaller shadow map, no soft-shadow radius | visible (blockier shadows) | `shadow.mapSize`, `shadow.radius` |

@@ -11,3 +11,8 @@
 - Palette: grass desaturated (#9cb446 → #9aae58), hillMid back toward the measured sage (#8db58a), fog 25–230,
   ambient 1.85, trunk/rope emissive fill (their shade side crushed to near-black).
 - Camera pulled back to 4.8 m and 0.6 m right: the trunk filled 15% of the frame.
+
+## Performance pass (phone-class, 2026-11-19)
+- Orchard trees outside the sun's fixed shadow box skip the shadow pass (free: same image). 1.26M -> 968k triangles per frame.
+- Grass casts no shadows: **accepted**. -217k triangles per frame; the soft patch at each tuft's foot goes (SSIM >= 0.995).
+- Coarser grass blades (6x4 segments): **declined**. -238k triangles, but the blades look faceted (SSIM 0.983).

@@ -18,6 +18,8 @@ export interface Orchard {
   group: THREE.Group;
   trees: Tree[];
   rows: number;
+  /** trees that cast shadows (inside the sun's shadow box) */
+  casting: number;
   /** bloomAt[i] = tick tree i starts to bloom (-1 = bare) */
   sync(bloomAt: number[], tick: number): void;
 }
@@ -43,7 +45,12 @@ function pop(k: number): number {
   return 1 + (c + 1) * t * t * t + c * t * t;
 }
 
-export function createOrchard(templates: THREE.Object3D, world: THREE.Object3D): Orchard {
+/**
+ * `castsShadow(sphere)`: may a tree inside this world-space sphere put anything in the shadow map? Trees that can't
+ * (outside the sun's shadow box) go in separate non-casting InstancedMeshes, so the shadow pass skips them; the image
+ * is the same. Default: every tree casts.
+ */
+export function createOrchard(templates: THREE.Object3D, world: THREE.Object3D, castsShadow: (s: THREE.Sphere) => boolean = () => true): Orchard {
   const trunkNode = templates.getObjectByName('BareTrunk');
   const branchNode = templates.getObjectByName('BareBranches');
   const blossomNode = templates.getObjectByName('Blossom');
@@ -67,23 +74,41 @@ export function createOrchard(templates: THREE.Object3D, world: THREE.Object3D):
     };
   });
   const group = new THREE.Group();
-  const instanced = (parts: { mesh: THREE.Mesh; local: THREE.Matrix4 }[]) =>
-    parts.map(({ mesh, local }) => {
-      const im = new THREE.InstancedMesh(mesh.geometry, mesh.material, trees.length);
-      im.castShadow = true;
-      im.receiveShadow = true;
-      im.frustumCulled = false; // instances are spread over the valley; the bounding sphere is the template's
-      group.add(im);
-      return { im, local };
-    });
+  // each tree's bounds at full bloom (the pop overshoots ~10%): which trees can cast into the shadow map
+  const reach = new THREE.Box3().setFromObject(templates).getBoundingSphere(new THREE.Sphere());
+  reach.radius *= 1.15;
+  const casts = trees.map((t) => castsShadow(reach.clone().applyMatrix4(t.matrix)));
+  // tree i -> [set (0 casts, 1 doesn't), index in that set]
+  const slot = casts.map((c, i) => [c ? 0 : 1, casts.slice(0, i).filter((x) => x === c).length] as const);
+  const counts = [casts.filter(Boolean).length, casts.filter((c) => !c).length];
+  type Part = { ims: THREE.InstancedMesh[]; local: THREE.Matrix4 };
+  const instanced = (parts: { mesh: THREE.Mesh; local: THREE.Matrix4 }[]): Part[] =>
+    parts.map(({ mesh, local }) => ({
+      local,
+      ims: counts.map((n, set) => {
+        const im = new THREE.InstancedMesh(mesh.geometry, mesh.material, n);
+        im.castShadow = set === 0;
+        im.receiveShadow = true;
+        im.frustumCulled = false; // instances are spread over the valley; the bounding sphere is the template's
+        if (n) group.add(im);
+        return im;
+      }),
+    }));
+  const setAt = (p: Part, i: number, m: THREE.Matrix4) => {
+    const [set, j] = slot[i]!;
+    p.ims[set]!.setMatrixAt(j, m);
+  };
+  const touch = (ps: Part[]) => {
+    for (const p of ps) for (const im of p.ims) im.instanceMatrix.needsUpdate = true;
+  };
   const bare = instanced(partsOf(trunkNode));
   const branches = instanced(partsOf(branchNode));
   const blossom = instanced(partsOf(blossomNode));
   const tmp = new THREE.Matrix4();
   trees.forEach((t, i) => {
-    for (const { im, local } of bare) im.setMatrixAt(i, tmp.multiplyMatrices(t.matrix, local));
+    for (const p of bare) setAt(p, i, tmp.multiplyMatrices(t.matrix, p.local));
   });
-  for (const { im } of bare) im.instanceMatrix.needsUpdate = true;
+  touch(bare);
   // branches shrink toward the fork (the trunk's top)
   const forkBox = new THREE.Box3().setFromObject(trunkNode); // template-file space, like the parts' matrices
   const fork = new THREE.Vector3(0, forkBox.max.y, 0);
@@ -100,6 +125,7 @@ export function createOrchard(templates: THREE.Object3D, world: THREE.Object3D):
     group,
     trees,
     rows: Math.max(...trees.map((t) => t.row)) + 1,
+    casting: counts[0]!,
     sync(bloomAt, tick) {
       let dirty = false;
       trees.forEach((t, i) => {
@@ -111,16 +137,12 @@ export function createOrchard(templates: THREE.Object3D, world: THREE.Object3D):
         dirty = true;
         const sc = Math.max(k, 1e-4);
         scale.makeScale(sc, sc, sc);
-        for (const { im, local } of blossom) {
-          im.setMatrixAt(i, tmp.copy(t.matrix).multiply(toBase).multiply(scale).multiply(fromBase).multiply(local));
-        }
+        for (const p of blossom) setAt(p, i, tmp.copy(t.matrix).multiply(toBase).multiply(scale).multiply(fromBase).multiply(p.local));
         const b = Math.max(1 - (age < 0 ? 0 : Math.min(1, age / POP_TICKS)), 1e-4);
         scale.makeScale(b, b, b);
-        for (const { im, local } of branches) {
-          im.setMatrixAt(i, tmp.copy(t.matrix).multiply(toFork).multiply(scale).multiply(fromFork).multiply(local));
-        }
+        for (const p of branches) setAt(p, i, tmp.copy(t.matrix).multiply(toFork).multiply(scale).multiply(fromFork).multiply(p.local));
       });
-      if (dirty) for (const { im } of [...blossom, ...branches]) im.instanceMatrix.needsUpdate = true;
+      if (dirty) touch([...blossom, ...branches]);
     },
   };
 }

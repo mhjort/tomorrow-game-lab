@@ -59,6 +59,9 @@ const glowFrom = (m: THREE.MeshStandardMaterial, k: number) => {
 };
 world.traverse((o) => {
   if (!(o instanceof THREE.Mesh) || !(o.material instanceof THREE.MeshStandardMaterial)) return;
+  // the grass casts no shadows: 217k fewer triangles per frame in the shadow pass; only the faint dark patch at each
+  // tuft's foot goes (accepted 2026-11-19, design/notes.md)
+  if (o.name.startsWith('Tufts')) o.castShadow = false;
   const name = o.material.name;
   if (o.name.startsWith('Cloud')) {
     // unlit white with a faint blue-grey underside (crops/cloud.png): lit, the warm ground bounce tinted them cream
@@ -115,7 +118,12 @@ const hill = node('Hill');
 const ROPE_L = 2.4;
 const SEAT_DROP = 0.03; // the seat's top is 2.5 cm over its centre: the child sits on it
 
-const orchard = createOrchard(models['orchard']!, world);
+// the sun and its shadow box never move: trees outside the box can't cast into the shadow map, so they skip the shadow pass
+sun.updateMatrixWorld();
+sun.target.updateMatrixWorld();
+sun.shadow.updateMatrices(sun);
+const shadowBox = sun.shadow.getFrustum();
+const orchard = createOrchard(models['orchard']!, world, (s) => shadowBox.intersectsSphere(s));
 scene.add(orchard.group);
 const ROWS = orchard.rows;
 const petals = createPetals(paletteColor('petal'), 1100);
@@ -204,6 +212,7 @@ export interface State {
   rowsTotal: number;
   bloomed: number;
   trees: number;
+  treesCasting: number;
   nextPeak: number | null;
   gusts: number;
   kicks: number;
@@ -218,6 +227,8 @@ export interface State {
   sfx: Record<string, number>;
   music: string | null;
   anim: string | null;
+  /** last frame's draw calls and triangles (shadow pass included): optimize-web-game's phone targets */
+  render: { drawCalls: number; triangles: number };
 }
 
 // tuning (brief: Rules; simulated: a perfect kicker blooms the valley in ~17 s)
@@ -561,6 +572,7 @@ function getState(): State {
     rowsTotal: ROWS,
     bloomed: s.bloomAt.filter((t) => t >= 0 && t <= s.tick).length,
     trees: orchard.trees.length,
+    treesCasting: orchard.casting,
     nextPeak: s.rows < ROWS ? ROW_DEG[s.rows]! : null,
     gusts: s.gusts,
     kicks: s.kicks,
@@ -575,6 +587,7 @@ function getState(): State {
     sfx: { ...audio.counts },
     music: audio.music,
     anim: anim.current,
+    render: { drawCalls: renderer.info.render.drawCalls, triangles: renderer.info.render.triangles },
   };
 }
 // ---------------------------------------------------------------- /GAME
