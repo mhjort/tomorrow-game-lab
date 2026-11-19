@@ -29,6 +29,24 @@
       "accepted": true,
       "gain": "-27.5 KB gzip",
       "date": "2026-11-12"
+    },
+    {
+      "change": "music-opus64:music/theme.mp3",
+      "accepted": true,
+      "gain": "-36 KB gzip (vs MP3 VBR 7)",
+      "date": "2026-11-19"
+    },
+    {
+      "change": "music-opus64:music/festival.mp3",
+      "accepted": true,
+      "gain": "-20 KB gzip (vs MP3 VBR 7)",
+      "date": "2026-11-19"
+    },
+    {
+      "change": "simplify:models/village.glb:0.5",
+      "accepted": false,
+      "gain": "-37 KB gzip (houses instanced)",
+      "date": "2026-11-19"
     }
   ],
   "textures": {
@@ -47,7 +65,8 @@
   },
   "audio": {
     "music/*": {
-      "vbr": 5
+      "vbr": 5,
+      "opus": 64
     },
     "sfx/*": {
       "vbr": 5

@@ -26,7 +26,8 @@ test('release: minigolf builds minified + code-split, GLBs meshopt-optimized, wi
   assert.match(html, /<link rel="preload" as="fetch" crossorigin href="\.\/sfx\/putt\.mp3">/);
   assert.match(html, /<link rel="preload" as="image" href="\.\/images\/splash\.webp">/);
   // level streaming (design/levels.json): only the first hole's assets are preloaded with the HTML
-  for (const f of ['models/hole1.glb', 'models/ball.glb', 'music/course.mp3']) assert.ok(html.includes(`href="./${f}"`), `${f} preloaded`);
+  for (const f of ['models/hole1.glb', 'models/ball.glb', 'music/course.ogg']) assert.ok(html.includes(`href="./${f}"`), `${f} preloaded`);
+  assert.ok(!html.includes('music/course.mp3'), 'the MP3 fallback of an Opus track is not preloaded');
   for (const f of ['models/hole2.glb', 'models/hole4.glb', 'music/snow.mp3', 'music/city.mp3']) {
     assert.ok(manifest[f] > 0, `${f} shipped`);
     assert.ok(!html.includes(f), `${f} is lazy: no preload hint`);
@@ -64,8 +65,10 @@ test('release: optimized build plays on both backends and loads assets in parall
     const three = b.network.requests.find((n) => /^three-.*\.js$/.test(n.file));
     assert.ok(three, 'three.js chunk requested');
     assert.ok(glbs.filter((g) => g.file !== 'hole2.glb').every((g) => g.start < three.end) && wasm.start < three.end, 'assets start before three.js finishes');
-    const sfx = b.network.requests.filter((n) => n.file.endsWith('.mp3') && n.file !== 'snow.mp3'); // hole 2's track may already be prefetching
+    // sfx are .mp3, music is the Opus .ogg (design/optimize.json); hole 2's track may already be prefetching
+    const sfx = b.network.requests.filter((n) => /\.(mp3|ogg)$/.test(n.file) && !n.file.startsWith('snow.'));
     assert.equal(sfx.length, 6, "every sound effect + hole 1's music loop requested");
+    assert.ok(!b.network.requests.some((n) => n.file === 'course.mp3'), 'the MP3 fallback is not downloaded where Opus decodes');
     assert.ok(sfx.every((x) => x.start < three.end), 'sound effects and music preload with the HTML');
     assert.ok(b.network.requests.some((n) => n.file === 'course.json'), 'music loop sidecar fetched');
     const dups = b.network.requests.filter((x, i, a) => a.findIndex((y) => y.file === x.file) !== i);

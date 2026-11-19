@@ -10,7 +10,7 @@
   "textures": { "*": { "format": "webp", "quality": 90 }, "models/hero.glb": { "maxSize": 1024 } },
   "models":   { "models/world.glb": { "simplify": { "ratio": 0.5, "error": 0.002 } } },
   "images":   { "images/*": { "quality": 85 }, "images/splash.webp": { "maxSize": 2560 } },
-  "audio":    { "music/*": { "vbr": 5 }, "sfx/*": { "vbr": 5 }, "sfx/step.mp3": { "mono": true } },
+  "audio":    { "music/*": { "vbr": 5, "opus": 64 }, "sfx/*": { "vbr": 5 }, "sfx/step.mp3": { "mono": true } },
   "decisions": [{ "change": "simplify:models/world.glb:0.5", "accepted": false, "gain": "-89 KB gzip", "date": "2026-11-13" }]
 }
 ```
@@ -27,9 +27,9 @@
 | `audio.vbr` 5 (LAME, ~130 kbps) | 15–25% vs generate-media's VBR 4 | near-lossless | Music loops must keep their sample count (the release checks). |
 | `audio.vbr` 7 (~100 kbps) | another ~30% | **audible** on headphones | Listen on the dev link before offering it. |
 | `audio.mono` | ~half of a stereo sfx | near-lossless if the file is near-mono | `inventory` measures it (side/mid energy < 0.5%). |
+| `audio.opus` 64 (kbps), music only | ~half of VBR 5; ~20% under VBR 7 | close to VBR 5 by ear | Adds `music/<name>.ogg` and `"opus": true` in the dist sidecar; the engine plays it where the browser decodes Opus and falls back to the `.mp3` (re-encoded by `vbr`). Only the `.ogg` is preloaded and counted in the total. The loop must come out at exactly samples × 48000 / rate (the release checks). 96 kbps is bigger than VBR 7. |
 
 ## Not automated yet (offer them in the report when they would matter)
 - **KTX2/Basis textures:** saves GPU memory, not just download, so it matters on phones with many big textures. Needs `toktx` (KTX-Software) at release time and `KTX2Loader` with its transcoder in the game. The colours can shift: compare screenshots.
-- **Opus or AAC music:** about half the size of MP3 at the same quality. Needs `engine/audio.ts` to load another extension, and a check on Safari.
 - **Instancing repeated meshes:** grass, fences, rows of props. It is an asset-script change, not a release setting: blender-assets' `L.instances` exports `EXT_mesh_gpu_instancing`, which GLTFLoader loads as an `InstancedMesh` with no game change. Often the biggest geometry win (Blossom Swing's grass: world.glb 886 → 395 KB gzip): see the inventory's biggest meshes.
 - **Rapier wasm (~1.1 MB gzip):** only games that use physics carry it. A game with simple collisions can drop the dependency.

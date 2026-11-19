@@ -7,7 +7,9 @@
 //
 // design/optimize.json (written by the optimize-assets skill; optional) sets per-asset web settings applied to the
 // copies in dist/ only, so public/ keeps the full-quality sources: GLB textures (WebP, max size), GLB simplification,
-// 2D images (quality, max size) and audio (LAME VBR, mono). Keys are dist-relative paths or globs ("*", "music/*").
+// 2D images (quality, max size) and audio (LAME VBR, mono; music also as Opus: "opus": <kbps> writes music/<name>.ogg
+// and marks its sidecar, the engine plays it where the browser decodes Opus and keeps the .mp3 as the fallback).
+// Keys are dist-relative paths or globs ("*", "music/*").
 // Without the file only the lossless GLB pipeline runs. Audio needs ffmpeg on PATH.
 //
 // --precompress writes <file>.br (brotli q11) and <file>.gz (gzip -9) next to every compressible file > 1 KB,
@@ -63,7 +65,7 @@ const brotli = (buf: Buffer) =>
 type TexOpt = { format?: 'webp' | 'jpeg' | 'png' | 'avif'; quality?: number; maxSize?: number };
 type ModelOpt = { simplify?: { ratio: number; error?: number; lockBorder?: boolean } };
 type ImgOpt = { quality?: number; maxSize?: number };
-type AudioOpt = { vbr?: number; mono?: boolean };
+type AudioOpt = { vbr?: number; mono?: boolean; opus?: number };
 type OptimizeConfig = {
   textures?: Record<string, TexOpt>;
   models?: Record<string, ModelOpt>;
@@ -156,20 +158,58 @@ for (const f of walk(dist)) {
     const q = img.quality ?? 85;
     out = await (rel.endsWith('.webp') ? p.webp({ quality: q, effort: 6 }) : rel.endsWith('.png') ? p.png({ compressionLevel: 9 }) /* lossless: sharp's `effort` or `palette` quantize */ : p.jpeg({ quality: q, mozjpeg: true })).toBuffer();
   } else if (snd) {
-    out = reencodeMp3(f, rel, snd);
+    if (snd.opus) encodeOpus(f, rel, snd.opus, before); // from the source, before the mp3 is re-encoded
+    if (snd.vbr !== undefined || snd.mono) out = reencodeMp3(f, rel, snd);
   }
   if (out && out.length < before) {
     writeFileSync(f, out);
-    optimized.push({ file: rel, kind: img ? 'image' : 'audio', before, after: out.length, settings: (img ?? snd)! });
+    optimized.push({ file: rel, kind: img ? 'image' : 'audio', before, after: out.length, settings: img ?? { ...snd, opus: undefined } });
   }
 }
 
-/** LAME VBR re-encode of one mp3; music loops (music/<name>.json sidecar) must keep their exact sample count. */
-function reencodeMp3(f: string, rel: string, o: AudioOpt): Buffer {
+function needFfmpeg(): void {
   if (spawnSync('ffmpeg', ['-version']).error) {
     console.error('release: design/optimize.json re-encodes audio, which needs ffmpeg on PATH (brew install ffmpeg / apt-get install ffmpeg)');
     process.exit(1);
   }
+}
+// decode from files, not a pipe: from a pipe ffmpeg can't use the LAME gapless header and adds ~224 samples
+function samplesOf(file: string): number {
+  return spawnSync('ffmpeg', ['-v', 'error', '-i', file, '-f', 'f32le', '-ac', '1', 'pipe:1'], { maxBuffer: 1 << 30 }).stdout.length / 4;
+}
+
+/** music/<name>.mp3 -> music/<name>.ogg (Opus at `kbps`, VBR) next to it, and `"opus": true` in the dist sidecar so the
+ * engine picks it. Opus decodes at 48 kHz: the loop must come out at exactly samples * 48000 / rate (±1), or it fails. */
+function encodeOpus(f: string, rel: string, kbps: number, before: number): void {
+  const sidecar = f.replace(/\.mp3$/, '.json');
+  if (!rel.startsWith('music/') || !existsSync(sidecar)) {
+    console.error(`release: "opus" in design/optimize.json is for music/<name>.mp3 with its <name>.json sidecar, not ${rel}`);
+    process.exit(1);
+  }
+  needFfmpeg();
+  const ogg = f.replace(/\.mp3$/, '.ogg');
+  const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', f, '-map_metadata', '-1', '-c:a', 'libopus', '-b:a', `${kbps}k`, '-vbr', 'on', '-application', 'audio', ogg]);
+  if (r.status !== 0) {
+    console.error(`release: ffmpeg (libopus) failed on ${rel}: ${r.stderr}`);
+    process.exit(1);
+  }
+  const meta = JSON.parse(readFileSync(sidecar, 'utf8')) as { loop?: boolean; rate?: number; opus?: boolean };
+  if (meta.loop) {
+    const want = (samplesOf(f) * 48000) / (meta.rate ?? 44100);
+    const got = samplesOf(ogg);
+    if (Math.abs(got - want) > 1) {
+      unlinkSync(ogg);
+      console.error(`release: the Opus copy of ${rel} is ${got} samples at 48 kHz, not ${want.toFixed(1)}: the loop seam would drift. Drop its "opus" setting in design/optimize.json.`);
+      process.exit(1);
+    }
+  }
+  writeFileSync(sidecar, JSON.stringify({ ...meta, opus: true }));
+  optimized.push({ file: relative(dist, ogg), kind: 'audio', before, after: statSync(ogg).size, settings: { opus: kbps } });
+}
+
+/** LAME VBR re-encode of one mp3; music loops (music/<name>.json sidecar) must keep their exact sample count. */
+function reencodeMp3(f: string, rel: string, o: AudioOpt): Buffer {
+  needFfmpeg();
   const tmp = `${f}.tmp.mp3`;
   const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', f, '-map_metadata', '-1', '-c:a', 'libmp3lame', '-q:a', String(o.vbr ?? 5), ...(o.mono ? ['-ac', '1'] : []), tmp]);
   if (r.status !== 0) {
@@ -178,10 +218,8 @@ function reencodeMp3(f: string, rel: string, o: AudioOpt): Buffer {
   }
   const sidecar = f.replace(/\.mp3$/, '.json');
   if (rel.startsWith('music/') && existsSync(sidecar) && (JSON.parse(readFileSync(sidecar, 'utf8')) as { loop?: boolean }).loop) {
-    // decode from files, not a pipe: from a pipe ffmpeg can't use the LAME gapless header and adds ~224 samples
-    const samples = (file: string) => spawnSync('ffmpeg', ['-v', 'error', '-i', file, '-f', 'f32le', '-ac', '1', 'pipe:1'], { maxBuffer: 1 << 30 }).stdout.length / 4;
-    const want = samples(f);
-    const got = samples(tmp);
+    const want = samplesOf(f);
+    const got = samplesOf(tmp);
     if (got !== want) {
       unlinkSync(tmp);
       console.error(`release: re-encoding ${rel} changed its length (${want} -> ${got} samples): the loop seam would drift. Drop its audio setting in design/optimize.json.`);
@@ -199,6 +237,8 @@ function reencodeMp3(f: string, rel: string, o: AudioOpt): Buffer {
 //    Lazily loaded levels (web-game-runtime levels.ts): assets that only levels after the first use, per
 //    design/levels.json { "levels": [{ "models": [], "sfx": [], "music": [] }, ...] }, get NO hint, so they
 //    don't compete with the first level's bandwidth; the game fetches them in the background during play.
+/** music/<name>.mp3 files that have an Opus copy: the fallback for browsers without Opus. Not preloaded, not in totals. */
+const fallbacks = new Set(walk(dist).map((f) => relative(dist, f)).filter((r) => /^music\/.*\.mp3$/.test(r) && existsSync(join(dist, r.replace(/\.mp3$/, '.ogg')))));
 if (!argv.includes('--no-preload')) {
   const htmlPath = join(dist, 'index.html');
   let page = readFileSync(htmlPath, 'utf8');
@@ -210,6 +250,7 @@ if (!argv.includes('--no-preload')) {
   const hints = walk(dist)
     .filter((f) => (/\.(js|wasm|glb|mp3|ogg)$/.test(f) || /^images\/.*\.(webp|png|jpg)$/.test(relative(dist, f))) && !page.includes(relative(dist, f)))
     .filter((f) => !lazy.has(relative(dist, f)))
+    .filter((f) => !fallbacks.has(relative(dist, f))) // the .ogg is preloaded; its .mp3 is fetched only if Opus fails
     // icon.* is the favicon / share image, never loaded by the game: a preload of it only warns 'not used'
     .filter((f) => !/^images\/icon\./.test(relative(dist, f)))
     .map((f) =>
@@ -234,7 +275,7 @@ function lazyLevelAssets(): Set<string> {
   type Level = { models?: string[]; sfx?: string[]; music?: string[] };
   const { levels = [] } = JSON.parse(readFileSync(file, 'utf8')) as { levels?: Level[] };
   const paths = (l: Level | undefined): string[] =>
-    l ? [...(l.models ?? []).map((n) => `models/${n}.glb`), ...(l.sfx ?? []).map((n) => `sfx/${n}.mp3`), ...(l.music ?? []).map((n) => `music/${n}.mp3`)] : [];
+    l ? [...(l.models ?? []).map((n) => `models/${n}.glb`), ...(l.sfx ?? []).map((n) => `sfx/${n}.mp3`), ...(l.music ?? []).flatMap((n) => [`music/${n}.mp3`, `music/${n}.ogg`])] : [];
   const first = new Set(paths(levels[0]));
   const lazy = new Set(levels.slice(1).flatMap(paths).filter((p) => !first.has(p)));
   if (lazy.size) console.log(`lazy level assets (no preload hint): ${[...lazy].join(', ')}`);
@@ -261,11 +302,12 @@ const rows = files.map((f): Row => {
   }
   return row;
 });
-const sum = (xs: Row[], k: 'bytes' | 'gzip' | 'brotli') => xs.reduce((s, x) => s + (x[k] ?? 0), 0);
+// totals = what one browser downloads: an .mp3 with an Opus copy is only the fallback
+const sum = (xs: Row[], k: 'bytes' | 'gzip' | 'brotli') => xs.reduce((s, x) => s + (fallbacks.has(x.file) ? 0 : (x[k] ?? 0)), 0);
 const js = rows.filter((r) => r.file.endsWith('.js'));
 const kb = (b: number) => (b / 1024).toFixed(1).padStart(8);
 console.log(`\n${'file'.padEnd(46)}      raw KB   gzip KB`);
-for (const r of rows.sort((a, b) => b.gzip - a.gzip)) console.log(`${r.file.padEnd(46)} ${kb(r.bytes)}  ${kb(r.gzip)}`);
+for (const r of rows.sort((a, b) => b.gzip - a.gzip)) console.log(`${r.file.padEnd(46)} ${kb(r.bytes)}  ${kb(r.gzip)}${fallbacks.has(r.file) ? '  (fallback for no Opus: not in the total)' : ''}`);
 for (const g of glbReport) console.log(`  optimized ${g.file}: ${kb(g.before).trim()} KB -> ${kb(g.after).trim()} KB`);
 if (optimized.length) {
   console.log(`\noptimize.json (${relative(project, optimizePath)}):`);
@@ -287,6 +329,6 @@ console.log(`\nJS ${totals.jsGzipKb.toFixed(0)} KB gzip (budget ${maxJsKb}) · t
 if (brotliTotals)
   console.log(`precompressed .br/.gz written · brotli: JS ${brotliTotals.jsBrotliKb.toFixed(0)} KB, total ${brotliTotals.totalBrotliMb.toFixed(2)} MB (${((1 - brotliTotals.totalBrotliMb / totals.totalGzipMb) * 100).toFixed(0)}% smaller than gzip)`);
 for (const p of problems) console.log(`BUDGET: ${p}`);
-writeFileSync(join(dist, 'release-report.json'), JSON.stringify({ createdAt: new Date().toISOString(), totals, budgets: { maxJsKb, maxTotalMb }, problems, glbs: glbReport, optimized, files: rows }, null, 2));
+writeFileSync(join(dist, 'release-report.json'), JSON.stringify({ createdAt: new Date().toISOString(), totals, budgets: { maxJsKb, maxTotalMb }, problems, glbs: glbReport, optimized, fallbacks: [...fallbacks], files: rows }, null, 2));
 console.log(problems.length ? 'release: FAIL' : 'release: OK -> dist/');
 process.exit(problems.length ? 1 : 0);

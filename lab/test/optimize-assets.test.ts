@@ -48,13 +48,13 @@ test('release applies design/optimize.json to dist/ only: WebP textures, simplif
     textures: { '*': { format: 'webp', quality: 90 }, 'models/child.glb': { maxSize: 256 } },
     models: { 'models/orchard.glb': { simplify: { ratio: 0.5, error: 0.01 } } },
     images: { 'images/*': { quality: 80 } },
-    audio: { 'music/*': { vbr: 6 }, 'sfx/*': { vbr: 6 } },
+    audio: { 'music/*': { vbr: 6, opus: 64 }, 'sfx/*': { vbr: 6 } },
   }));
-  const r = run(process.execPath, [RELEASE, '--project', dir, '--skip-build', '--no-preload']);
+  const r = run(process.execPath, [RELEASE, '--project', dir, '--skip-build']);
   assert.equal(r.status, 0, r.stdout.slice(-1500) + r.stderr.slice(-1500));
-  const report = JSON.parse(readFileSync(join(dir, 'dist/release-report.json'), 'utf8')) as { optimized: { file: string; before: number; after: number }[] };
+  const report = JSON.parse(readFileSync(join(dir, 'dist/release-report.json'), 'utf8')) as { optimized: { file: string; before: number; after: number }[]; fallbacks: string[]; files: { file: string }[] };
   const files = report.optimized.map((o) => o.file);
-  for (const f of ['models/child.glb', 'models/orchard.glb', 'images/splash.webp', 'music/play.mp3']) assert.ok(files.includes(f), `${f} optimized (${files.join(', ')})`);
+  for (const f of ['models/child.glb', 'models/orchard.glb', 'images/splash.webp', 'music/play.mp3', 'music/play.ogg']) assert.ok(files.includes(f), `${f} optimized (${files.join(', ')})`);
   for (const o of report.optimized) assert.ok(o.after < o.before || o.file.endsWith('.glb'), `${o.file} got smaller`);
 
   const child = await glbInfo(join(dir, 'dist/models/child.glb'));
@@ -69,6 +69,15 @@ test('release applies design/optimize.json to dist/ only: WebP textures, simplif
   assert.equal(samples(join(dir, 'dist/music/play.mp3')), meta.samples, 'the music loop keeps its exact sample count');
   assert.ok(readFileSync(join(GAME, 'public/music/play.mp3')).length > readFileSync(join(dir, 'dist/music/play.mp3')).length);
   assert.ok(existsSync(join(GAME, 'public/models/child.glb')), 'sources untouched');
+
+  // Opus: a .ogg next to the .mp3, the dist sidecar says so, the loop is exact at 48 kHz, the .mp3 is only the fallback
+  assert.equal(samples(join(dir, 'dist/music/play.ogg')), Math.round((meta.samples * 48000) / 44100), 'the Opus loop keeps its length');
+  assert.equal((JSON.parse(readFileSync(join(dir, 'dist/music/play.json'), 'utf8')) as { opus?: boolean }).opus, true);
+  assert.equal((JSON.parse(readFileSync(join(GAME, 'public/music/play.json'), 'utf8')) as { opus?: boolean }).opus, undefined, 'source sidecar untouched');
+  assert.deepEqual(report.fallbacks, ['music/play.mp3']);
+  const html = readFileSync(join(dir, 'dist/index.html'), 'utf8');
+  assert.match(html, /href="\.\/music\/play\.ogg"/, 'the Opus copy is preloaded');
+  assert.doesNotMatch(html, /music\/play\.mp3/, 'the fallback is not');
 });
 
 test('optimize-assets propose: near-lossless defaults, user entries win, decided candidates are not asked again', () => {

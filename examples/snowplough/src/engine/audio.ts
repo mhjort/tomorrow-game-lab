@@ -1,6 +1,8 @@
 // Sound effects and music: parallel download with byte progress, decoded before play, WebAudio playback.
 // Files live in public/sfx/<name>.mp3 and public/music/<name>.mp3 + <name>.json (made by the generate-media skill;
 // the JSON holds the loop length, so loops are seamless even where a decoder keeps the MP3 encoder padding).
+// A release build may add music/<name>.ogg (Opus, about half the bytes) and set "opus": true in the sidecar: the
+// track is then fetched as .ogg where the browser decodes Opus, and as .mp3 otherwise or if decoding fails.
 //
 //   const audio = createAudio();
 //   await loading.parallel('Loading…', [ ..., { weight: 0.1, run: (p) => audio.load(['putt', 'cup'], p) },
@@ -25,7 +27,12 @@ export interface MusicMeta {
   bpm?: number;
   beatsPerBar?: number;
   seconds?: number;
+  /** a release build wrote music/<name>.ogg (Opus) next to the .mp3 */
+  opus?: boolean;
 }
+
+/** Can this browser decode Opus in Ogg? (decodeAudioData has no feature test; the media element's answer matches it.) */
+const OPUS = typeof document !== 'undefined' && document.createElement('audio').canPlayType('audio/ogg; codecs="opus"') !== '';
 
 export interface TrackInfo {
   bpm: number | undefined;
@@ -34,6 +41,8 @@ export interface TrackInfo {
   loopStart: number;
   loopEnd: number;
   decoded: number;
+  /** the file that was decoded: 'ogg' (Opus, release builds) or 'mp3' */
+  format: 'ogg' | 'mp3';
 }
 
 export interface Audio {
@@ -73,6 +82,7 @@ interface Track {
   buffer: AudioBuffer;
   meta: MusicMeta;
   loop: [number, number];
+  format: 'ogg' | 'mp3';
 }
 
 export function createAudio({ volume = 0.8, musicVolume = 0.5, ext = 'mp3' } = {}): Audio {
@@ -172,17 +182,24 @@ export function createAudio({ volume = 0.8, musicVolume = 0.5, ext = 'mp3' } = {
       const metas = await Promise.all(
         names.map((n) => fetch(`${BASE}music/${n}.json`).then((r): Promise<MusicMeta> | MusicMeta => (r.ok ? r.json() : { loop: true }))),
       );
+      const opus = metas.map((m) => OPUS && m.opus === true);
       await fetchAll(
-        names.map((n) => `music/${n}.mp3`),
+        names.map((n, i) => `music/${n}.${opus[i] ? 'ogg' : 'mp3'}`),
         onProgress,
         async (i, bytes) => {
-          const buffer = await decoder.decodeAudioData(bytes);
+          let format: 'ogg' | 'mp3' = opus[i] ? 'ogg' : 'mp3';
+          const buffer = await decoder.decodeAudioData(bytes).catch(async (e: unknown) => {
+            if (!opus[i]) throw e;
+            console.warn(`audio: music/${names[i]}.ogg did not decode, using the .mp3`, e);
+            format = 'mp3';
+            return decoder.decodeAudioData(await fetchBytes(`${BASE}music/${names[i]}.mp3`, () => {}));
+          });
           const meta = metas[i]!;
           const loop: [number, number] =
             meta.samples && meta.rate
               ? loopPoints(buffer.getChannelData(0), buffer.sampleRate, { samples: meta.samples, rate: meta.rate })
               : [0, buffer.duration];
-          tracks.set(names[i]!, { buffer, meta, loop });
+          tracks.set(names[i]!, { buffer, meta, loop, format });
         },
       );
     },
@@ -209,6 +226,7 @@ export function createAudio({ volume = 0.8, musicVolume = 0.5, ext = 'mp3' } = {
           loopStart: t.loop[0],
           loopEnd: t.loop[1],
           decoded: t.buffer.duration,
+          format: t.format,
         }
       );
     },

@@ -23,6 +23,12 @@
       "accepted": true,
       "gain": "-27 KB gzip",
       "date": "2026-11-12"
+    },
+    {
+      "change": "music-opus64:music/play.mp3",
+      "accepted": true,
+      "gain": "-40 KB gzip (vs MP3 VBR 7)",
+      "date": "2026-11-19"
     }
   ],
   "textures": {
@@ -41,7 +47,8 @@
   },
   "audio": {
     "music/*": {
-      "vbr": 5
+      "vbr": 5,
+      "opus": 64
     },
     "sfx/*": {
       "vbr": 5

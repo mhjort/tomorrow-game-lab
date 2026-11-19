@@ -139,7 +139,10 @@ export function propose(assets: Asset[], current: OptimizeConfig): { config: Opt
     }
     const big = (a.textures ?? []).filter((t) => Math.max(t.width, t.height) > 1024);
     if (big.length) add({ id: `texture-1024:${a.file}`, file: a.file, section: 'textures', settings: { format: 'webp', quality: 90, maxSize: 1024 }, what: `${big.length} texture(s) of up to ${Math.max(...big.map((t) => Math.max(t.width, t.height)))} px down to 1024 px: softer up close` });
-    if (a.kind === 'audio' && a.file.startsWith('music/')) add({ id: `music-vbr7:${a.file}`, file: a.file, section: 'audio', settings: { vbr: 7 }, what: 'about 100 kbps instead of 130: duller highs, audible on headphones' });
+    if (a.kind === 'audio' && a.file.startsWith('music/')) {
+      add({ id: `music-vbr7:${a.file}`, file: a.file, section: 'audio', settings: { vbr: 7 }, what: 'about 100 kbps instead of 130: duller highs, audible on headphones' });
+      add({ id: `music-opus64:${a.file}`, file: a.file, section: 'audio', settings: { opus: 64 }, what: 'an Opus copy at 64 kbps for browsers that decode it (the .mp3 stays as the fallback): about half of MP3 VBR 5, close to it by ear' });
+    }
     if (a.kind === 'image' && !/icon/.test(a.file) && a.gzipKb > 50) add({ id: `image-q70:${a.file}`, file: a.file, section: 'images', settings: { quality: 70 }, what: 'quality 70: blockier gradients in the loading screen' });
   }
   return { config, candidates };

@@ -23,6 +23,30 @@
       "accepted": true,
       "gain": "-105.7 KB gzip",
       "date": "2026-11-12"
+    },
+    {
+      "change": "music-opus64:music/course.mp3",
+      "accepted": true,
+      "gain": "-68 KB gzip (vs MP3 VBR 7)",
+      "date": "2026-11-19"
+    },
+    {
+      "change": "music-opus64:music/city.mp3",
+      "accepted": true,
+      "gain": "-19 KB gzip (vs MP3 VBR 7)",
+      "date": "2026-11-19"
+    },
+    {
+      "change": "music-opus64:music/desert.mp3",
+      "accepted": true,
+      "gain": "-57 KB gzip (vs MP3 VBR 7)",
+      "date": "2026-11-19"
+    },
+    {
+      "change": "music-opus64:music/snow.mp3",
+      "accepted": true,
+      "gain": "-45 KB gzip (vs MP3 VBR 7)",
+      "date": "2026-11-19"
     }
   ],
   "textures": {
@@ -38,7 +62,8 @@
   },
   "audio": {
     "music/*": {
-      "vbr": 5
+      "vbr": 5,
+      "opus": 64
     },
     "sfx/*": {
       "vbr": 5
