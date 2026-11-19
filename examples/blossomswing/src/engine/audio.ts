@@ -10,8 +10,8 @@
 //   audio.play('putt', { volume: 0.8, rate: 1.05 });
 //   audio.playMusic('theme');        // from a gameplay event in update(); starts on the first gesture if needed
 //
-// Browsers only start audio after a user gesture, so the AudioContext is created on the first pointer/key event
-// (no autoplay console warning); clips are decoded up front with an OfflineAudioContext. In ?test mode nothing is
+// Browsers only start audio after a user gesture, so the AudioContext is created on the first pointer/touch/key
+// event (no autoplay console warning; iOS needs the touch's end, see below); clips are decoded up front with an OfflineAudioContext. In ?test mode nothing is
 // audible, but play() still counts and `audio.music` names the track that would play, so scenarios can assert on
 // `audio.counts` and `audio.music` via getState().
 import { fetchBytes, assetSize, type Progress } from './assets.ts';
@@ -164,8 +164,14 @@ export function createAudio({ volume = 0.8, musicVolume = 0.5, ext = 'mp3' } = {
       }),
     );
   }
-  addEventListener('pointerdown', unlock, { capture: true });
-  addEventListener('keydown', unlock, { capture: true });
+  // iOS Safari only lets a touch END (touchend / pointerup / click) start audio: a context created or resumed on
+  // pointerdown stays suspended there, and the game was silent on iPhones. Listen to all of them, for good: iOS can
+  // suspend the context again (a call, the app in the background), and the next tap resumes it.
+  for (const type of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) addEventListener(type, unlock, { capture: true });
+  // iOS mutes Web Audio with the ring/silent switch (media elements play on): 'playback' plays like a video does.
+  // The in-game mute key is the way to silence the game. Safari 17+; other browsers have no audioSession.
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session) session.type = 'playback';
 
   return {
     counts,
