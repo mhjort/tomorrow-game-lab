@@ -182,7 +182,7 @@ HOUSE_MODELS = (  # generated from crops/house.png (generate-media models.house-
 )
 HOUSE_HEIGHT = 5.2  # chimney top; the footprint comes out about 4.5 m, inside the 6 m plot
 house_templates = []
-houses = []  # textured: joined into their own "Houses" mesh (the untextured parts lose their UVs below)
+house_placements = []  # textured: instanced as "Houses" (L.instances): each template's mesh is stored once
 
 
 def house(i, x, y, facing, var):
@@ -192,20 +192,12 @@ def house(i, x, y, facing, var):
     if not house_templates:
         for path, fwd in HOUSE_MODELS:
             t = L.import_glb(path, f"HouseT{len(house_templates)}", forward=fwd, height=HOUSE_HEIGHT, max_texture=1024)
+            L.apply_transform(t)
             t.hide_render = True
             bake_window_glow(t)
             house_templates.append(t)
     t = house_templates[var % len(house_templates)]
-    o = t.copy()
-    o.data = t.data.copy()
-    o.name = f"H{i}_house"
-    o.hide_render = False
-    bpy.context.collection.objects.link(o)
-    o.scale = (1, 1, 1)
     k = 0.92 + 0.05 * var  # sizes vary like the video's (0.92-1.07)
-    o.matrix_world = mathutils.Matrix.Scale(k, 4) @ o.matrix_world
-    L.apply_transform(o)
-    parts = [o]
     door_x = 0.0
     # lamp post on the door side, at the edge of the plot (the street side)
     lx = -door_x * 2.6 if abs(door_x) > 0 else 1.8
@@ -214,8 +206,8 @@ def house(i, x, y, facing, var):
     lamp = L.box(f"Lamp_{i}", (0.32, 0.32, 0.4), (lx, -2.95, 2.35), MAT["lampOff"])
     lamp_cap = L.box(f"H{i}_lampcap", (0.42, 0.42, 0.1), (lx, -2.95, 2.6), MAT["snowcap"])
     rot = {"s": 0.0, "n": math.pi, "e": math.pi / 2, "w": -math.pi / 2}[facing]
-    place(parts + [post, arm, lamp_cap, lamp], x, y, rot)
-    houses.extend(parts)
+    place([post, arm, lamp_cap, lamp], x, y, rot)
+    house_placements.append((t.data, (x, y, 0), (0, 0, rot), (k, k, k)))  # scaled about its foot, then placed
     for o in (post, arm, lamp_cap):
         keep(o)
     lamp.name = f"Lamp_{i}"
@@ -358,14 +350,12 @@ for o in static:
     _by[key] = _by.get(key, 0) + sum(len(p.vertices) - 2 for p in o.data.polygons)
 print("[lab_bpy] tris by part: " + ", ".join(f"{k} {v}" for k, v in sorted(_by.items(), key=lambda kv: -kv[1])[:12]))
 village_mesh = L.join(static, "Village")
-houses_mesh = L.join(houses, "Houses")  # textured cabins (window glow is made at load: src/houseGlow.js)
 for t in house_templates:
-    bpy.data.objects.remove(t, do_unlink=True)
+    bpy.data.objects.remove(t, do_unlink=True)  # their mesh data stays: the instances use it
+L.instances("Houses", house_placements)  # textured cabins: 2 meshes + one transform per house
 bpy.context.scene.cursor.location = (0, 0, 0)
 L.select_only(village_mesh)
 bpy.ops.object.origin_set(type="ORIGIN_CURSOR")  # pivot at the village centre
-L.select_only(houses_mesh)
-bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
 bpy.context.scene.cursor.location = (sx, sy - 0.2, 0)
 L.select_only(fire)
 bpy.ops.object.origin_set(type="ORIGIN_CURSOR")  # pivot at the fire's foot
